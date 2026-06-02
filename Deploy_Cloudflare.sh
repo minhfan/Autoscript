@@ -36,8 +36,8 @@ if [[ ! -f "wrangler.jsonc" ]]; then
   exit 1
 fi
 
-if [[ ! -f "public/index.html" ]]; then
-  echo "[Autoscript] Lỗi: Thiếu public/index.html."
+if [[ ! -f "ScriptAutomation_v1.html" ]]; then
+  echo "[Autoscript] Lỗi: Thiếu ScriptAutomation_v1.html."
   exit 1
 fi
 

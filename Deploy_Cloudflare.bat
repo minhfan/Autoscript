@@ -20,7 +20,7 @@ echo [Autoscript] Thư mục dự án: %PROJECT_ROOT%
 
 if not exist "package.json" goto :fail_package
 if not exist "wrangler.jsonc" goto :fail_wrangler_config
-if not exist "public\index.html" goto :fail_public_index
+if not exist "ScriptAutomation_v1.html" goto :fail_source_html
 
 where node >nul 2>nul || goto :fail_node
 where npm >nul 2>nul || goto :fail_npm
@@ -57,8 +57,8 @@ goto :fail_exit
 echo [Autoscript] Lỗi: Thiếu wrangler.jsonc.
 goto :fail_exit
 
-:fail_public_index
-echo [Autoscript] Lỗi: Thiếu public\index.html.
+:fail_source_html
+echo [Autoscript] Lỗi: Thiếu ScriptAutomation_v1.html.
 goto :fail_exit
 
 :fail_node

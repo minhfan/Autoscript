@@ -1,0 +1,10 @@
+.git/
+.wrangler/
+node_modules/
+src/
+package.json
+package-lock.json
+wrangler.jsonc
+.gitattributes
+.assetsignore
+ScriptAutomation_v1.html

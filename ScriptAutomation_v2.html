@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoscript TCP Pro — Video Logging Tool</title>
+    <meta name="description" content="Professional video timecode logging and script automation tool for editors.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="src/styles.css?v=20260603b">
+    <style>
+        .context-menu {
+            position: absolute;
+            background: var(--bg-panel, #1e293b);
+            border: 1px solid var(--border, #334155);
+            border-radius: var(--r-md, 8px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 1000;
+            min-width: 120px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .context-menu .menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 10.83px;
+            color: var(--text-main, #f8fafc);
+            transition: background 0.2s;
+        }
+        .context-menu .menu-item:hover {
+            background: var(--bg-hover, #334155);
+        }
+        .context-menu .menu-item-danger {
+            color: var(--danger, #ef4444);
+        }
+        .context-menu .menu-item-danger:hover {
+            background: var(--danger, #ef4444);
+            color: white;
+        }
+        .row-editing {
+            outline: 2px solid #FFC107;
+            background: rgba(255, 193, 7, 0.1) !important;
+        }
+        .menu-animated {
+            animation: fadeInMenu 0.15s ease-out forwards;
+            transform-origin: top center;
+        }
+        @keyframes fadeInMenu {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .highlight-new {
+            animation: flashNew 2s ease-out forwards;
+        }
+        @keyframes flashNew {
+            0% { background-color: rgba(255, 193, 7, 0.5) !important; }
+            100% { background-color: transparent; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-logo">
+            <h1>Autoscript <span>TCP</span></h1>
+        </div>
+        <div class="header-controls">
+            <span id="saveStatus">Saved</span>
+            <select id="fpsSelect" class="btn-header" style="width: auto;">
+                <option value="23.976">23.976 fps</option>
+                <option value="24">24 fps</option>
+                <option value="25">25 fps</option>
+                <option value="29.97" selected>29.97 fps</option>
+                <option value="30">30 fps</option>
+                <option value="50">50 fps</option>
+                <option value="59.94">59.94 fps</option>
+                <option value="60">60 fps</option>
+            </select>
+            <select id="themeSelect" class="btn-header" style="width: auto;">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+                <option value="blue">Blue</option>
+            </select>
+            <button class="btn-header" id="btnShortcuts">Settings</button>
+            <button class="btn-header" id="btnHelp">Shortcuts</button>
+        </div>
+    </header>
+
+    <div class="layout-container" id="mainContainer">
+        <div class="left-col" id="leftCol">
+            <div class="video-section" id="videoSection">
+                <label class="file-upload" id="uploadLabel">
+                    <input type="file" id="videoUpload" accept="video/*" style="display: none;">
+                    <span id="uploadText">Click or press 'V' to upload a video file</span>
+                </label>
+                <div class="video-wrapper">
+                    <video id="videoPlayer" disablePictureInPicture></video>
+                </div>
+                
+                <div class="video-controls" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <div class="control-group">
+                        <span class="control-label">Speed</span>
+                        <div class="speed-control" id="speedDisplay" title="Drag L/R or Click">1.00x</div>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <button type="button" class="tool-btn icon primary" id="btnPlayVideo" title="Phát video" aria-label="Phát video" style="font-size: 20px; min-width: 48px; height: 32px; display: flex; justify-content: center; align-items: center; padding: 0;">&#9658;</button>
+                        <div class="big-timecode" id="bigTimecode" title="Click to Copy" style="margin: 0; padding: 0;">00:00:00:00</div>
+                    </div>
+
+                    <div class="control-group" style="display: flex; gap: 15px;">
+                        <div class="control-group" style="margin: 0;">
+                            <span class="control-label">Vol</span>
+                            <input type="range" id="volumeSlider" class="vol-slider" min="0" max="1" step="0.05" value="1">
+                        </div>
+                        <button type="button" class="preview-cut-btn" id="btnPreviewCut" title="Preview Cut: OFF (P)" aria-label="Toggle Preview Cut"></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="resizer-h" id="resizerH1"></div>
+
+            <div class="timeline-section" id="timelineSection" style="position: relative;">
+                <div class="timeline-zoom-controls" style="position: absolute; top: 12px; right: 12px; z-index: 10;">
+                    <div style="position: relative; display: inline-block;">
+                        <div class="control-group" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <span class="control-label" style="margin: 0; font-size: 8.33px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Zoom (Z)</span>
+                            <div id="btnZoomDrag" class="speed-control" style="cursor: ew-resize; user-select: none; width: 64px; text-align: center; margin: 0; padding: 4px 12px; height: auto;" title="Drag L/R or Click">
+                                <span id="zoomText">1.00x</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="timeline-full-container">
+                    <div id="tcJumpOverlay" class="tc-jump-overlay">
+                        <input type="text" id="tcJumpInput" class="tc-jump-input" placeholder="00:00:00:00" />
+                        <div class="tc-jump-actions">
+                            <button id="tcJumpGo" class="btn-fs" style="padding: 2px 8px;">GO</button>
+                            <button id="tcJumpClose" class="btn-delete" style="padding: 2px 8px;">X</button>
+                        </div>
+                    </div>
+                    <span class="tc-bound" id="tcStart" title="Jump to Start" style="margin-right: 10px;">00:00:00:00</span>
+                    <style>
+                        .zoom-item { padding: 6px 12px; font-size: 9.17px; cursor: pointer; color: white; transition: background 0.2s; }
+                        .zoom-item:hover { background: var(--accent); }
+                    </style>
+                    <div class="custom-timeline-wrapper" style="overflow-x: auto;">
+                        <div class="custom-timeline" id="customTimeline" style="width: 100%; min-width: 100%;">
+                            <div id="draftMarker" class="timeline-marker" style="display: none; z-index: 15;"></div>
+                            <div id="timelineTicks" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;"></div>
+                            <div class="timeline-progress" id="timelineProgress"></div>
+                            <div class="timeline-active-range" id="activeRange"></div>
+                            <div id="playheadIndicator" style="position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text-main); z-index: 20; pointer-events: none; left: 0%;">
+                                <div style="position: absolute; top: -6px; left: -4px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--text-main);"></div>
+                            </div>
+                            <div class="hover-tooltip" id="hoverTooltip"></div>
+                        </div>
+                    </div>
+                    <span class="tc-bound" id="tcEnd" title="Jump to End" style="margin-left: 10px;">00:00:00:00</span>
+                </div>
+            </div>
+
+            <div class="resizer-h" id="resizerH2"></div>
+
+            <div class="form-section" id="formSection">
+                <div class="tc-row">
+                    <div class="tc-box" id="boxIn" title="Seek to IN (Q) / Mark if empty">
+                        <span>TC IN</span>
+                        <div class="time" id="valTcIn">00:00:00:00</div>
+                    </div>
+                    <div class="tc-box" id="boxOut" title="Seek to OUT (W) / Mark if empty">
+                        <span>TC OUT</span>
+                        <div class="time" id="valTcOut">00:00:00:00</div>
+                    </div>
+                    <div class="tc-box" id="boxSwap" title="Seek to SWAP (E) / Mark if empty" style="display: none;">
+                        <span>TC SWAP (E)</span>
+                        <div class="time" id="valTcSwap">00:00:00:00</div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label id="labelAction" style="margin-bottom: 0;">ACTION (A):</label>
+                    </div>
+                    <div class="action-button-group" id="actionButtonGroup" role="radiogroup" aria-label="Chọn action">
+                        <button type="button" class="action-button" data-action="DELETE" role="radio">DELETE</button>
+                        <button type="button" class="action-button" data-action="SWAP" role="radio">SWAP</button>
+                        <button type="button" class="action-button" data-action="POP-UP" role="radio">POP-UP</button>
+                        <button type="button" class="action-button" data-action="QUESTION" role="radio">QUESTION</button>
+                        <button type="button" class="action-button" data-action="QUOTE" role="radio">QUOTE</button>
+                        <button type="button" class="action-button" data-action="NOTE" role="radio">NOTE</button>
+                        <button type="button" class="action-button" data-action="OTHERS" role="radio">OTHERS</button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: stretch; margin-top: 10px; flex: 1;">
+                    <div style="display: flex; flex-direction: column; flex: 1; gap: 10px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
+                            <label id="labelScript">SCRIPT (S):</label>
+                            <textarea id="inputScript" style="flex: 1; resize: none; overflow-y: hidden;"></textarea>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
+                            <label id="labelNote">NOTE (N):</label>
+                            <textarea id="inputNote" style="flex: 1; resize: none; overflow-y: hidden;"></textarea>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="visibility: hidden;">IMPORT</label>
+                        <button type="button" class="tool-btn icon primary" id="btnToolbarImport" title="Import action (Shift+Enter)" style="width: 70px; flex: 1; font-size: 28.00px; border-radius: var(--r-md);">&#10140;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="resizer-v" id="resizerV"></div>
+
+        <div class="right-col" id="tablePanel">
+            <div class="table-header" style="align-items: center;">
+                <h2 class="section-title" style="display: flex; align-items: center; gap: 8px;">
+                    Script
+                    <span class="log-count-badge" id="logCount">0</span>
+                </h2>
+            </div>
+                <div class="action-btns" style="display: flex; align-items: center; width: 100%; margin-bottom: 12px; gap: 10px;">
+                    <div style="position: relative;">
+                        <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; align-items: center;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                        </span>
+                        <select id="filterAction" style="background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); color: var(--text-main); font-size: 9.17px; padding: 6px 24px 6px 26px; outline: none; font-family: 'Outfit', sans-serif; cursor: pointer; appearance: none; width: auto;">
+                            <option value="ALL">All actions</option>
+                            <option value="DELETE">DELETE</option>
+                            <option value="SWAP">SWAP</option>
+                            <option value="POP-UP">POP-UP</option>
+                            <option value="QUESTION">QUESTION</option>
+                            <option value="QUOTE">QUOTE</option>
+                            <option value="NOTE">NOTE</option>
+                            <option value="OTHERS">OTHERS</option>
+                        </select>
+                        <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; font-size: 7.5px;">▼</span>
+                    </div>
+                    <div style="position: relative;">
+                        <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; align-items: center;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </span>
+                        <input type="text" id="searchInput" placeholder="Search script, timecode..." style="background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); color: var(--text-main); font-size: 9.17px; padding: 6px 10px 6px 26px; width: 220px; outline: none; font-family: 'Outfit', sans-serif;">
+                    </div>
+                    <div style="display: flex; gap: 5px; margin-left: auto;">
+                        <button class="btn-action" id="btnNewProject">New Project</button>
+                        <label class="btn-action" id="lblImport" style="cursor: pointer; margin: 0;">
+                            <input type="file" id="csvImport" accept=".csv" style="display: none;">
+                            Import
+                        </label>
+                        <button class="btn-action btn-export" id="btnExport">Export CSV</button>
+                    </div>
+                </div>
+            <div class="table-wrap">
+                <table id="logTable">
+                    <colgroup>
+                        <col class="col-stt">
+                        <col class="col-play" style="width: 44px;">
+                        <col class="col-action">
+                        <col class="col-tc">
+                        <col class="col-tc">
+                        <col class="col-tc">
+                        <col>
+                        <col>
+                        <col class="col-delete">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th></th>
+                            <th>ACTION</th>
+                            <th>TC SWAP</th>
+                            <th>TC IN</th>
+                            <th>TC OUT</th>
+                            <th>SCRIPT</th>
+                            <th>NOTE</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="logBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="floatHelpPanel" class="float-panel">
+        <div class="float-header" id="floatHelpHeader">
+            <h2>Shortcuts Guide</h2>
+            <button class="close-float" id="btnCloseHelp">&#10005;</button>
+        </div>
+        <div class="float-content">
+            <div class="shortcut-grid" id="helpGrid"></div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <h2>Customize Shortcuts</h2>
+            <p style="font-size: 9.17px; color:var(--text-sub); text-align:center; margin-bottom:16px; margin-top:6px;">Click a key button, then press your new shortcut combination.</p>
+            <div class="shortcut-grid" id="settingsGrid"></div>
+            <button class="close-btn" id="btnCloseSettings">Save Settings</button>
+        </div>
+    </div>
+
+    <div id="rowContextMenu" class="context-menu" style="display: none;">
+        <div class="menu-item" id="menuEdit">Edit Row</div>
+        <div class="menu-item menu-item-danger" id="menuDelete">Delete Row</div>
+    </div>
+
+    <script>
+    // Debug: catch and display any JS errors
+    window.__jsErrors = [];
+    window.onerror = function(msg, src, line, col) {
+        window.__jsErrors.push(msg + ' @ ' + src + ':' + line);
+        console.error('[AUTOSCRIPT ERROR]', msg, '@', src, ':', line);
+    };
+    </script>
+    <script src="src/js/timecode.js?v=20260603b"></script>
+    <script src="src/js/app.js?v=20260603b"></script>
+</body>
+</html>

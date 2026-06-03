@@ -965,13 +965,7 @@ upload.addEventListener('change', e => {
     }
 });
 
-// Make upload label clickable
-const uploadLabel = document.getElementById('uploadLabel');
-if (uploadLabel) {
-    uploadLabel.addEventListener('click', e => {
-        if (e.target !== upload) upload.click();
-    });
-}
+
 
 // -- Video events --
 video.addEventListener('loadedmetadata', () => {

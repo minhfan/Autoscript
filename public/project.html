@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoscript TCP — Projects</title>
+    <meta name="description" content="Manage your Autoscript video logging projects. Create, open, and sync Google Sheets.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+/* ============================================================
+   AUTOSCRIPT TCP — Project Page Styles
+   Design: design-taste-frontend-v1
+   Palette: Zinc/Slate base + Emerald accent
+   Font: Outfit + JetBrains Mono
+   ============================================================ */
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+    --bg-deep: #09090b;
+    --bg-surface: #18181b;
+    --bg-card: #141416;
+    --bg-card-hover: #1a1a1e;
+    --bg-input: #27272a;
+    --bg-input-focus: #3f3f46;
+    --border: #27272a;
+    --border-bright: #3f3f46;
+    --border-subtle: rgba(255,255,255,0.06);
+    --text-main: #fafafa;
+    --text-sub: #a1a1aa;
+    --text-muted: #71717a;
+    --text-dim: #52525b;
+    --accent: #10b981;
+    --accent-dim: rgba(16, 185, 129, 0.12);
+    --accent-glow: rgba(16, 185, 129, 0.2);
+    --danger: #ef4444;
+    --danger-dim: rgba(239, 68, 68, 0.1);
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 20px;
+    --r-xl: 24px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.15);
+    --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.4), 0 16px 40px rgba(0,0,0,0.2);
+    --transition-base: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+html { height: 100%; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-main);
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Top Navigation Bar ──────────────────────────────────── */
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(9, 9, 11, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+}
+
+.topbar-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.topbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text-main);
+}
+
+.logo-text {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.logo-accent {
+    color: var(--accent);
+}
+
+.logo-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    background: var(--bg-input);
+    padding: 3px 8px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.topbar-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-bright);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.topbar-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.topbar-email {
+    font-size: 12.5px;
+    color: var(--text-sub);
+    font-weight: 500;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.topbar-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.topbar-btn:hover {
+    background: var(--danger-dim);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+}
+
+/* ── Main Content ────────────────────────────────────────── */
+.main-content {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+}
+
+/* ── Page Header ─────────────────────────────────────────── */
+.page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text-main);
+    line-height: 1;
+}
+
+.page-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.btn-new-project {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--r-md);
+    cursor: pointer;
+    transition: var(--transition-base);
+    white-space: nowrap;
+}
+
+.btn-new-project:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px var(--accent-glow);
+}
+
+.btn-new-project:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* ── Project Grid ────────────────────────────────────────── */
+.project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+/* ── Project Card ────────────────────────────────────────── */
+.project-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    padding: 24px;
+    transition: var(--transition-base);
+    position: relative;
+    animation: fadeScaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.project-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-bright);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+}
+
+.project-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.project-card-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    border-radius: var(--r-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.project-card-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.card-action-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.card-action-btn:hover {
+    background: var(--bg-input);
+    border-color: var(--border);
+    color: var(--text-sub);
+}
+
+.card-action-btn.danger:hover {
+    background: var(--danger-dim);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+}
+
+.project-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 16px;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+/* ── Card Info Rows (Speaker / Source) ────────────────────── */
+.project-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex: 1;
+}
+
+.info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-sm);
+    transition: var(--transition-base);
+    cursor: pointer;
+    position: relative;
+}
+
+.info-row:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: var(--border);
+}
+
+.info-row:hover .info-edit-icon {
+    opacity: 1;
+}
+
+.info-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    min-width: 58px;
+    padding-top: 1px;
+}
+
+.info-value {
+    font-size: 12.5px;
+    color: var(--text-sub);
+    line-height: 1.5;
+    word-break: break-word;
+    flex: 1;
+}
+
+.info-value.empty {
+    color: var(--text-dim);
+    font-style: italic;
+}
+
+.info-edit-icon {
+    color: var(--text-dim);
+    opacity: 0;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* ── Card Footer ─────────────────────────────────────────── */
+.project-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.project-card-date {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+}
+
+.btn-open-project {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: var(--transition-base);
+    text-decoration: none;
+}
+
+.btn-open-project:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.btn-open-project:active {
+    transform: scale(0.97);
+}
+
+/* ── Sheet Link ──────────────────────────────────────────── */
+.project-sheet-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+    margin-bottom: 16px;
+}
+
+.project-sheet-link:hover {
+    color: var(--accent);
+}
+
+/* ── Empty State ─────────────────────────────────────────── */
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.empty-icon {
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    max-width: 400px;
+    margin: 0 auto 28px;
+    line-height: 1.6;
+}
+
+.btn-empty {
+    margin: 0 auto;
+}
+
+/* ── Loading Skeleton ────────────────────────────────────── */
+.skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.skeleton-card {
+    height: 240px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    position: relative;
+}
+
+.skeleton-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.03) 50%, transparent 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Modal ────────────────────────────────────────────────── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    animation: modalSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-card-sm {
+    max-width: 380px;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.modal-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: var(--r-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.modal-close:hover {
+    background: var(--bg-input);
+    color: var(--text-main);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-input-group {
+    margin-bottom: 18px;
+}
+
+.modal-input-group:last-child {
+    margin-bottom: 0;
+}
+
+.modal-input-group label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 8px;
+}
+
+.input-optional {
+    font-weight: 400;
+    color: var(--text-dim);
+    font-size: 10px;
+}
+
+.modal-input-group input {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    outline: none;
+    transition: var(--transition-base);
+}
+
+.modal-input-group input::placeholder {
+    color: var(--text-dim);
+}
+
+.modal-input-group input:focus {
+    border-color: var(--accent);
+    background: var(--bg-input-focus);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+}
+
+.btn-modal-cancel {
+    padding: 9px 18px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    color: var(--text-sub);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.btn-modal-cancel:hover {
+    background: var(--bg-input);
+}
+
+.btn-modal-create {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.btn-modal-create:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.btn-modal-create:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.btn-modal-create:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.modal-status {
+    padding: 12px 24px;
+    font-size: 12px;
+    color: var(--text-sub);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-status.error {
+    color: #fca5a5;
+    background: var(--danger-dim);
+}
+
+.modal-status.success {
+    color: var(--accent);
+    background: var(--accent-dim);
+}
+
+.modal-status .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border-bright);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeScaleIn {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(24px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .topbar-inner {
+        padding: 0 16px;
+    }
+
+    .topbar-email {
+        display: none;
+    }
+
+    .topbar-btn span {
+        display: none;
+    }
+
+    .main-content {
+        padding: 24px 16px 60px;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .btn-new-project {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .project-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .skeleton-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .project-card {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header h1 {
+        font-size: 22px;
+    }
+
+    .modal-card {
+        border-radius: var(--r-lg);
+    }
+}
+
+/* ── User Management Section (Admin Only) ────────────────── */
+.btn-manage-users {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--text-sub);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--r-md);
+    cursor: pointer;
+    transition: var(--transition-base);
+    white-space: nowrap;
+}
+
+.btn-manage-users:hover {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border-color: var(--text-sub);
+}
+
+.btn-manage-users.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.user-management-section {
+    animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.users-list-table-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.users-table th {
+    background: #111113;
+    padding: 16px 24px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+}
+
+.users-table td {
+    padding: 16px 24px;
+    font-size: 13.5px;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+}
+
+.users-table tr:last-child td {
+    border-bottom: none;
+}
+
+.user-pin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 100px;
+    line-height: 1;
+}
+
+.user-pin-badge.set {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.user-pin-badge.unset {
+    background: var(--danger-dim);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.user-actions-cell {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-user-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: var(--transition-base);
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--text-sub);
+}
+
+.btn-user-action.reset:hover {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border-color: var(--text-sub);
+}
+
+.btn-user-action.delete {
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+.btn-user-action.delete:hover {
+    background: var(--danger-dim);
+    border-color: var(--danger);
+    color: #ffffff;
+}
+
+.btn-add-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-bright);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.btn-add-user:hover {
+    background: var(--bg-input-focus);
+    border-color: var(--text-sub);
+}
+
+</style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="topbar" id="topbar">
+        <div class="topbar-inner">
+            <a href="project.html" class="topbar-logo">
+                <span class="logo-text">Auto<span class="logo-accent">script</span></span>
+                <span class="logo-badge">TCP</span>
+            </a>
+
+            <div class="topbar-right">
+                <div class="topbar-user" id="topbarUser">
+                    <div class="topbar-avatar" id="topbarAvatar">
+                        <span class="profile-initial" style="font-weight: 700; color: #fff; font-size: 14px;">U</span>
+                    </div>
+                    <span class="topbar-email" id="topbarEmail">User</span>
+                </div>
+                <button type="button" class="topbar-btn" id="btnLogout" title="Sign out">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <span>Sign out</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-left">
+                <h1 id="pageTitle">Projects</h1>
+                <p class="page-subtitle" id="pageSubtitle">Manage your video logging projects</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <button type="button" class="btn-manage-users" id="btnManageUsers" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Manage Users</span>
+                </button>
+                <button type="button" class="btn-new-project" id="btnNewProject">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span>New Project</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Project Grid View -->
+        <div id="projectsView">
+            <!-- Project Grid -->
+            <div class="project-grid" id="projectGrid">
+                <!-- Cards rendered by JS -->
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="12" y1="18" x2="12" y2="12"></line>
+                        <line x1="9" y1="15" x2="15" y2="15"></line>
+                    </svg>
+                </div>
+                <h3>No projects yet</h3>
+                <p>Create your first project to start logging timecodes. Each project is linked to a Google Sheet.</p>
+                <button type="button" class="btn-new-project btn-empty" id="btnNewProjectEmpty">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span>Create First Project</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- User Management View (Admin Only, hidden by default) -->
+        <div class="user-management-section" id="userManagementView" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="font-size: 18px; font-weight: 600; color: var(--text-main);">User Profiles</h2>
+                <button type="button" class="btn-add-user" id="btnAddUser">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span>Add Profile</span>
+                </button>
+            </div>
+            
+            <div class="users-list-table-container">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Profile Name</th>
+                            <th>PIN Lock Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersListBody">
+                        <!-- User rows rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-state" id="loadingState" style="display: none;">
+            <div class="skeleton-grid">
+                <div class="skeleton-card"><div class="skeleton-shimmer"></div></div>
+                <div class="skeleton-card"><div class="skeleton-shimmer"></div></div>
+                <div class="skeleton-card"><div class="skeleton-shimmer"></div></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- New Project Modal -->
+    <div class="modal-overlay" id="newProjectModal" style="display: none;">
+        <div class="modal-card" id="modalCard">
+            <div class="modal-header">
+                <h2>New Project</h2>
+                <button type="button" class="modal-close" id="modalClose">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-input-group">
+                    <label for="modalProjectName">Project Name</label>
+                    <input type="text" id="modalProjectName" placeholder="Enter project name..." autocomplete="off">
+                </div>
+                <div class="modal-input-group">
+                    <label for="modalSpeaker">Speaker <span class="input-optional">(Row 1 — B1)</span></label>
+                    <input type="text" id="modalSpeaker" placeholder="e.g. HOÀNG NGUYỄN — CEO | TIERRA" autocomplete="off">
+                </div>
+                <div class="modal-input-group">
+                    <label for="modalSource">Source / Link <span class="input-optional">(Row 2 — B2)</span></label>
+                    <input type="text" id="modalSource" placeholder="e.g. (26-03-2026) TCP ACL" autocomplete="off">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-cancel" id="modalCancel">Cancel</button>
+                <button type="button" class="btn-modal-create" id="modalCreate">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span>Create Project</span>
+                </button>
+            </div>
+            <div class="modal-status" id="modalStatus" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Edit Field Modal -->
+    <div class="modal-overlay" id="editFieldModal" style="display: none;">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <h2 id="editFieldTitle">Edit Field</h2>
+                <button type="button" class="modal-close" id="editFieldClose">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-input-group">
+                    <label for="editFieldInput" id="editFieldLabel">Value</label>
+                    <input type="text" id="editFieldInput" autocomplete="off">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-cancel" id="editFieldCancel">Cancel</button>
+                <button type="button" class="btn-modal-create" id="editFieldSave">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Profile Modal (Admin Only) -->
+    <div class="modal-overlay" id="addUserModal" style="display: none;">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <h2>Add Profile</h2>
+                <button type="button" class="modal-close" id="addUserClose">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-input-group">
+                    <label for="newUsername">Profile Name</label>
+                    <input type="text" id="newUsername" placeholder="e.g. Huy, Linh..." autocomplete="off">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-cancel" id="addUserCancel">Cancel</button>
+                <button type="button" class="btn-modal-create" id="addUserSave">Create Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden settings gear icon — bottom-right corner -->
+    <a href="setting.html" class="gear-icon" id="gearIcon" style="position: fixed; bottom: 24px; right: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(24, 24, 27, 0.2); border: 1px solid transparent; color: var(--text-dim); transition: all 0.4s; opacity: 0; z-index: 100;" title="Application Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </a>
+
+    <!-- Add hover rules script to inject into head for the gear icon -->
+    <script>
+        const gear = document.getElementById('gearIcon');
+        document.body.addEventListener('mouseenter', () => gear.style.opacity = '0.25');
+        document.body.addEventListener('mouseleave', () => gear.style.opacity = '0');
+        gear.addEventListener('mouseenter', () => { gear.style.opacity = '1'; gear.style.transform = 'rotate(90deg)'; gear.style.color = '#10b981'; gear.style.background = 'rgba(24, 24, 27, 0.8)'; gear.style.borderColor = '#10b981'; });
+        gear.addEventListener('mouseleave', () => { gear.style.opacity = '0.25'; gear.style.transform = ''; gear.style.color = ''; gear.style.background = ''; gear.style.borderColor = ''; });
+    </script>
+
+    <script>
+// ============================================================
+//  AUTOSCRIPT TCP — Project Page Logic
+//  Handles project CRUD via Worker API, profile-based token auth,
+//  and Admin-only User Management panel.
+// ============================================================
+
+(function () {
+    'use strict';
+
+    // ── Session Checking & Auth ─────────────────────────────
+    const sessionToken = localStorage.getItem('autoscript_session_token');
+    const sessionUser = localStorage.getItem('autoscript_session_username');
+
+    function requireAuth() {
+        if (!sessionToken || !sessionUser) {
+            localStorage.removeItem('autoscript_session_token');
+            localStorage.removeItem('autoscript_session_username');
+            window.location.href = 'login.html';
+            return false;
+        }
+        return true;
+    }
+
+    if (!requireAuth()) return;
+
+    // Helper for API headers
+    function getAuthHeaders() {
+        return {
+            'Authorization': `Bearer ${sessionToken}`,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    // ── State ────────────────────────────────────────────────
+    let projects = [];
+    let users = [];
+    let editingProject = null; // { index, field } for inline edit modal
+    let isUserViewActive = false;
+
+    // ── DOM References ───────────────────────────────────────
+    // Views
+    const projectsView = document.getElementById('projectsView');
+    const userManagementView = document.getElementById('userManagementView');
+    const projectGrid = document.getElementById('projectGrid');
+    const emptyState = document.getElementById('emptyState');
+    const loadingState = document.getElementById('loadingState');
+    const pageTitle = document.getElementById('pageTitle');
+    const pageSubtitle = document.getElementById('pageSubtitle');
+
+    // Topbar
+    const topbarEmail = document.getElementById('topbarEmail');
+    const topbarAvatar = document.getElementById('topbarAvatar');
+    const btnLogout = document.getElementById('btnLogout');
+    const btnManageUsers = document.getElementById('btnManageUsers');
+
+    // Project Actions
+    const btnNewProject = document.getElementById('btnNewProject');
+    const btnNewProjectEmpty = document.getElementById('btnNewProjectEmpty');
+
+    // Project Modal references
+    const newProjectModal = document.getElementById('newProjectModal');
+    const modalClose = document.getElementById('modalClose');
+    const modalCancel = document.getElementById('modalCancel');
+    const modalCreate = document.getElementById('modalCreate');
+    const modalProjectName = document.getElementById('modalProjectName');
+    const modalSpeaker = document.getElementById('modalSpeaker');
+    const modalSource = document.getElementById('modalSource');
+    const modalStatus = document.getElementById('modalStatus');
+
+    // Edit field modal
+    const editFieldModal = document.getElementById('editFieldModal');
+    const editFieldClose = document.getElementById('editFieldClose');
+    const editFieldCancel = document.getElementById('editFieldCancel');
+    const editFieldSave = document.getElementById('editFieldSave');
+    const editFieldInput = document.getElementById('editFieldInput');
+    const editFieldTitle = document.getElementById('editFieldTitle');
+    const editFieldLabel = document.getElementById('editFieldLabel');
+
+    // Admin Add User Modal
+    const btnAddUser = document.getElementById('btnAddUser');
+    const addUserModal = document.getElementById('addUserModal');
+    const addUserClose = document.getElementById('addUserClose');
+    const addUserCancel = document.getElementById('addUserCancel');
+    const addUserSave = document.getElementById('addUserSave');
+    const newUsernameInput = document.getElementById('newUsername');
+    const usersListBody = document.getElementById('usersListBody');
+
+    // ── Helpers ──────────────────────────────────────────────
+    function formatDate(isoString) {
+        try {
+            const d = new Date(isoString);
+            return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch (e) {
+            return '—';
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Render User Info ─────────────────────────────────────
+    function renderUserInfo() {
+        if (topbarEmail) topbarEmail.textContent = sessionUser;
+        if (topbarAvatar) {
+            topbarAvatar.innerHTML = `<span class="profile-initial" style="font-weight: 700; color: #fff; font-size: 14px;">${sessionUser.charAt(0).toUpperCase()}</span>`;
+            // Set dynamic background color based on length
+            const colors = ['#10b981', '#6366f1', '#ec4899', '#f59e0b', '#f43f5e'];
+            const colorIndex = sessionUser.toLowerCase() === 'admin' ? 0 : sessionUser.toLowerCase() === 'nguyên' ? 1 : sessionUser.length % colors.length;
+            topbarAvatar.style.background = colors[colorIndex];
+        }
+
+        // Show Manage Users button only for Admin
+        if (btnManageUsers && sessionUser.toLowerCase() === 'admin') {
+            btnManageUsers.style.display = 'inline-flex';
+        }
+    }
+
+    // ── Projects CRUD Logic ──────────────────────────────────
+    async function loadProjects() {
+        if (loadingState) loadingState.style.display = 'block';
+        if (projectsView) projectsView.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/projects', {
+                headers: getAuthHeaders()
+            });
+            if (res.status === 401) {
+                handleLogout();
+                return;
+            }
+            if (!res.ok) throw new Error('Failed to fetch project list');
+            projects = await res.json();
+            renderProjects();
+        } catch (e) {
+            console.error('Load projects error:', e);
+            if (projectGrid) {
+                projectGrid.innerHTML = `<div style="color: var(--danger); text-align: center; grid-column: 1/-1; padding: 40px;">Error: ${e.message}</div>`;
+            }
+        } finally {
+            if (loadingState) loadingState.style.display = 'none';
+            if (projectsView && !isUserViewActive) projectsView.style.display = 'block';
+        }
+    }
+
+    function renderProjects() {
+        if (!projectGrid) return;
+
+        if (projects.length === 0) {
+            projectGrid.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'block';
+            return;
+        }
+
+        projectGrid.style.display = '';
+        if (emptyState) emptyState.style.display = 'none';
+
+        projectGrid.innerHTML = projects.map((project, index) => {
+            const speakerDisplay = project.speaker || '';
+            const sourceDisplay = project.source || '';
+            const delay = Math.min(index * 0.08, 0.6);
+
+            return `
+                <div class="project-card" style="animation-delay: ${delay}s" data-index="${index}">
+                    <div class="project-card-header">
+                        <div class="project-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                        </div>
+                        <div class="project-card-actions">
+                            <a class="card-action-btn" href="${escapeHtml(project.url)}" target="_blank" rel="noopener" title="Open in Google Sheets">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            </a>
+                            <button class="card-action-btn danger" data-delete-id="${project.id}" title="Remove project">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="project-card-name">${escapeHtml(project.name)}</div>
+
+                    <div class="project-card-info">
+                        <div class="info-row" data-edit-field="speaker" data-edit-index="${index}">
+                            <span class="info-label">Speaker</span>
+                            <span class="info-value ${speakerDisplay ? '' : 'empty'}">${speakerDisplay ? escapeHtml(speakerDisplay) : 'Not set'}</span>
+                            <span class="info-edit-icon">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </span>
+                        </div>
+                        <div class="info-row" data-edit-field="source" data-edit-index="${index}">
+                            <span class="info-label">Source</span>
+                            <span class="info-value ${sourceDisplay ? '' : 'empty'}">${sourceDisplay ? escapeHtml(sourceDisplay) : 'Not set'}</span>
+                            <span class="info-edit-icon">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="project-card-footer">
+                        <span class="project-card-date">${formatDate(project.createdAt)}</span>
+                        <a href="app.html?sheetId=${encodeURIComponent(project.id)}&sheetName=${encodeURIComponent(project.name)}&sheetUrl=${encodeURIComponent(project.url || '')}" class="btn-open-project">
+                            Open Project
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </a>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        attachCardListeners();
+    }
+
+    function attachCardListeners() {
+        // Delete buttons
+        document.querySelectorAll('[data-delete-id]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const pId = btn.dataset.deleteId;
+                const project = projects.find(p => p.id === pId);
+                if (!project) return;
+
+                if (confirm(`Remove "${project.name}" from your project list?\n\n(The Google Sheet file will NOT be deleted from Google Drive)`)) {
+                    try {
+                        const res = await fetch('/api/projects', {
+                            method: 'DELETE',
+                            headers: getAuthHeaders(),
+                            body: JSON.stringify({ id: pId })
+                        });
+                        if (!res.ok) throw new Error('Failed to delete project');
+                        projects = projects.filter(p => p.id !== pId);
+                        renderProjects();
+                    } catch (err) {
+                        alert('Could not remove project: ' + err.message);
+                    }
+                }
+            });
+        });
+
+        // Edit info rows
+        document.querySelectorAll('[data-edit-field]').forEach(row => {
+            row.addEventListener('click', () => {
+                const field = row.dataset.editField;
+                const idx = parseInt(row.dataset.editIndex, 10);
+                if (isNaN(idx) || idx < 0 || idx >= projects.length) return;
+                openEditFieldModal(idx, field);
+            });
+        });
+    }
+
+    // ── Create Project Modal ─────────────────────────────────
+    function openNewProjectModal() {
+        if (!newProjectModal) return;
+        const today = new Date().toISOString().slice(0, 10);
+        if (modalProjectName) modalProjectName.value = 'Project_' + today;
+        if (modalSpeaker) modalSpeaker.value = '';
+        if (modalSource) modalSource.value = '';
+        if (modalStatus) { modalStatus.style.display = 'none'; modalStatus.textContent = ''; }
+        if (modalCreate) modalCreate.disabled = false;
+
+        newProjectModal.style.display = 'flex';
+        if (modalProjectName) modalProjectName.focus();
+    }
+
+    function closeNewProjectModal() {
+        if (newProjectModal) newProjectModal.style.display = 'none';
+    }
+
+    async function handleCreateProject() {
+        const projectName = modalProjectName ? modalProjectName.value.trim() : '';
+        const speaker = modalSpeaker ? modalSpeaker.value.trim() : '';
+        const source = modalSource ? modalSource.value.trim() : '';
+
+        if (!projectName) {
+            showModalStatus('Please enter a project name.', 'error');
+            return;
+        }
+
+        if (modalCreate) modalCreate.disabled = true;
+        showModalStatus('Creating Google Sheet clone via Apps Script owner...', 'loading');
+
+        try {
+            const res = await fetch('/api/projects', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    name: projectName,
+                    speaker,
+                    source
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Server error');
+            }
+
+            // Project created successfully!
+            projects.unshift(data);
+
+            if (data.moveStatus === 'failed') {
+                showModalStatus(`Created, but failed to move to folder: ${data.moveError} (Tạo thành công nhưng không chuyển được vào thư mục: ${data.moveError})`, 'error');
+                setTimeout(() => {
+                    closeNewProjectModal();
+                    renderProjects();
+                }, 6000);
+            } else if (data.moveStatus === 'outdated_script') {
+                showModalStatus('Created. Warning: Google Apps Script Web App is outdated. Please deploy a "New Version" (Tạo thành công. Cảnh báo: Google Apps Script chưa được deploy bản mới nhất)', 'error');
+                setTimeout(() => {
+                    closeNewProjectModal();
+                    renderProjects();
+                }, 6000);
+            } else {
+                showModalStatus('Project created successfully!', 'success');
+                setTimeout(() => {
+                    closeNewProjectModal();
+                    renderProjects();
+                }, 800);
+            }
+
+        } catch (err) {
+            console.error('[Project] Create error:', err);
+            showModalStatus('Error: ' + err.message, 'error');
+            if (modalCreate) modalCreate.disabled = false;
+        }
+    }
+
+    function showModalStatus(msg, type) {
+        if (!modalStatus) return;
+        modalStatus.style.display = 'flex';
+        modalStatus.className = 'modal-status' + (type === 'error' ? ' error' : type === 'success' ? ' success' : '');
+
+        if (type === 'loading') {
+            modalStatus.innerHTML = `<span class="spinner"></span>${escapeHtml(msg)}`;
+        } else {
+            modalStatus.textContent = msg;
+        }
+    }
+
+    // ── Edit Field Modal ─────────────────────────────────────
+    function openEditFieldModal(index, field) {
+        if (!editFieldModal) return;
+        editingProject = { index, field };
+
+        const project = projects[index];
+        const isSource = field === 'source';
+        const currentValue = isSource ? (project.source || '') : (project.speaker || '');
+
+        if (editFieldTitle) editFieldTitle.textContent = isSource ? 'Edit Source / Link' : 'Edit Speaker';
+        if (editFieldLabel) editFieldLabel.textContent = isSource ? 'Source / Link (B2)' : 'Speaker (B1)';
+        if (editFieldInput) editFieldInput.value = currentValue;
+
+        editFieldModal.style.display = 'flex';
+        if (editFieldInput) editFieldInput.focus();
+    }
+
+    function closeEditFieldModal() {
+        if (editFieldModal) editFieldModal.style.display = 'none';
+        editingProject = null;
+    }
+
+    async function handleSaveField() {
+        if (!editingProject) return;
+
+        const { index, field } = editingProject;
+        const project = projects[index];
+        const newValue = editFieldInput ? editFieldInput.value.trim() : '';
+        const isSource = field === 'source';
+
+        // Prepare body
+        const updateBody = {
+            id: project.id,
+            speaker: isSource ? project.speaker : newValue,
+            source: isSource ? newValue : project.source
+        };
+
+        // Optimistically update frontend UI
+        if (isSource) {
+            project.source = newValue;
+        } else {
+            project.speaker = newValue;
+        }
+        renderProjects();
+        closeEditFieldModal();
+
+        // Save to backend via proxy
+        try {
+            const res = await fetch('/api/projects', {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(updateBody)
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to update metadata');
+            }
+        } catch (err) {
+            console.error('Update metadata failed:', err);
+            alert('Warning: Could not save changes to Sheet. ' + err.message);
+            // Refresh to restore original data
+            loadProjects();
+        }
+    }
+
+    // ── Admin: User Management Panel ─────────────────────────
+    async function loadUsersList() {
+        try {
+            const res = await fetch('/api/users', {
+                headers: getAuthHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to retrieve user profiles');
+            users = await res.json();
+            renderUsersList();
+        } catch (err) {
+            console.error(err);
+            if (usersListBody) {
+                usersListBody.innerHTML = `<tr><td colspan="3" style="color: var(--danger); text-align: center;">Failed to load user accounts.</td></tr>`;
+            }
+        }
+    }
+
+    function renderUsersList() {
+        if (!usersListBody) return;
+        usersListBody.innerHTML = '';
+
+        if (users.length === 0) {
+            usersListBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No profiles configured.</td></tr>`;
+            return;
+        }
+
+        users.forEach(user => {
+            const isSet = user.hasPin;
+            const badgeClass = isSet ? 'set' : 'unset';
+            const badgeText = isSet ? 'Password PIN Set' : 'No PIN (Unconfigured)';
+            
+            const isSelfAdmin = user.username.toLowerCase() === 'admin';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <strong style="font-size: 14px; font-weight: 600;">${escapeHtml(user.username)}</strong>
+                </td>
+                <td>
+                    <span class="user-pin-badge ${badgeClass}">${badgeText}</span>
+                </td>
+                <td>
+                    <div class="user-actions-cell">
+                        <button type="button" class="btn-user-action reset" data-change-username="${escapeHtml(user.username)}" title="Directly set a new 4-digit PIN for this user">
+                            Change PIN
+                        </button>
+                        <button type="button" class="btn-user-action reset" data-reset-username="${escapeHtml(user.username)}" title="Require user to set a new PIN on next sign in">
+                            Reset PIN
+                        </button>
+                        ${isSelfAdmin ? '' : `
+                        <button type="button" class="btn-user-action delete" data-delete-username="${escapeHtml(user.username)}" title="Remove profile and delete projects from database">
+                            Delete Profile
+                        </button>
+                        `}
+                    </div>
+                </td>
+            `;
+
+            usersListBody.appendChild(row);
+        });
+
+        attachUserActionListeners();
+    }
+
+    function attachUserActionListeners() {
+        // Change PIN
+        document.querySelectorAll('[data-change-username]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const username = btn.dataset.changeUsername;
+                const newPin = prompt(`Enter a new 4-digit PIN for user "${username}":`);
+                if (newPin === null) return; // Cancelled
+                
+                const pinTrimmed = newPin.trim();
+                if (!/^\d{4}$/.test(pinTrimmed)) {
+                    alert('Error: PIN must be a 4-digit number (e.g. 1234)');
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/users', {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({
+                            username,
+                            pin: pinTrimmed,
+                            action: 'changePin'
+                        })
+                    });
+                    if (!res.ok) {
+                        const data = await res.json();
+                        throw new Error(data.error || 'Failed to change PIN');
+                    }
+                    const data = await res.json();
+                    users = data.users;
+                    renderUsersList();
+                    alert(`Successfully updated PIN for user "${username}" on KV.`);
+                } catch (err) {
+                    alert(err.message);
+                }
+            });
+        });
+
+        // Reset PIN
+        document.querySelectorAll('[data-reset-username]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const username = btn.dataset.resetUsername;
+                if (confirm(`Reset the PIN for user "${username}"?\n\nThey will need to set a new PIN the next time they select this profile.`)) {
+                    try {
+                        const res = await fetch('/api/users', {
+                            method: 'POST',
+                            headers: getAuthHeaders(),
+                            body: JSON.stringify({
+                                username,
+                                action: 'reset'
+                            })
+                        });
+                        if (!res.ok) throw new Error('Failed to reset PIN');
+                        const data = await res.json();
+                        users = data.users;
+                        renderUsersList();
+                    } catch (err) {
+                        alert(err.message);
+                    }
+                }
+            });
+        });
+
+        // Delete user
+        document.querySelectorAll('[data-delete-username]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const username = btn.dataset.deleteUsername;
+                if (confirm(`DANGER: Delete profile "${username}"?\n\nThis will completely delete their profile and project logs from KV! This cannot be undone.`)) {
+                    try {
+                        const res = await fetch('/api/users', {
+                            method: 'DELETE',
+                            headers: getAuthHeaders(),
+                            body: JSON.stringify({ username })
+                        });
+                        if (!res.ok) throw new Error('Failed to delete user');
+                        const data = await res.json();
+                        users = data.users;
+                        renderUsersList();
+                    } catch (err) {
+                        alert(err.message);
+                    }
+                }
+            });
+        });
+    }
+
+    // Toggle View (Projects vs Users)
+    function toggleViewMode() {
+        if (!btnManageUsers) return;
+
+        isUserViewActive = !isUserViewActive;
+
+        if (isUserViewActive) {
+            btnManageUsers.classList.add('active');
+            btnManageUsers.querySelector('span').textContent = 'Show Projects';
+            btnManageUsers.querySelector('svg').outerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
+            
+            projectsView.style.display = 'none';
+            userManagementView.style.display = 'block';
+            if (btnNewProject) btnNewProject.style.display = 'none';
+
+            if (pageTitle) pageTitle.textContent = 'User Accounts';
+            if (pageSubtitle) pageSubtitle.textContent = 'Manage active editor profiles and lock states';
+
+            loadUsersList();
+        } else {
+            btnManageUsers.classList.remove('active');
+            btnManageUsers.querySelector('span').textContent = 'Manage Users';
+            btnManageUsers.querySelector('svg').outerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`;
+
+            userManagementView.style.display = 'none';
+            projectsView.style.display = 'block';
+            if (btnNewProject) btnNewProject.style.display = 'inline-flex';
+
+            if (pageTitle) pageTitle.textContent = 'Projects';
+            if (pageSubtitle) pageSubtitle.textContent = 'Manage your video logging projects';
+
+            loadProjects();
+        }
+    }
+
+    // Open/Close Add User Modal
+    function openAddUserModal() {
+        if (addUserModal) addUserModal.style.display = 'flex';
+        if (newUsernameInput) {
+            newUsernameInput.value = '';
+            newUsernameInput.focus();
+        }
+    }
+
+    function closeAddUserModal() {
+        if (addUserModal) addUserModal.style.display = 'none';
+    }
+
+    async function handleAddUserSave() {
+        const username = newUsernameInput ? newUsernameInput.value.trim() : '';
+        if (!username) {
+            alert('Please enter a profile name');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    username,
+                    action: 'create'
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to create profile');
+
+            users = data.users;
+            renderUsersList();
+            closeAddUserModal();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    // ── Logout ───────────────────────────────────────────────
+    function handleLogout() {
+        localStorage.removeItem('autoscript_session_token');
+        localStorage.removeItem('autoscript_session_username');
+        window.location.href = 'login.html';
+    }
+
+    // ── Event Listeners ──────────────────────────────────────
+    if (btnNewProject) btnNewProject.addEventListener('click', openNewProjectModal);
+    if (btnNewProjectEmpty) btnNewProjectEmpty.addEventListener('click', openNewProjectModal);
+    if (btnLogout) btnLogout.addEventListener('click', handleLogout);
+    
+    // Admin toggles
+    if (btnManageUsers) btnManageUsers.addEventListener('click', toggleViewMode);
+    if (btnAddUser) btnAddUser.addEventListener('click', openAddUserModal);
+
+    // New project modal
+    if (modalClose) modalClose.addEventListener('click', closeNewProjectModal);
+    if (modalCancel) modalCancel.addEventListener('click', closeNewProjectModal);
+    if (modalCreate) modalCreate.addEventListener('click', handleCreateProject);
+
+    // Edit field modal
+    if (editFieldClose) editFieldClose.addEventListener('click', closeEditFieldModal);
+    if (editFieldCancel) editFieldCancel.addEventListener('click', closeEditFieldModal);
+    if (editFieldSave) editFieldSave.addEventListener('click', handleSaveField);
+
+    // Add user modal
+    if (addUserClose) addUserClose.addEventListener('click', closeAddUserModal);
+    if (addUserCancel) addUserCancel.addEventListener('click', closeAddUserModal);
+    if (addUserSave) addUserSave.addEventListener('click', handleAddUserSave);
+
+    // Close modals on overlay click
+    [newProjectModal, editFieldModal, addUserModal].forEach(modal => {
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                    if (modal === editFieldModal) editingProject = null;
+                }
+            });
+        }
+    });
+
+    // Keyboard shortcuts for modals
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeNewProjectModal();
+            closeEditFieldModal();
+            closeAddUserModal();
+        }
+        if (e.key === 'Enter') {
+            if (editFieldModal && editFieldModal.style.display === 'flex') {
+                e.preventDefault();
+                handleSaveField();
+            } else if (addUserModal && addUserModal.style.display === 'flex') {
+                e.preventDefault();
+                handleAddUserSave();
+            } else if (newProjectModal && newProjectModal.style.display === 'flex') {
+                e.preventDefault();
+                handleCreateProject();
+            }
+        }
+    });
+
+    // ── Initialize ───────────────────────────────────────────
+    renderUserInfo();
+    loadProjects();
+
+})();
+</script>
+</body>
+</html>

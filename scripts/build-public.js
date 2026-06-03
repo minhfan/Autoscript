@@ -6,15 +6,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
 
-const sourceFile = path.join(projectRoot, "ScriptAutomation_v2.html");
 const publicDir = path.join(projectRoot, "public");
-const targetFile = path.join(publicDir, "index.html");
 
 async function readRelative(relativePath) {
   return readFile(path.join(projectRoot, relativePath), "utf8");
 }
 
-async function buildPublicIndex() {
+// ── Build /app (main webapp — from ScriptAutomation_v2.html) ──
+async function buildAppPage() {
   const [html, css, timecodeJs, appJs] = await Promise.all([
     readRelative("ScriptAutomation_v2.html"),
     readRelative("src/styles.css"),
@@ -29,14 +28,106 @@ async function buildPublicIndex() {
       `<script>\n${timecodeJs}\n${appJs}</script>`
     );
 
-  await mkdir(publicDir, { recursive: true });
-  await writeFile(targetFile, builtHtml, "utf8");
-
-  console.log("[Autoscript] Đã build public/index.html từ source tách module.");
+  await writeFile(path.join(publicDir, "app.html"), builtHtml, "utf8");
+  console.log("[Autoscript] ✓ Built public/app.html (main webapp)");
 }
 
-buildPublicIndex().catch((error) => {
-  console.error("[Autoscript] Lỗi: Không build được public/index.html.");
+// ── Build /login ──
+async function buildLoginPage() {
+  const [html, css, js] = await Promise.all([
+    readRelative("src/login.html"),
+    readRelative("src/login.css"),
+    readRelative("src/login.js"),
+  ]);
+
+  const builtHtml = html
+    .replace(/<link rel="stylesheet" href="login\.css">/, `<style>\n${css}</style>`)
+    .replace(/<script src="login\.js"><\/script>/, `<script>\n${js}</script>`);
+
+  await writeFile(path.join(publicDir, "login.html"), builtHtml, "utf8");
+  console.log("[Autoscript] ✓ Built public/login.html");
+}
+
+// ── Build /project ──
+async function buildProjectPage() {
+  const [html, css, js] = await Promise.all([
+    readRelative("src/project.html"),
+    readRelative("src/project.css"),
+    readRelative("src/project.js"),
+  ]);
+
+  const builtHtml = html
+    .replace(/<link rel="stylesheet" href="project\.css">/, `<style>\n${css}</style>`)
+    .replace(/<script src="project\.js"><\/script>/, `<script>\n${js}</script>`);
+
+  await writeFile(path.join(publicDir, "project.html"), builtHtml, "utf8");
+  console.log("[Autoscript] ✓ Built public/project.html");
+}
+
+// ── Build /setting ──
+async function buildSettingPage() {
+  const [html, css, js] = await Promise.all([
+    readRelative("src/setting.html"),
+    readRelative("src/setting.css"),
+    readRelative("src/setting.js"),
+  ]);
+
+  const builtHtml = html
+    .replace(/<link rel="stylesheet" href="setting\.css">/, `<style>\n${css}</style>`)
+    .replace(/<script src="setting\.js"><\/script>/, `<script>\n${js}</script>`);
+
+  await writeFile(path.join(publicDir, "setting.html"), builtHtml, "utf8");
+  console.log("[Autoscript] ✓ Built public/setting.html");
+}
+
+// ── Build / (redirect to /login) ──
+async function buildRedirectIndex() {
+  const redirectHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0; url=login.html">
+    <title>Autoscript TCP — Redirecting...</title>
+    <style>
+        body {
+            background: #09090b;
+            color: #a1a1aa;
+            font-family: 'Outfit', system-ui, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <p>Redirecting to sign in...</p>
+    <script>window.location.href = 'login.html';</script>
+</body>
+</html>`;
+
+  await writeFile(path.join(publicDir, "index.html"), redirectHtml, "utf8");
+  console.log("[Autoscript] ✓ Built public/index.html (redirect → login)");
+}
+
+// ── Main Build ──
+async function buildAll() {
+  await mkdir(publicDir, { recursive: true });
+
+  await Promise.all([
+    buildAppPage(),
+    buildLoginPage(),
+    buildProjectPage(),
+    buildSettingPage(),
+    buildRedirectIndex(),
+  ]);
+
+  console.log("\n[Autoscript] Build complete! All pages ready in public/");
+}
+
+buildAll().catch((error) => {
+  console.error("[Autoscript] Build failed:");
   console.error(error);
   process.exit(1);
 });

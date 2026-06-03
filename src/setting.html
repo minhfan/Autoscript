@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoscript TCP — Settings</title>
+    <meta name="description" content="Configure Autoscript TCP Pro application settings.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="setting.css">
+</head>
+<body>
+    <div class="setting-container">
+        <a href="project.html" class="back-link" id="backLink">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            <span>Back to Projects</span>
+        </a>
+
+        <div class="setting-card" id="settingCard">
+            <div class="setting-header">
+                <div class="setting-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </div>
+                <div>
+                    <h1>Application Settings</h1>
+                    <p>Configure Google API credentials for Autoscript TCP</p>
+                </div>
+            </div>
+
+            <!-- Loading state -->
+            <div class="setting-loading" id="settingLoading">
+                <div class="spinner"></div>
+                <span>Loading settings...</span>
+            </div>
+
+            <!-- Settings form -->
+            <div class="setting-form" id="settingForm" style="display: none;">
+                <div class="form-group">
+                    <label for="settingWebAppUrl">
+                        Google Sheets Web App URL
+                        <span class="label-badge required">Required</span>
+                    </label>
+                    <input type="text" id="settingWebAppUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false">
+                    <p class="form-hint">Google Apps Script Web App URL. Required for server-side cloning and syncing sheets under the owner's Google account.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="settingTemplateId">
+                        Google Sheets Template ID / URL
+                        <span class="label-badge required">Required</span>
+                    </label>
+                    <input type="text" id="settingTemplateId" placeholder="Paste template sheet URL or Spreadsheet ID..." autocomplete="off" spellcheck="false">
+                    <p class="form-hint">Google Sheets Spreadsheet ID or the full spreadsheet URL used as a template when creating new projects. The code will automatically extract the ID from the URL.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="settingFolderId">
+                        Google Drive Target Folder ID / URL
+                        <span class="label-badge optional">Optional</span>
+                    </label>
+                    <input type="text" id="settingFolderId" placeholder="Paste Google Drive folder URL or Folder ID..." autocomplete="off" spellcheck="false">
+                    <p class="form-hint">The Google Drive folder ID or the full folder link where newly cloned sheets will be automatically moved. The code will automatically extract the ID from the URL. Leave blank to save to root Drive.</p>
+                </div>
+
+                <div class="form-actions">
+                    <div class="form-status" id="formStatus" style="display: none;"></div>
+                    <button type="button" class="btn-save" id="btnSave">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Save to Cloud</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Info note -->
+            <div class="setting-note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <span>Settings are stored securely on Cloudflare KV and shared across all sessions.</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="setting.js"></script>
+</body>
+</html>

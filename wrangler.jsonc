@@ -1,9 +1,16 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "autoscript",
+  "main": "src/worker.js",
   "compatibility_date": "2026-06-02",
   "assets": {
     "directory": "./public",
-    "not_found_handling": "none"
-  }
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "SETTINGS_KV",
+      "id": "795030a030234b86ac31750c94c9e60b"
+    }
+  ]
 }

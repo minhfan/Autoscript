@@ -53,6 +53,11 @@ assert(
   "Nút phát video phải đổi sang icon play khi dừng video."
 );
 
+assert(sourceHtml.includes('id="btnSyncSheets"'), "Giao diện phải có nút Sync Sheets.");
+assert(sourceHtml.includes('id="sheetsUrlInput"'), "Giao diện phải có trường nhập sheetsUrlInput.");
+assert(appJs.includes("async function syncToGoogleSheets"), "app.js phải có hàm syncToGoogleSheets.");
+assert(publicHtml.includes('id="btnSyncSheets"'), "Bản build public/index.html phải có nút Sync Sheets.");
+
 assert(publicHtml.includes("<style>"), "public/index.html phải inline CSS để deploy độc lập.");
 assert(publicHtml.includes("<script>"), "public/index.html phải inline JS để deploy độc lập.");
 assert(publicHtml.includes(".video-toolbar"), "public/index.html phải chứa CSS toolbar đã build.");

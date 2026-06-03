@@ -36,6 +36,120 @@ const actionColors = {
     'OTHERS'  : { bg:'#1e293b', color:'#e2e8f0' }
 };
 let selectedAction = actionList[0];
+let googleSheetsUrl = localStorage.getItem('autoscript_google_sheets_url') || '';
+
+let currentSpreadsheetId   = localStorage.getItem('autoscript_current_spreadsheet_id') || '';
+let currentSpreadsheetUrl  = localStorage.getItem('autoscript_current_spreadsheet_url') || '';
+let currentSpreadsheetName = localStorage.getItem('autoscript_current_spreadsheet_name') || '';
+
+function updateActiveSheetUI() {
+    const linkEl = document.getElementById('activeSheetLink');
+    const nameEl = document.getElementById('activeSheetName');
+    if (linkEl && nameEl) {
+        if (currentSpreadsheetId && currentSpreadsheetUrl) {
+            linkEl.href = currentSpreadsheetUrl;
+            nameEl.innerText = currentSpreadsheetName || 'Google Sheet';
+            linkEl.style.display = 'inline-flex';
+        } else {
+            linkEl.style.display = 'none';
+        }
+    }
+}
+
+let googleClientId = localStorage.getItem('autoscript_google_client_id') || '';
+let googleAccessToken = localStorage.getItem('autoscript_google_access_token') || '';
+let googleTokenExpiry = Number(localStorage.getItem('autoscript_google_token_expiry')) || 0;
+let googleUserEmail = localStorage.getItem('autoscript_google_user_email') || '';
+let tokenClient = null;
+
+// Cấu hình ID Trang tính gốc làm mẫu (Template Spreadsheet ID)
+const TEMPLATE_SPREADSHEET_ID = "1S6YxzKJE7X5vZRZduA36KDc_E00Cdkxp2mD3VXhwfmA";
+
+function isTokenValid() {
+    return googleAccessToken && googleTokenExpiry && (Date.now() < googleTokenExpiry - 60000);
+}
+
+function updateGoogleUI() {
+    const statusEl = document.getElementById('googleUserStatus');
+    const btnEl = document.getElementById('btnGoogleAuth');
+    if (statusEl && btnEl) {
+        if (isTokenValid()) {
+            statusEl.innerText = `Đã đăng nhập: ${googleUserEmail || 'Google User'}`;
+            statusEl.style.color = '#34d399';
+            btnEl.innerText = 'Đăng xuất';
+        } else {
+            statusEl.innerText = 'Chưa đăng nhập Google';
+            statusEl.style.color = 'var(--text-muted)';
+            btnEl.innerText = 'Đăng nhập Google';
+        }
+    }
+}
+
+window.initGoogleOAuth = initGoogleOAuth;
+function initGoogleOAuth() {
+    if (!googleClientId || typeof google === 'undefined' || !google.accounts) return;
+    try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: googleClientId,
+            scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
+            callback: async (response) => {
+                if (response.error !== undefined) {
+                    console.error(response);
+                    alert('Lỗi đăng nhập Google: ' + response.error);
+                    return;
+                }
+                googleAccessToken = response.access_token;
+                googleTokenExpiry = Date.now() + (response.expires_in * 1000);
+                localStorage.setItem('autoscript_google_access_token', googleAccessToken);
+                localStorage.setItem('autoscript_google_token_expiry', googleTokenExpiry);
+                
+                // Lấy Email người dùng
+                try {
+                    const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                        headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+                    });
+                    const userData = await userRes.json();
+                    googleUserEmail = userData.email || '';
+                    localStorage.setItem('autoscript_google_user_email', googleUserEmail);
+                } catch(e) {
+                    googleUserEmail = '';
+                }
+                
+                updateGoogleUI();
+                alert('Đăng nhập Google thành công!');
+            }
+        });
+    } catch (err) {
+        console.error('[GIS INIT ERROR]', err);
+    }
+}
+
+function handleGoogleAuthClick() {
+    if (!googleClientId) {
+        alert('Vui lòng nhập Google OAuth Client ID trong Settings trước!');
+        return;
+    }
+    if (isTokenValid()) {
+        // Đăng xuất: xóa token
+        googleAccessToken = '';
+        googleTokenExpiry = 0;
+        googleUserEmail = '';
+        localStorage.removeItem('autoscript_google_access_token');
+        localStorage.removeItem('autoscript_google_token_expiry');
+        localStorage.removeItem('autoscript_google_user_email');
+        updateGoogleUI();
+        alert('Đã đăng xuất tài khoản Google.');
+    } else {
+        if (!tokenClient) {
+            initGoogleOAuth();
+        }
+        if (tokenClient) {
+            tokenClient.requestAccessToken();
+        } else {
+            alert('Không thể khởi tạo Client đăng nhập Google. Kiểm tra lại Client ID!');
+        }
+    }
+}
 
 // ── 2. SESSION DATA ──────────────────────────────────────────
 let logs = [];
@@ -112,6 +226,7 @@ const timelineProgress = document.getElementById('timelineProgress');
 const hoverTooltip   = document.getElementById('hoverTooltip');
 const actionButtons  = Array.from(document.querySelectorAll('#actionButtonGroup .action-button'));
 const btnToolbarImport = document.getElementById('btnToolbarImport');
+const btnSyncSheets    = document.getElementById('btnSyncSheets');
 
 // ── 5. UTILITY FUNCTIONS ─────────────────────────────────────
 function escapeHtml(value) {
@@ -192,6 +307,43 @@ function renderSettings() {
     if (lScript) lScript.innerText = `SCRIPT (${formatShortcutDisplay(shortcuts.script)}):`;
     if (lNote)   lNote.innerText   = `NOTE (${formatShortcutDisplay(shortcuts.note)}):`;
     if (uText)   uText.innerText   = `Click or press '${formatShortcutDisplay(shortcuts.video)}' to upload a video file`;
+
+    // Load Google Sheets Web App URL input
+    const sheetsUrlInput = document.getElementById('sheetsUrlInput');
+    if (sheetsUrlInput) {
+        sheetsUrlInput.value = googleSheetsUrl;
+        if (!sheetsUrlInput.dataset.hasListener) {
+            sheetsUrlInput.dataset.hasListener = "true";
+            sheetsUrlInput.addEventListener('input', e => {
+                googleSheetsUrl = e.target.value.trim();
+                localStorage.setItem('autoscript_google_sheets_url', googleSheetsUrl);
+            });
+        }
+    }
+
+    // Load Google Client ID input
+    const googleClientIdInput = document.getElementById('googleClientIdInput');
+    if (googleClientIdInput) {
+        googleClientIdInput.value = googleClientId;
+        if (!googleClientIdInput.dataset.hasListener) {
+            googleClientIdInput.dataset.hasListener = "true";
+            googleClientIdInput.addEventListener('input', e => {
+                googleClientId = e.target.value.trim();
+                localStorage.setItem('autoscript_google_client_id', googleClientId);
+                initGoogleOAuth(); // Re-init client client-side on change
+            });
+        }
+    }
+
+    // Bind Google Auth login status button
+    const btnGoogleAuth = document.getElementById('btnGoogleAuth');
+    if (btnGoogleAuth) {
+        updateGoogleUI();
+        if (!btnGoogleAuth.dataset.hasListener) {
+            btnGoogleAuth.dataset.hasListener = "true";
+            btnGoogleAuth.addEventListener('click', handleGoogleAuthClick);
+        }
+    }
 }
 
 // ── 9. RENDER TABLE ──────────────────────────────────────────
@@ -1282,26 +1434,208 @@ if (csvImportEl) {
     });
 }
 
-const btnExport = document.getElementById('btnExport');
-if (btnExport) {
-    btnExport.addEventListener('click', () => {
-        if (!logs.length) { alert('Empty log list!'); return; }
-        let csv = '\uFEFFPROJECT INFO: Autoscript TCP\nEXPORT DATE: ' + new Date().toLocaleDateString() + '\n\nSECTION,ACTION,TC SWAP,TC IN,TC OUT,SCRIPT,NOTE\n';
-        logs.forEach(log => { csv += `"",${log.action},${log.tcswap || ''},${log.tcin},${log.tcout},"${log.script.replace(/"/g,'""')}","${log.note.replace(/"/g,'""')}"\n`; });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8;' }));
-        link.download = `Autoscript_TCP_${Date.now()}.csv`;
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    });
+// -- Google Sheets Synchronization --
+async function syncToGoogleSheets() {
+    if (!logs.length) {
+        alert('Danh sách log rỗng! Không có gì để đồng bộ.');
+        return;
+    }
+
+    const btn = document.getElementById('btnSyncSheets');
+    const originalText = btn ? btn.innerText : 'Sync Sheets';
+    if (btn) {
+        btn.innerText = 'Syncing...';
+        btn.disabled = true;
+    }
+
+    try {
+        if (isTokenValid()) {
+            // --- PHƯƠNG ÁN 2: ĐỒNG BỘ TRỰC TIẾP QUA GOOGLE REST APIs ---
+            const sheetId = currentSpreadsheetId || TEMPLATE_SPREADSHEET_ID;
+            
+            // 1. Dọn dẹp hàng cũ từ dòng 5 trở đi
+            const sheetsClearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Full-show!A5:F:clear`;
+            const clearRes = await fetch(sheetsClearUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${googleAccessToken}`
+                }
+            });
+            
+            if (!clearRes.ok) {
+                const errTxt = await clearRes.text();
+                throw new Error('Không thể dọn dẹp hàng cũ trên Sheet: ' + errTxt);
+            }
+            
+            // 2. Ghi đè dữ liệu mới
+            const values = logs.map(log => [
+                "",
+                log.action,
+                log.tcin,
+                log.tcout,
+                log.script,
+                log.note
+            ]);
+            
+            const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Full-show!A5:F?valueInputOption=USER_ENTERED`;
+            const writeRes = await fetch(writeUrl, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${googleAccessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    range: "Full-show!A5:F",
+                    majorDimension: "ROWS",
+                    values: values
+                })
+            });
+            
+            if (!writeRes.ok) {
+                const errData = await writeRes.json();
+                const errMsg = errData.error ? errData.error.message : 'Không rõ nguyên nhân';
+                if (errMsg.includes('violates the data validation rules')) {
+                    throw new Error('Vi phạm quy tắc dropdown (Data Validation) trên cột B của Google Sheets. Hãy kiểm tra các lựa chọn trên Sheet!');
+                }
+                throw new Error('Lỗi ghi dữ liệu: ' + errMsg);
+            }
+            
+            alert('Đồng bộ trực tiếp qua Google REST API thành công! Vui lòng kiểm tra file Google Sheets của bạn.');
+            
+        } else {
+            // --- PHƯƠNG ÁN 1: ĐỒNG BỘ QUA GOOGLE APPS SCRIPT WEB APP ---
+            if (!googleSheetsUrl) {
+                alert('Vui lòng vào Settings cấu hình Google Sheets Web App URL hoặc đăng nhập Google trước khi đồng bộ!');
+                if (mSettings) mSettings.style.display = 'flex';
+                return;
+            }
+            
+            const payload = {
+                spreadsheetId: currentSpreadsheetId || undefined,
+                logs: logs.map(log => ({
+                    action: log.action,
+                    tcin: log.tcin,
+                    tcout: log.tcout,
+                    script: log.script,
+                    note: log.note
+                }))
+            };
+            
+            await fetch(googleSheetsUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            alert('Yêu cầu đồng bộ đã được gửi thành công! Vui lòng kiểm tra file Google Sheets của bạn.');
+        }
+    } catch (error) {
+        console.error('[AUTOSCRIPT SYNC ERROR]', error);
+        alert('Lỗi gửi yêu cầu đồng bộ: ' + error.message);
+    } finally {
+        if (btn) {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    }
+}
+
+if (btnSyncSheets) {
+    btnSyncSheets.addEventListener('click', syncToGoogleSheets);
 }
 
 // -- New Project --
 const btnNewProject = document.getElementById('btnNewProject');
 if (btnNewProject) {
-    btnNewProject.addEventListener('click', () => {
-        if (logs.length && !confirm('⚠️ CẢNH BÁO: Bắt đầu Project mới sẽ XÓA SẠCH kịch bản hiện tại. Bạn đã Export CSV chưa?')) return;
+    btnNewProject.addEventListener('click', async () => {
+        if (logs.length && !confirm('⚠️ CẢNH BÁO: Bắt đầu Project mới sẽ XÓA SẠCH kịch bản hiện tại. Bạn đã đồng bộ lên Google Sheets chưa?')) return;
+        
+        const createNewSheet = confirm('Bạn có muốn tự động tạo một file Google Sheet mới cho Project này không?\n\n- Chọn OK: Nhân bản một Sheet mới từ file mẫu trực tiếp vào Drive của bạn.\n- Chọn Cancel: Tiếp tục dùng Sheet mặc định.');
+        
+        let newId = '';
+        let newUrl = '';
+        let newName = '';
+        
+        if (createNewSheet) {
+            if (!isTokenValid()) {
+                alert('Vui lòng vào Settings đăng nhập tài khoản Google trước khi tạo project mới!');
+                const mSettings = document.getElementById('settingsModal');
+                if (mSettings) mSettings.style.display = 'flex';
+                return;
+            }
+            
+            const nameInput = prompt('Nhập tên cho Project mới (Tên file Google Sheet mới):', 'Project_' + new Date().toISOString().slice(0,10));
+            if (nameInput === null) return;
+            const projectName = nameInput.trim() || ('Project_' + new Date().toISOString().slice(0,10));
+            
+            const originalText = btnNewProject.innerText;
+            btnNewProject.innerText = 'Creating Sheet...';
+            btnNewProject.disabled = true;
+            
+            try {
+                // 1. Gọi Google Drive API v3 để nhân bản file mẫu
+                const driveCopyUrl = `https://www.googleapis.com/drive/v3/files/${TEMPLATE_SPREADSHEET_ID}/copy`;
+                const driveRes = await fetch(driveCopyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${googleAccessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'Autoscript - ' + projectName
+                    })
+                });
+                
+                if (!driveRes.ok) {
+                    const errTxt = await driveRes.text();
+                    throw new Error('Lỗi sao chép Drive: ' + errTxt);
+                }
+                
+                const driveData = await driveRes.json();
+                newId = driveData.id;
+                newUrl = driveData.webViewLink || `https://docs.google.com/spreadsheets/d/${newId}/edit`;
+                newName = driveData.name;
+                
+                // 2. Gọi Google Sheets API v4 để xóa dữ liệu cũ từ dòng 5 trở đi của file mới
+                const sheetsClearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${newId}/values/Full-show!A5:F:clear`;
+                const sheetsRes = await fetch(sheetsClearUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${googleAccessToken}`
+                    }
+                });
+                
+                if (!sheetsRes.ok) {
+                    console.warn('Cảnh báo: Không thể dọn dẹp hàng cũ trên sheet mới. Chi tiết:', await sheetsRes.text());
+                }
+                
+                alert(`Đã tạo thành công Google Sheet mới trong Drive của bạn:\n"${newName}"\n\nBạn có thể click vào liên kết màu xanh bên cạnh nút "New Project" để mở file.`);
+            } catch (err) {
+                console.error('[AUTOSCRIPT CREATE PROJECT ERROR]', err);
+                alert('Không thể tạo Google Sheet mới: ' + err.message + '\n\nỨng dụng sẽ chuyển sang chế độ Project trống sử dụng Sheet mặc định.');
+            } finally {
+                btnNewProject.innerText = originalText;
+                btnNewProject.disabled = false;
+            }
+        }
+        
         saveState();
-        logs = []; saveSession(); renderTable(); drawMarkers();
+        logs = []; 
+        saveSession(); 
+        renderTable(); 
+        drawMarkers();
+        
+        currentSpreadsheetId = newId;
+        currentSpreadsheetUrl = newUrl;
+        currentSpreadsheetName = newName;
+        localStorage.setItem('autoscript_current_spreadsheet_id', currentSpreadsheetId);
+        localStorage.setItem('autoscript_current_spreadsheet_url', currentSpreadsheetUrl);
+        localStorage.setItem('autoscript_current_spreadsheet_name', currentSpreadsheetName);
+        updateActiveSheetUI();
+        
         video.src = '';
         const ut = document.getElementById('uploadText');
         if (ut) ut.innerText = `Click or press to upload`;
@@ -1654,5 +1988,8 @@ request.onsuccess = (e) => {
 };
 renderSettings();
 renderTable();
+updateActiveSheetUI();
+updateGoogleUI();
+initGoogleOAuth();
 setTimeout(drawMarkers, 300);
 console.log('[AUTOSCRIPT] ✓ Initialized successfully');

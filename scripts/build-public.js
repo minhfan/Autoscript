@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
 
-const sourceFile = path.join(projectRoot, "ScriptAutomation_v1.html");
+const sourceFile = path.join(projectRoot, "ScriptAutomation_v2.html");
 const publicDir = path.join(projectRoot, "public");
 const targetFile = path.join(publicDir, "index.html");
 
@@ -16,16 +16,16 @@ async function readRelative(relativePath) {
 
 async function buildPublicIndex() {
   const [html, css, timecodeJs, appJs] = await Promise.all([
-    readRelative("ScriptAutomation_v1.html"),
+    readRelative("ScriptAutomation_v2.html"),
     readRelative("src/styles.css"),
     readRelative("src/js/timecode.js"),
     readRelative("src/js/app.js"),
   ]);
 
   const builtHtml = html
-    .replace('<link rel="stylesheet" href="src/styles.css">', `<style>\n${css}</style>`)
+    .replace(/<link rel="stylesheet" href="src\/styles\.css(?:\?v=[^"]*)?">/, `<style>\n${css}</style>`)
     .replace(
-      '<script src="src/js/timecode.js"></script>\n    <script src="src/js/app.js"></script>',
+      /<script src="src\/js\/timecode\.js(?:\?v=[^"]*)?"><\/script>\s*<script src="src\/js\/app\.js(?:\?v=[^"]*)?"><\/script>/,
       `<script>\n${timecodeJs}\n${appJs}</script>`
     );
 

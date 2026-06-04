@@ -18,6 +18,7 @@
     // ── State ────────────────────────────────────────────────
     let selectedUser = null;
     let profiles = [];
+    let adminProfile = null;
 
     // ── DOM References ───────────────────────────────────────
     const stepProfiles = document.getElementById('stepProfiles');
@@ -32,6 +33,7 @@
     const btnUnlock = document.getElementById('btnUnlock');
     const btnBackProfiles = document.getElementById('btnBackProfiles');
     const authError = document.getElementById('authError');
+    const btnAdminAccess = document.getElementById('btnAdminAccess');
 
     // ── Helpers ──────────────────────────────────────────────
     function getGradientForUser(username, index) {
@@ -59,7 +61,9 @@
         try {
             const res = await fetch('/api/users/profiles');
             if (!res.ok) throw new Error('Failed to load user profiles');
-            profiles = await res.json();
+            const loadedProfiles = await res.json();
+            adminProfile = loadedProfiles.find(profile => profile.username.toLowerCase() === 'admin') || null;
+            profiles = loadedProfiles.filter(profile => profile.username.toLowerCase() !== 'admin');
             renderProfilesGrid();
         } catch (err) {
             showError('Error loading profiles: ' + err.message);
@@ -90,6 +94,10 @@
             item.addEventListener('click', () => selectProfile(profile, gradient));
             profilesGrid.appendChild(item);
         });
+
+        if (btnAdminAccess) {
+            btnAdminAccess.style.display = adminProfile ? 'inline-flex' : 'none';
+        }
     }
 
     // ── Select Profile & Transition ──────────────────────────
@@ -274,6 +282,12 @@
     // ── Event Listeners ──────────────────────────────────────
     if (btnUnlock) btnUnlock.addEventListener('click', submitPin);
     if (btnBackProfiles) btnBackProfiles.addEventListener('click', backToProfiles);
+    if (btnAdminAccess) {
+        btnAdminAccess.addEventListener('click', () => {
+            if (!adminProfile) return;
+            selectProfile(adminProfile, getGradientForUser(adminProfile.username, 0));
+        });
+    }
 
     // ── Initialize ───────────────────────────────────────────
     checkExistingSession().then(() => {

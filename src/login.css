@@ -183,6 +183,29 @@ body {
     background: linear-gradient(to bottom, transparent, var(--border-bright), transparent);
 }
 
+.auth-footer-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.admin-access-link {
+    background: transparent;
+    border: none;
+    color: var(--text-sub);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.admin-access-link:hover {
+    color: var(--accent);
+}
+
 .auth-card {
     width: 100%;
     max-width: 400px;

@@ -63,7 +63,7 @@ export default {
         }
 
         // ── Authenticated Routes ───────────────────────────
-        if (url.pathname.startsWith('/api/users') || url.pathname.startsWith('/api/projects') || url.pathname.startsWith('/api/project-logs') || url.pathname.startsWith('/api/settings')) {
+        if (url.pathname.startsWith('/api/users') || url.pathname.startsWith('/api/projects') || url.pathname.startsWith('/api/project-logs') || url.pathname.startsWith('/api/settings') || url.pathname.startsWith('/api/google-sheets')) {
             const user = await verifyTokenAndGetUser(request);
             if (!user) {
                 return jsonResponse({ error: 'Unauthorized: Invalid or expired token' }, 401);
@@ -134,6 +134,10 @@ export default {
                     return handlePutProjectLogs(user.username, request, env);
                 }
                 return jsonResponse({ error: 'Method not allowed' }, 405);
+            }
+
+            if (url.pathname === '/api/google-sheets') {
+                return handleGoogleSheetsProxy(user.username, request, env, url);
             }
         }
 
@@ -380,18 +384,23 @@ async function handleGetProjectMeta(username, url, env) {
 
 async function handleGetProjectLogs(username, url, env) {
     const projectId = (url.searchParams.get('id') || '').trim();
+    const tab = (url.searchParams.get('tab') || 'Full-show').trim();
     if (!projectId) {
         return jsonResponse({ error: 'Project ID is required' }, 400);
     }
 
-    const logs = await env.SETTINGS_KV.get(`project_logs:${username}:${projectId}`, { type: 'json' }) || [];
-    return jsonResponse({ success: true, logs });
+    let logs = await env.SETTINGS_KV.get(`project_logs:${username}:${projectId}:${tab}`, { type: 'json' });
+    if (!logs && tab === 'Full-show') {
+        logs = await env.SETTINGS_KV.get(`project_logs:${username}:${projectId}`, { type: 'json' });
+    }
+    return jsonResponse({ success: true, logs: logs || [] });
 }
 
 async function handlePutProjectLogs(username, request, env) {
     try {
         const body = await request.json();
         const projectId = (body.projectId || '').trim();
+        const tab = (body.sheetTab || 'Full-show').trim();
         const logs = Array.isArray(body.logs) ? body.logs : null;
 
         if (!projectId) {
@@ -401,7 +410,7 @@ async function handlePutProjectLogs(username, request, env) {
             return jsonResponse({ error: 'Logs array is required' }, 400);
         }
 
-        await env.SETTINGS_KV.put(`project_logs:${username}:${projectId}`, JSON.stringify(logs));
+        await env.SETTINGS_KV.put(`project_logs:${username}:${projectId}:${tab}`, JSON.stringify(logs));
         return jsonResponse({ success: true, message: 'Project logs synced successfully.' });
     } catch (err) {
         console.error('[Worker] Save project logs error:', err);
@@ -494,7 +503,19 @@ async function handleCreateProject(username, request, env) {
             return jsonResponse({ error: `Apps Script request failed (HTTP ${gasRes.status})` }, 500);
         }
 
-        const gasData = await gasRes.json();
+        let gasData;
+        try {
+            const rawText = await gasRes.text();
+            try {
+                gasData = JSON.parse(rawText);
+            } catch (e) {
+                console.error('[Worker] Apps Script returned non-JSON:', rawText);
+                return jsonResponse({ error: 'Apps Script error: ' + rawText.substring(0, 100) }, 500);
+            }
+        } catch (e) {
+            return jsonResponse({ error: 'Failed to read response body' }, 500);
+        }
+
         if (gasData.status !== 'success') {
             return jsonResponse({ error: gasData.message || 'Google Apps Script failed to clone sheet' }, 500);
         }
@@ -770,4 +791,63 @@ function jsonResponse(data, status = 200, extraHeaders = {}) {
             ...extraHeaders,
         },
     });
+}
+
+// ── Google Sheets Proxy Endpoint ──────────────────────────────────
+async function handleGoogleSheetsProxy(username, request, env, url) {
+    try {
+        const settings = await env.SETTINGS_KV.get('app_settings', { type: 'json' }) || DEFAULT_SETTINGS;
+        const gasUrlStr = settings.googleSheetsWebAppUrl;
+
+        if (!gasUrlStr || gasUrlStr.includes('EXAMPLE_SPREADSHEET_APPS_SCRIPT_URL_ABC123')) {
+            return jsonResponse({ error: 'Google Sheets Apps Script URL is not configured in Settings.' }, 400);
+        }
+
+        const gasUrl = new URL(gasUrlStr);
+        let gasRes;
+
+        if (request.method === 'GET') {
+            // Forward query parameters
+            url.searchParams.forEach((value, key) => {
+                gasUrl.searchParams.set(key, value);
+            });
+            gasRes = await fetch(gasUrl.toString(), { redirect: 'follow' });
+        } else if (request.method === 'POST') {
+            const body = await request.json();
+            gasRes = await fetch(gasUrl.toString(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                redirect: 'follow'
+            });
+        } else {
+            return jsonResponse({ error: 'Method not allowed' }, 405);
+        }
+
+        if (!gasRes.ok) {
+            return jsonResponse({ error: `Apps Script request failed (HTTP ${gasRes.status})` }, 500);
+        }
+
+        let data;
+        try {
+            const rawText = await gasRes.text();
+            try {
+                data = JSON.parse(rawText);
+            } catch (e) {
+                console.error('[Worker] Google Sheets Proxy returned non-JSON:', rawText);
+                return jsonResponse({ error: 'Proxy Apps Script error: ' + rawText.substring(0, 100) }, 500);
+            }
+        } catch (e) {
+            return jsonResponse({ error: 'Failed to read response body' }, 500);
+        }
+
+        if (data.status === 'error') {
+            return jsonResponse({ error: data.message }, 400);
+        }
+
+        return jsonResponse(data);
+    } catch (err) {
+        console.error('[Worker] Google Sheets Proxy error:', err);
+        return jsonResponse({ error: err.message }, 500);
+    }
 }

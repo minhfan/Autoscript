@@ -755,8 +755,6 @@
             background: rgba(239, 68, 68, 0.4);
             border-radius: 4px;
             pointer-events: none;
-            border-left: 2px solid var(--danger);
-            border-right: 2px solid var(--danger);
             display: none;
             z-index: 3;
         }
@@ -1466,6 +1464,20 @@
     border-color: var(--accent);
     background: var(--accent-dim);
 }
+#btnToolbarImportShort {
+    background: var(--bg-hover);
+    border: 1px solid var(--border-bright);
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: all var(--t-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#btnToolbarImportShort:hover {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.15);
+}
 .pulse-import {
     animation: pulseImport 1.5s infinite !important;
     background: rgba(255, 193, 7, 0.2) !important;
@@ -1531,7 +1543,133 @@
             0% { background-color: rgba(255, 193, 7, 0.5) !important; }
             100% { background-color: transparent; }
         }
+        .sheet-tabs-container {
+            display: flex;
+            align-items: center;
+            background: var(--bg-main);
+            border-bottom: 1px solid var(--border);
+            padding: 0 12px;
+            overflow-x: auto;
+            scrollbar-width: none; /* Firefox */
+        }
+        .sheet-tabs-container::-webkit-scrollbar { display: none; }
+        .sheet-tab {
+            padding: 8px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .sheet-tab:hover {
+            color: var(--text-main);
+            background: var(--bg-input);
+        }
+        .sheet-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .btn-send {
+            color: #3b82f6;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: var(--r-sm);
+            cursor: pointer;
+            font-size: 10px;
+            padding: 2px 6px;
+            transition: all 0.2s;
+        }
+        .btn-send:hover {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        /* ── Floating Tab Menu (shared by SEND row + Import Short) ── */
+        .send-tab-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        /* Row SEND menus use position:fixed (set via JS) to escape overflow:auto */
+        .floating-tab-menu {
+            z-index: 9999;
+            flex-direction: row;
+            gap: 3px;
+            padding: 4px 5px;
+            background: rgba(15, 23, 42, 0.97);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-bright);
+            border-radius: var(--r-md);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            white-space: nowrap;
+            animation: floatMenuIn 0.12s ease;
+        }
+        .floating-tab-menu .tab-chip {
+            padding: 3px 8px;
+            font-size: 9px;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-sub);
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .floating-tab-menu .tab-chip:hover {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+        .floating-tab-menu .tab-chip.sending {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .floating-tab-menu .tab-chip.sent {
+            background: var(--accent) !important;
+            color: #fff !important;
+            border-color: var(--accent) !important;
+        }
+        @keyframes floatMenuIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Import Short button floating menu — no gap, padding bridge */
+        .import-short-wrapper {
+            position: relative;
+            display: flex;
+            flex: 1;
+        }
+        .import-short-wrapper .floating-tab-menu {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            padding-bottom: 6px; /* bridge gap so hover doesn't break */
+        }
+        .import-short-wrapper .floating-tab-menu-inner {
+            display: flex;
+            flex-direction: row;
+            gap: 3px;
+            padding: 4px 5px;
+            background: rgba(15, 23, 42, 0.97);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-bright);
+            border-radius: var(--r-md);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+        .import-short-wrapper:hover .floating-tab-menu {
+            display: block;
+        }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -1563,6 +1701,11 @@
             <button class="btn-header" id="btnHelp">Shortcuts</button>
         </div>
     </header>
+
+    <div class="sheet-tabs-container" id="sheetTabsContainer">
+        <button class="sheet-tab active" data-tab="Full-show">Full-show</button>
+        <!-- Dynamic tabs will be added here -->
+    </div>
 
     <div class="layout-container" id="mainContainer">
         <div class="left-col" id="leftCol">
@@ -1630,16 +1773,13 @@
                             <div id="timelineTicks" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;"></div>
                             <div class="timeline-progress" id="timelineProgress"></div>
                             <div class="timeline-active-range" id="activeRange"></div>
-                            <div id="activeSwapIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: calc(100% + 14px); z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeSwapSec !== null) { video.currentTime = activeSwapSec; } event.stopPropagation();">
-                                <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #ea580c;"></div>
+                            <div id="activeSwapIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: 14px; z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeSwapSec !== null) { video.currentTime = activeSwapSec; } event.stopPropagation();">
                                 <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #ea580c;"></div>
                             </div>
-                            <div id="activeInIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: calc(100% + 14px); z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeInSec !== null) { video.currentTime = activeInSec; } event.stopPropagation();">
-                                <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #3b82f6;"></div>
+                            <div id="activeInIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: 14px; z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeInSec !== null) { video.currentTime = activeInSec; } event.stopPropagation();">
                                 <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #3b82f6;"></div>
                             </div>
-                            <div id="activeOutIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: calc(100% + 14px); z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeOutSec !== null) { video.currentTime = activeOutSec; } event.stopPropagation();">
-                                <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #ef4444;"></div>
+                            <div id="activeOutIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: 14px; z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeOutSec !== null) { video.currentTime = activeOutSec; } event.stopPropagation();">
                                 <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #ef4444;"></div>
                             </div>
                             <div id="playheadIndicator" style="position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text-main); z-index: 20; pointer-events: none; left: 0%;">
@@ -1675,8 +1815,8 @@
                     </div>
                     <div class="action-button-group" id="actionButtonGroup" role="radiogroup" aria-label="Chọn action">
                         <button type="button" class="action-button" data-action="DELETE" role="radio">DELETE</button>
-                        <button type="button" class="action-button" data-action="SWAP" role="radio">SWAP</button>
                         <button type="button" class="action-button" data-action="POP-UP" role="radio">POP-UP</button>
+                        <button type="button" class="action-button" data-action="SWAP" role="radio">SWAP</button>
                         <button type="button" class="action-button" data-action="QUESTION" role="radio">QUESTION</button>
                         <button type="button" class="action-button" data-action="QUOTE" role="radio">QUOTE</button>
                         <button type="button" class="action-button" data-action="NOTE" role="radio">NOTE</button>
@@ -1694,9 +1834,15 @@
                             <textarea id="inputNote" style="flex: 1; resize: none; overflow-y: hidden;"></textarea>
                         </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <label style="visibility: hidden;">IMPORT</label>
-                        <button type="button" id="btnToolbarImport" title="Import action (Shift+Enter)" style="width: 70px; flex: 1; font-size: 28.00px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center;">&#10140;</button>
+                    <div style="display: flex; flex-direction: column; gap: 4px; height: 100%;">
+                        <label style="visibility: hidden; margin-bottom: 2px;">IMPORT</label>
+                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; width: 70px;">
+                            <button type="button" id="btnToolbarImport" title="Import action (Shift+Enter)" style="flex: 2; font-size: 24.00px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center;">&#10140;</button>
+                            <div class="import-short-wrapper">
+                                <button type="button" id="btnToolbarImportShort" title="Import to specific Short tab" style="width:100%; font-size: 16px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center;">&#10140;<sub style="font-size: 9px; margin-left: 2px; font-weight: bold; position: relative; bottom: -2px;">S</sub></button>
+                                <div class="floating-tab-menu" id="importShortFloatingMenu"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1710,9 +1856,6 @@
                     <span id="defaultScriptTitle" style="font-weight: 700;">Script</span>
                     <a id="activeSheetLink" href="#" target="_blank" style="display: none; color: var(--text-main); text-decoration: none; align-items: center; gap: 8px; font-weight: 700; transition: color var(--t-fast);">
                         <span id="activeSheetName">Sheet</span>
-                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 99px; background: var(--accent-dim); border: 1px solid var(--border-bright);">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                        </span>
                     </a>
                     <span class="log-count-badge" id="logCount" style="margin-left: 8px; font-size: 14px;">0</span>
                 </h2>
@@ -1742,7 +1885,7 @@
                     </div>
                     <div style="display: flex; gap: 5px; margin-left: auto; align-items: center;">
                         <label class="btn-action btn-import" id="lblImport" style="cursor: pointer; margin: 0;">
-                            <input type="file" id="csvImport" accept=".csv" style="display: none;">
+                            <input type="file" id="csvImport" accept=".csv, .xlsx, .xls" style="display: none;">
                             Import
                         </label>
                         <button type="button" class="btn-action btn-sync-brand" id="btnSyncSheets" title="Sync current sheet">Sync Sheet</button>
@@ -1766,9 +1909,9 @@
                             <th>STT</th>
                             <th></th>
                             <th>ACTION</th>
-                            <th>TC SWAP</th>
                             <th>TC IN</th>
                             <th>TC OUT</th>
+                            <th>TC SWAP</th>
                             <th>SCRIPT</th>
                             <th>NOTE</th>
                             <th></th>
@@ -1797,6 +1940,36 @@
             <div class="shortcut-grid" id="settingsGrid"></div>
             <!-- Google Sheets settings removed -->
             <button class="close-btn" id="btnCloseSettings">Save Settings</button>
+        </div>
+    </div>
+
+    <!-- Cutdown Modal -->
+    <div class="modal" id="cutdownModal">
+        <div class="modal-content" style="max-width: 320px;">
+            <h2 style="font-size: 16px; margin-bottom: 8px;">Send to Cutdown</h2>
+            <p style="font-size: 11px; color: var(--text-sub); text-align: center; margin-bottom: 16px;">Select destination sheet for this action.</p>
+            <select id="cutdownTargetSelect" style="width: 100%; padding: 8px; border-radius: var(--r-md); background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border); margin-bottom: 16px; outline: none;">
+                <!-- Options populated dynamically -->
+            </select>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+                <button class="btn-modal-base" id="cutdownModalCancel" style="background: var(--bg-hover);">Cancel</button>
+                <button class="btn-modal-base btn-modal-primary" id="cutdownModalSend">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Short Modal -->
+    <div class="modal" id="importShortModal">
+        <div class="modal-content" style="max-width: 320px;">
+            <h2 style="font-size: 16px; margin-bottom: 8px;">Import to Short</h2>
+            <p style="font-size: 11px; color: var(--text-sub); text-align: center; margin-bottom: 16px;">Select destination sheet for this new action.</p>
+            <select id="importShortTargetSelect" style="width: 100%; padding: 8px; border-radius: var(--r-md); background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border); margin-bottom: 16px; outline: none;">
+                <!-- Options populated dynamically -->
+            </select>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+                <button class="btn-modal-base" id="importShortModalCancel" style="background: var(--bg-hover);">Cancel</button>
+                <button class="btn-modal-base btn-modal-primary" id="importShortModalSend">Send</button>
+            </div>
         </div>
     </div>
 
@@ -1834,7 +2007,7 @@
         console.error('[AUTOSCRIPT ERROR]', msg, '@', src, ':', line);
     };
     </script>
-    <script src="https://accounts.google.com/gsi/client" onload="initGoogleOAuth()" async defer></script>
+    </script>
     <script>
 let FPS = 29.97;
 
@@ -1878,6 +2051,8 @@ function formatBoundTC(sec) {
 
 // ── 1. GLOBAL STATE (must be at the very top) ───────────────
 let playbackSpeed    = 1.0;
+let currentSheetTab  = 'Full-show';
+let availableSheetTabs = ['Full-show'];
 let listeningAction  = null;
 let activeInSec      = null;
 let activeOutSec     = null;
@@ -1990,105 +2165,31 @@ function updateActiveSheetUI() {
 }
 
 let googleClientId = localStorage.getItem('autoscript_google_client_id') || '';
-let googleAccessToken = localStorage.getItem('autoscript_google_access_token') || '';
-let googleTokenExpiry = Number(localStorage.getItem('autoscript_google_token_expiry')) || 0;
-let googleUserEmail = localStorage.getItem('autoscript_google_user_email') || '';
-let tokenClient = null;
+const sessionToken = localStorage.getItem('autoscript_session_token');
 
 // Cấu hình ID Trang tính gốc làm mẫu (Template Spreadsheet ID)
 const TEMPLATE_SPREADSHEET_ID = "1S6YxzKJE7X5vZRZduA36KDc_E00Cdkxp2mD3VXhwfmA";
 
+// OAuth is bypassed; we use the Worker proxy to Google Apps Script now.
 function isTokenValid() {
-    return googleAccessToken && googleTokenExpiry && (Date.now() < googleTokenExpiry - 60000);
+    return true;
 }
 
 function updateGoogleUI() {
-    const statusEl = document.getElementById('googleUserStatus');
-    const btnEl = document.getElementById('btnGoogleAuth');
-    if (statusEl && btnEl) {
-        if (isTokenValid()) {
-            statusEl.innerText = `Đã đăng nhập: ${googleUserEmail || 'Google User'}`;
-            statusEl.style.color = '#34d399';
-            btnEl.innerText = 'Đăng xuất';
-        } else {
-            statusEl.innerText = 'Chưa đăng nhập Google';
-            statusEl.style.color = 'var(--text-muted)';
-            btnEl.innerText = 'Đăng nhập Google';
-        }
-    }
+    // Legacy stub
 }
 
-window.initGoogleOAuth = initGoogleOAuth;
-function initGoogleOAuth() {
-    if (!googleClientId || typeof google === 'undefined' || !google.accounts) return;
-    try {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: googleClientId,
-            scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
-            callback: async (response) => {
-                if (response.error !== undefined) {
-                    console.error(response);
-                    openMessageModal('Lỗi đăng nhập', 'Lỗi đăng nhập Google: ' + response.error);
-                    return;
-                }
-                googleAccessToken = response.access_token;
-                googleTokenExpiry = Date.now() + (response.expires_in * 1000);
-                localStorage.setItem('autoscript_google_access_token', googleAccessToken);
-                localStorage.setItem('autoscript_google_token_expiry', googleTokenExpiry);
-                
-                // Lấy Email người dùng
-                try {
-                    const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                        headers: { 'Authorization': `Bearer ${googleAccessToken}` }
-                    });
-                    const userData = await userRes.json();
-                    googleUserEmail = userData.email || '';
-                    localStorage.setItem('autoscript_google_user_email', googleUserEmail);
-                } catch(e) {
-                    googleUserEmail = '';
-                }
-                
-                updateGoogleUI();
-                openMessageModal('Thành công', 'Đăng nhập Google thành công!');
-            }
-        });
-    } catch (err) {
-        console.error('[GIS INIT ERROR]', err);
-    }
-}
-
-function handleGoogleAuthClick() {
-    if (!googleClientId) {
-        openMessageModal('Cấu hình cần thiết', 'Vui lòng nhập Google OAuth Client ID trong Settings trước!');
-        return;
-    }
-    if (isTokenValid()) {
-        // Đăng xuất: xóa token
-        googleAccessToken = '';
-        googleTokenExpiry = 0;
-        googleUserEmail = '';
-        localStorage.removeItem('autoscript_google_access_token');
-        localStorage.removeItem('autoscript_google_token_expiry');
-        localStorage.removeItem('autoscript_google_user_email');
-        updateGoogleUI();
-        openMessageModal('Thông báo', 'Đã đăng xuất tài khoản Google.');
-    } else {
-        if (!tokenClient) {
-            initGoogleOAuth();
-        }
-        if (tokenClient) {
-            tokenClient.requestAccessToken();
-        } else {
-            openMessageModal('Lỗi', 'Không thể khởi tạo Client đăng nhập Google. Kiểm tra lại Client ID!');
-        }
-    }
-}
+window.initGoogleOAuth = function() {};
+function handleGoogleAuthClick() {}
 
 // ── 2. SESSION DATA ──────────────────────────────────────────
 const LEGACY_LOG_STORAGE_KEY = 'autoscript_tcp_v9';
 let logs = [];
 let projectLogsSaveTimer = null;
 let isProjectLogsLoaded = false;
+
+// ── IN-MEMORY TAB CACHE ── Instant tab switching, no KV latency ──
+const tabLogsCache = {};
 
 function getLegacyLocalLogs() {
     try {
@@ -2099,41 +2200,48 @@ function getLegacyLocalLogs() {
     }
 }
 
-async function saveProjectLogsToKV() {
+async function saveProjectLogsToKV(tabOverride, logsOverride) {
     if (!currentSpreadsheetId) return;
+    const tabToSave = tabOverride || currentSheetTab;
+    const logsToSave = logsOverride !== undefined ? logsOverride : logs;
 
-    await fetch('/tcpscript/api/project-logs', {
-        method: 'PUT',
-        credentials: 'same-origin',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            projectId: currentSpreadsheetId,
-            logs
-        })
-    });
-
+    try {
+        const res = await fetch('/tcpscript/api/project-logs', {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionToken}`
+            },
+            body: JSON.stringify({
+                projectId: currentSpreadsheetId,
+                sheetTab: tabToSave,
+                logs: logsToSave
+            })
+        });
+        if (!res.ok) {
+            console.error('[APP] saveProjectLogsToKV failed:', res.status);
+        }
+    } catch (err) {
+        console.error('[APP] saveProjectLogsToKV network error:', err);
+    }
     localStorage.removeItem(LEGACY_LOG_STORAGE_KEY);
 }
 
 async function loadProjectLogsFromKV() {
-    const legacyLogs = getLegacyLocalLogs();
-
     if (!currentSpreadsheetId) {
-        logs = legacyLogs;
+        logs = getLegacyLocalLogs();
         isProjectLogsLoaded = true;
         return;
     }
 
     try {
-        const res = await fetch(`/tcpscript/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}`, {
-            credentials: 'same-origin'
+        const res = await fetch(`/tcpscript/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}&tab=${encodeURIComponent(currentSheetTab)}&t=${Date.now()}`, {
+            credentials: 'same-origin',
+            headers: { 'Authorization': `Bearer ${sessionToken}` }
         });
 
-        if (!res.ok) {
-            throw new Error(`Failed to load project logs (HTTP ${res.status})`);
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
         const kvLogs = Array.isArray(data.logs) ? data.logs : [];
@@ -2141,16 +2249,27 @@ async function loadProjectLogsFromKV() {
         if (kvLogs.length > 0) {
             logs = kvLogs;
             localStorage.removeItem(LEGACY_LOG_STORAGE_KEY);
-        } else if (legacyLogs.length > 0) {
-            logs = legacyLogs;
-            await saveProjectLogsToKV();
+        } else if (currentSheetTab === 'Full-show') {
+            const legacyLogs = getLegacyLocalLogs();
+            if (legacyLogs.length > 0) {
+                logs = legacyLogs;
+                await saveProjectLogsToKV();
+            } else {
+                logs = [];
+            }
         } else {
             logs = [];
         }
     } catch (error) {
-        console.warn('[APP] Failed to load project logs from KV:', error);
-        logs = legacyLogs;
+        console.warn('[APP] loadProjectLogsFromKV error:', error);
+        if (currentSheetTab === 'Full-show') {
+            logs = getLegacyLocalLogs();
+        } else {
+            logs = [];
+        }
     } finally {
+        // Always cache what we loaded
+        tabLogsCache[currentSheetTab] = JSON.parse(JSON.stringify(logs));
         isProjectLogsLoaded = true;
     }
 }
@@ -2324,30 +2443,30 @@ function redo() {
     }
 }
 
+let isLogsDirty = false;
+
 // ── 7. SESSION SAVE ──────────────────────────────────────────
 function saveSession() {
     const status = document.getElementById('saveStatus');
-    if (status) {
-        status.innerText = 'Syncing...';
-    }
+    if (status) status.innerText = 'Syncing...';
+    if (!isProjectLogsLoaded) return;
 
-    if (!isProjectLogsLoaded) {
-        return;
-    }
+    isLogsDirty = true;
+    // Always update in-memory cache immediately
+    tabLogsCache[currentSheetTab] = JSON.parse(JSON.stringify(logs));
 
-    if (projectLogsSaveTimer) {
-        clearTimeout(projectLogsSaveTimer);
-    }
-
+    // Debounced KV save (background, non-blocking)
+    if (projectLogsSaveTimer) clearTimeout(projectLogsSaveTimer);
     projectLogsSaveTimer = setTimeout(async () => {
         try {
             await saveProjectLogsToKV();
+            isLogsDirty = false;
             if (status) status.innerText = 'Saved';
         } catch (error) {
             console.error('[APP] Failed to sync project logs:', error);
             if (status) status.innerText = 'Sync failed';
         }
-    }, 350);
+    }, 500);
 }
 
 // ── 8. RENDER SETTINGS (Shortcuts panel) ─────────────────────
@@ -2479,12 +2598,12 @@ function renderTable() {
                 <td class="td-stt">${index + 1}</td>
                 <td class="td-play">${playButton}</td>
                 <td class="td-action">${actionCell}</td>
-                <td class="td-tc" ${editable} onclick="window.jumpToTC(${index},'tcswap')" onblur="inlineUpdate(${index},'tcswap',this)">${swapVal ? escapeHtml(swapVal) : ''}</td>
                 <td class="td-tc" ${editable} onclick="window.jumpToTC(${index},'tcin')" onblur="inlineUpdate(${index},'tcin',this)">${escapeHtml(log.tcin)}</td>
                 <td class="td-tc" ${editable} onclick="window.jumpToTC(${index},'tcout')" onblur="inlineUpdate(${index},'tcout',this)">${outVal ? escapeHtml(outVal) : ''}</td>
+                <td class="td-tc" ${editable} onclick="window.jumpToTC(${index},'tcswap')" onblur="inlineUpdate(${index},'tcswap',this)">${swapVal ? escapeHtml(swapVal) : ''}</td>
                 <td class="td-text" ${editable} onclick="if(this.getAttribute('contenteditable')!=='true') window.jumpToTC(${index},'tcin')" onblur="inlineUpdate(${index},'script',this)">${escapeHtml(log.script)}</td>
                 <td class="td-text" ${editable} onclick="if(this.getAttribute('contenteditable')!=='true') window.jumpToTC(${index},'tcin')" onblur="inlineUpdate(${index},'note',this)">${escapeHtml(log.note)}</td>
-                <td class="td-delete"><span class="row-tools"><button class="btn-delete" onclick="deleteLog(${index})" title="Delete">&#10006;</button></span></td>
+                <td class="td-delete"><span class="row-tools"><span class="send-tab-wrapper" onmouseenter="buildRowSendMenu(this, ${index})" onmouseleave="hideRowSendMenu(this)"><button class="btn-send" title="Send to Tab">SEND</button></span><button class="btn-delete" onclick="deleteLog(${index})" title="Delete">&#10006;</button></span></td>
             </tr>`;
     });
     const logCount = document.getElementById('logCount');
@@ -2538,8 +2657,6 @@ function drawMarkers() {
         } else {
             marker.style.width = '0%';
         }
-        marker.style.borderLeftColor  = colorHex;
-        marker.style.borderRightColor = colorHex;
         marker.style.backgroundColor  = colorHex + '50';
         
         const topOffsetDur = 24 + (level * 22);
@@ -2667,8 +2784,6 @@ function updateActiveRange() {
         
         const colorSet = actionColors[selectedAction] || {bg: 'rgba(239, 68, 68, 0.4)'};
         activeRange.style.background = colorSet.bg + '66'; // 0.4 alpha
-        activeRange.style.borderLeftColor = colorSet.bg;
-        activeRange.style.borderRightColor = colorSet.bg;
         
         if (draftMarker) draftMarker.style.display = 'none';
     } else if (activeInSec !== null && activeOutSec === null) {
@@ -2714,6 +2829,16 @@ function updateActiveRange() {
         }
     } else {
         if (outIndicator) outIndicator.style.display = 'none';
+    }
+
+    const swapIndicatorContent = document.getElementById('activeSwapIndicator');
+    if (activeSwapSec !== null) {
+        if (swapIndicatorContent) {
+            swapIndicatorContent.style.display = 'block';
+            swapIndicatorContent.style.left = (activeSwapSec / video.duration) * 100 + '%';
+        }
+    } else {
+        if (swapIndicatorContent) swapIndicatorContent.style.display = 'none';
     }
 }
 
@@ -2833,6 +2958,8 @@ function jumpMarker(direction) {
     if (target !== null) video.currentTime = target;
 }
 
+let clipboardLogData = null; // Stores last imported log for ->S shortcut
+
 // ── 15. SAVE LOG (Import Action) ─────────────────────────────
 async function logAction(actionName) {
     if (!video.duration) return;
@@ -2910,6 +3037,19 @@ async function logAction(actionName) {
         }
     }
 
+    // Store to clipboard BEFORE clearing
+    clipboardLogData = {
+        action: actionName,
+        inSec: activeInSec,
+        outSec: activeOutSec,
+        swapSec: activeSwapSec,
+        tcswap: activeSwapSec !== null ? formatTC(activeSwapSec) : '',
+        tcin: formatTC(activeInSec),
+        tcout: activeOutSec !== null ? formatTC(activeOutSec) : '',
+        script: st,
+        note: nt
+    };
+
     activeInSec = null; activeOutSec = null; activeSwapSec = null;
     valTcIn.innerText = formatTC(video.currentTime);
     valTcOut.innerText = formatTC(video.currentTime);
@@ -2975,8 +3115,53 @@ window.inlineUpdate = function(index, field, element) {
     saveSession();
 };
 
+let tcAutoSelected = false;
+let tcJumpWait = false;
+function clearAutoSelectedTC() {
+    activeInSec = null; activeOutSec = null; activeSwapSec = null;
+    valTcIn.innerText = formatTC(video.currentTime);
+    valTcOut.innerText = formatTC(video.currentTime);
+    const tcSwapEl = document.getElementById('valTcSwap');
+    if (tcSwapEl) tcSwapEl.innerText = formatTC(video.currentTime);
+    boxIn.classList.remove('active');
+    boxOut.classList.remove('active');
+    if (boxSwap) boxSwap.classList.remove('active');
+    updateActiveRange();
+    tcAutoSelected = false;
+}
+
 window.jumpToTC = function(index, field) {
     const log = logs[index];
+    tcAutoSelected = true;
+    tcJumpWait = true;
+    
+    // Auto-sync TC toolbar with the clicked row
+    if (log.inSec !== undefined && log.inSec !== null) {
+        activeInSec = log.inSec;
+        valTcIn.innerText = formatTC(activeInSec);
+        boxIn.classList.add('active');
+    }
+    if (log.outSec !== undefined && log.outSec !== null) {
+        activeOutSec = log.outSec;
+        valTcOut.innerText = formatTC(activeOutSec);
+        boxOut.classList.add('active');
+    }
+    if (log.swapSec !== undefined && log.swapSec !== null && document.getElementById('valTcSwap')) {
+        activeSwapSec = log.swapSec;
+        document.getElementById('valTcSwap').innerText = formatTC(activeSwapSec);
+        if (boxSwap) boxSwap.classList.add('active');
+    }
+    
+    // Activate edit mode fully by populating the form
+    document.getElementById('inputScript').value = log.script || '';
+    document.getElementById('inputNote').value = log.note || '';
+    if (log.action) {
+        selectedAction = log.action;
+        updateActionButtons();
+    }
+    
+    updateActiveRange();
+
     const sec = parseTC(log[field]);
     if (sec !== null && !isNaN(sec)) {
         video.currentTime = sec;
@@ -3327,8 +3512,18 @@ btnPlayVideo.addEventListener('click', () => {
     }
     togglePlayback();
 });
-video.addEventListener('play',  updateToolbarPlayState);
+video.addEventListener('play', () => {
+    updateToolbarPlayState();
+    if (tcAutoSelected) clearAutoSelectedTC();
+});
 video.addEventListener('pause', updateToolbarPlayState);
+video.addEventListener('seeked', () => {
+    if (tcJumpWait) {
+        tcJumpWait = false;
+    } else if (tcAutoSelected) {
+        clearAutoSelectedTC();
+    }
+});
 
 // -- Play Reverse --
 if (btnPlayReverse) {
@@ -3402,6 +3597,7 @@ document.addEventListener('mousedown', (e) => {
         if (e.target.closest('.action-button-group')) return;
         if (e.target.closest('.action-button')) return;
         if (e.target.closest('#btnToolbarImport')) return;
+        if (e.target.closest('#btnToolbarImportShort')) return;
         if (e.target.closest('.custom-timeline-wrapper')) return;
         // Stay in edit mode if clicking TC boxes
         if (e.target.closest('#boxIn') || e.target.closest('#boxOut') || e.target.closest('#boxSwap')) return;
@@ -3596,142 +3792,48 @@ if (csvImportEl) {
         const file = e.target.files[0]; if (!file) return;
         const reader = new FileReader();
         reader.onload = function(ev) {
-            const lines = ev.target.result.split('\n');
-            const newLogs = [];
-            for (let i = 4; i < lines.length; i++) {
-                let line = lines[i].trim(); if (!line) continue;
-                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                if (cols.length >= 7) {
-                    let action, tcswap, tcin, tcout, script, note;
-                    action = cols[1].replace(/^"|"$/g,'').trim();
+            try {
+                const data = new Uint8Array(ev.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ""});
+                
+                const newLogs = [];
+                // Skip the first 4 rows (header rows from template)
+                for (let i = 4; i < rows.length; i++) {
+                    const cols = rows[i];
+                    if (!cols || cols.length === 0) continue;
+                    
+                    let action = (cols[1] || '').toString().trim();
                     if (action === 'DELTELE') action = 'DELETE';
-                    tcswap = cols[2].replace(/^"|"$/g,'').trim();
-                    tcin   = cols[3].replace(/^"|"$/g,'').trim();
-                    tcout  = cols[4].replace(/^"|"$/g,'').trim();
-                    script = cols[5].replace(/^"|"$/g,'').replace(/""/g,'"');
-                    note   = cols[6].replace(/^"|"$/g,'').replace(/""/g,'"');
-                    newLogs.push({ action, tcswap, tcin, tcout, script, note, inSec: parseTC(tcin), outSec: parseTC(tcout) || null, swapSec: tcswap ? parseTC(tcswap) : null });
+                    let tcswap = (cols[2] || '').toString().trim();
+                    let tcin = (cols[3] || '').toString().trim();
+                    let tcout = (cols[4] || '').toString().trim();
+                    let script = (cols[5] || '').toString().trim();
+                    let note = (cols[6] || '').toString().trim();
+                    
+                    if (action || tcin || script) {
+                        newLogs.push({ action, tcswap, tcin, tcout, script, note, inSec: parseTC(tcin), outSec: parseTC(tcout) || null, swapSec: tcswap ? parseTC(tcswap) : null });
+                    }
                 }
+                
+                if (newLogs.length > 0) {
+                    openConfirmModal('Import Data', `Tìm thấy ${newLogs.length} dòng. Ghi đè danh sách hiện tại?`).then(ok => {
+                        if (ok) { logs = newLogs; renderTable(); drawMarkers(); saveProjectLogsToKV(); }
+                    });
+                } else openMessageModal('Lỗi Import', 'File không hợp lệ hoặc rỗng!');
+            } catch (err) {
+                console.error(err);
+                openMessageModal('Lỗi Import', 'Không thể đọc file. Vui lòng chọn file Excel (.xlsx) hoặc CSV hợp lệ.');
             }
-            if (newLogs.length > 0) {
-                openConfirmModal('Import CSV', `Tìm thấy ${newLogs.length} dòng. Ghi đè danh sách hiện tại?`).then(ok => {
-                    if (ok) { logs = newLogs; renderTable(); drawMarkers(); saveSession(); }
-                });
-            } else openMessageModal('Lỗi Import', 'File CSV không hợp lệ hoặc rỗng!');
         };
-        reader.readAsText(file); e.target.value = '';
+        reader.readAsArrayBuffer(file);
+        e.target.value = '';
     });
 }
 
 // -- Google Sheets Synchronization --
-async function syncToGoogleSheets() {
-    if (!logs.length) {
-        openMessageModal('Thông báo', 'Danh sách log rỗng! Không có gì để đồng bộ.');
-        return;
-    }
-
-    const btn = document.getElementById('btnSyncSheets');
-    const originalText = btn ? btn.innerText : 'Sync Sheets';
-    if (btn) {
-        btn.innerText = 'Syncing...';
-        btn.disabled = true;
-    }
-
-    try {
-        if (isTokenValid()) {
-            // --- PHƯƠNG ÁN 2: ĐỒNG BỘ TRỰC TIẾP QUA GOOGLE REST APIs ---
-            const sheetId = currentSpreadsheetId || TEMPLATE_SPREADSHEET_ID;
-            
-            // 1. Dọn dẹp hàng cũ từ dòng 5 trở đi
-            const sheetsClearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Full-show!A5:F:clear`;
-            const clearRes = await fetch(sheetsClearUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${googleAccessToken}`
-                }
-            });
-            
-            if (!clearRes.ok) {
-                const errTxt = await clearRes.text();
-                throw new Error('Không thể dọn dẹp hàng cũ trên Sheet: ' + errTxt);
-            }
-            
-            // 2. Ghi đè dữ liệu mới
-            const values = logs.map(log => [
-                "",
-                log.action,
-                log.tcin,
-                log.tcout,
-                log.script,
-                log.note
-            ]);
-            
-            const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Full-show!A5:F?valueInputOption=USER_ENTERED`;
-            const writeRes = await fetch(writeUrl, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${googleAccessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    range: "Full-show!A5:F",
-                    majorDimension: "ROWS",
-                    values: values
-                })
-            });
-            
-            if (!writeRes.ok) {
-                const errData = await writeRes.json();
-                const errMsg = errData.error ? errData.error.message : 'Không rõ nguyên nhân';
-                if (errMsg.includes('violates the data validation rules')) {
-                    throw new Error('Vi phạm quy tắc dropdown (Data Validation) trên cột B của Google Sheets. Hãy kiểm tra các lựa chọn trên Sheet!');
-                }
-                throw new Error('Lỗi ghi dữ liệu: ' + errMsg);
-            }
-            
-            openMessageModal('Thành công', 'Đồng bộ trực tiếp qua Google REST API thành công! Vui lòng kiểm tra file Google Sheets của bạn.');
-            
-        } else {
-            // --- PHƯƠNG ÁN 1: ĐỒNG BỘ QUA GOOGLE APPS SCRIPT WEB APP ---
-            if (!googleSheetsUrl) {
-                openMessageModal('Cấu hình cần thiết', 'Vui lòng vào Settings cấu hình Google Sheets Web App URL hoặc đăng nhập Google trước khi đồng bộ!');
-                if (mSettings) mSettings.style.display = 'flex';
-                return;
-            }
-            
-            const payload = {
-                spreadsheetId: currentSpreadsheetId || undefined,
-                logs: logs.map(log => ({
-                    action: log.action,
-                    tcin: log.tcin,
-                    tcout: log.tcout,
-                    script: log.script,
-                    note: log.note
-                }))
-            };
-            
-            await fetch(googleSheetsUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8'
-                },
-                body: JSON.stringify(payload)
-            });
-            
-            openMessageModal('Thành công', 'Yêu cầu đồng bộ đã được gửi thành công! Vui lòng kiểm tra file Google Sheets của bạn.');
-        }
-    } catch (error) {
-        console.error('[AUTOSCRIPT SYNC ERROR]', error);
-        openMessageModal('Lỗi đồng bộ', 'Lỗi gửi yêu cầu đồng bộ: ' + error.message);
-    } finally {
-        if (btn) {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
-    }
-}
-
 async function syncToGoogleSheets() {
     if (!logs.length) {
         openMessageModal('Đồng bộ Google Sheets', 'Danh sách log rỗng. Không có gì để đồng bộ.');
@@ -3746,83 +3848,42 @@ async function syncToGoogleSheets() {
     }
 
     try {
-        if (isTokenValid()) {
-            const sheetId = currentSpreadsheetId || TEMPLATE_SPREADSHEET_ID;
-            const sheetsClearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Full-show!A5:F:clear`;
-            const clearRes = await fetch(sheetsClearUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${googleAccessToken}`
-                }
-            });
+        const sheetId = currentSpreadsheetId || TEMPLATE_SPREADSHEET_ID;
+        const values = logs.map(log => [
+            "",
+            log.action,
+            log.tcin,
+            log.tcout,
+            log.tcswap,
+            log.script,
+            log.note
+        ]);
 
-            if (!clearRes.ok) {
-                const errTxt = await clearRes.text();
-                throw new Error('Không thể dọn dẹp hàng cũ trên Sheet: ' + errTxt);
-            }
+        const writeRes = await fetch(`/tcpscript/api/google-sheets`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${sessionToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'syncLogs',
+                sheetId: sheetId,
+                tab: currentSheetTab || 'Full-show',
+                values: values
+            })
+        });
 
-            const values = logs.map(log => [
-                "",
-                log.action,
-                log.tcin,
-                log.tcout,
-                log.script,
-                log.note
-            ]);
-
-            const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Full-show!A5:F?valueInputOption=USER_ENTERED`;
-            const writeRes = await fetch(writeUrl, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${googleAccessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    range: 'Full-show!A5:F',
-                    majorDimension: 'ROWS',
-                    values
-                })
-            });
-
-            if (!writeRes.ok) {
-                const errData = await writeRes.json();
-                const errMsg = errData.error ? errData.error.message : 'Không rõ nguyên nhân';
-                if (errMsg.includes('violates the data validation rules')) {
-                    throw new Error('Vi phạm quy tắc dropdown (Data Validation) trên cột B của Google Sheets. Hãy kiểm tra các lựa chọn trên Sheet.');
-                }
-                throw new Error('Lỗi ghi dữ liệu: ' + errMsg);
-            }
-
-            openMessageModal('Đồng bộ Google Sheets', 'Đồng bộ trực tiếp qua Google REST API thành công.\nVui lòng kiểm tra file Google Sheets của bạn.');
-        } else {
-            if (!googleSheetsUrl) {
-                openMessageModal('Đồng bộ Google Sheets', 'Vui lòng vào Settings cấu hình Google Sheets Web App URL hoặc đăng nhập Google trước khi đồng bộ.');
-                if (mSettings) mSettings.style.display = 'flex';
-                return;
-            }
-
-            const payload = {
-                spreadsheetId: currentSpreadsheetId || undefined,
-                logs: logs.map(log => ({
-                    action: log.action,
-                    tcin: log.tcin,
-                    tcout: log.tcout,
-                    script: log.script,
-                    note: log.note
-                }))
-            };
-
-            await fetch(googleSheetsUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            openMessageModal('Đồng bộ Google Sheets', 'Yêu cầu đồng bộ đã được gửi thành công.\nVui lòng kiểm tra file Google Sheets của bạn.');
+        if (!writeRes.ok) {
+            const errTxt = await writeRes.text();
+            throw new Error('Lỗi đồng bộ qua proxy: ' + errTxt);
         }
+
+        const writeData = await writeRes.json();
+        if (writeData.status === 'error') {
+            throw new Error(writeData.message || 'Lỗi từ Google Apps Script');
+        }
+
+        openMessageModal('Đồng bộ Google Sheets', 'Đồng bộ qua hệ thống thành công.\nVui lòng kiểm tra file Google Sheets của bạn.');
     } catch (error) {
         console.error('[AUTOSCRIPT SYNC ERROR]', error);
         openMessageModal('Lỗi đồng bộ', error.message || 'Không thể gửi yêu cầu đồng bộ.');
@@ -4297,11 +4358,7 @@ if (btnZoomDrag) {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
             if (!isZoomDragging) {
-                if (timelineZoom !== 1) {
-                    applyZoom(1);
-                } else {
-                    zoomMenu.style.display = zoomMenu.style.display === 'block' ? 'none' : 'block';
-                }
+                zoomMenu.style.display = zoomMenu.style.display === 'block' ? 'none' : 'block';
             }
         }
         document.addEventListener('mousemove', onMouseMove);
@@ -4362,6 +4419,260 @@ function renderTimelineTicks() {
 }
 
 // (Duplicate loadedmetadata removed — merged into main listener above)
+
+// ==========================================
+// Multi-Sheet / Cutdown Logic
+// ==========================================
+async function loadSheetTabsFromGoogle() {
+    if (!currentSpreadsheetId) return;
+    try {
+        const url = `/tcpscript/api/google-sheets?action=getTabs&id=${currentSpreadsheetId}&t=${Date.now()}`;
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${sessionToken}` }});
+        if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'success' && data.tabs) {
+                // Filter out 'Reels 1.1' as requested
+                availableSheetTabs = data.tabs.filter(tab => tab !== 'Reels 1.1');
+                renderSheetTabs();
+            } else {
+                console.error('[APP] getTabs failed:', data);
+            }
+        }
+    } catch (e) { console.error('[APP] Failed to load tabs:', e); }
+}
+
+function renderSheetTabs() {
+    const container = document.getElementById('sheetTabsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    availableSheetTabs.forEach(tab => {
+        const btn = document.createElement('button');
+        btn.className = 'sheet-tab' + (tab === currentSheetTab ? ' active' : '');
+        btn.dataset.tab = tab;
+        btn.innerText = tab;
+        btn.onclick = () => switchSheetTab(tab);
+        container.appendChild(btn);
+    });
+}
+
+function switchSheetTab(tabName) {
+    if (currentSheetTab === tabName) return;
+    if (projectLogsSaveTimer) {
+        clearTimeout(projectLogsSaveTimer);
+        projectLogsSaveTimer = null;
+    }
+    tabLogsCache[currentSheetTab] = JSON.parse(JSON.stringify(logs));
+    if (isLogsDirty) {
+        saveProjectLogsToKV(currentSheetTab, tabLogsCache[currentSheetTab]);
+        isLogsDirty = false;
+    }
+    currentSheetTab = tabName;
+    renderSheetTabs();
+    if (tabLogsCache[tabName] !== undefined) {
+        logs = JSON.parse(JSON.stringify(tabLogsCache[tabName]));
+        renderTable();
+        updateTimeline();
+    } else {
+        logs = [];
+        renderTable();
+        updateTimeline();
+        loadProjectLogsFromKV().then(() => {
+            renderTable();
+            updateTimeline();
+        });
+    }
+    updateImportShortVisibility();
+}
+
+async function sendLogToTargetTab(targetTab, logData, chipEl) {
+    if (!targetTab || !logData) return false;
+    if (chipEl) { chipEl.classList.add('sending'); chipEl.innerText = '...'; }
+    try {
+        // If tab is not in RAM cache, we MUST fetch it from KV first to avoid overwriting existing data
+        if (!tabLogsCache[targetTab]) {
+            try {
+                const res = await fetch(`/tcpscript/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}&tab=${encodeURIComponent(targetTab)}&t=${Date.now()}`, {
+                    headers: { 'Authorization': `Bearer ${sessionToken}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    tabLogsCache[targetTab] = Array.isArray(data.logs) ? data.logs : [];
+                } else {
+                    tabLogsCache[targetTab] = [];
+                }
+            } catch (err) {
+                console.warn('[APP] Failed to fetch target tab logs, initializing empty array:', err);
+                tabLogsCache[targetTab] = [];
+            }
+        }
+        tabLogsCache[targetTab].push(JSON.parse(JSON.stringify(logData)));
+        await saveProjectLogsToKV(targetTab, tabLogsCache[targetTab]);
+        return true;
+    } catch (e) {
+        console.error('[APP] sendLogToTargetTab failed:', e);
+        openMessageModal('Lỗi', 'Chuyển thất bại: ' + e.message);
+        return false;
+    } finally {
+        if (chipEl && !chipEl.classList.contains('sent')) { 
+            chipEl.classList.remove('sending'); 
+            chipEl.innerText = targetTab; 
+        }
+    }
+}
+
+// ── ROW SEND: Fixed-position floating tab menu ──────────────
+let _activeRowMenu = null;
+
+window.buildRowSendMenu = function(wrapperEl, logIndex) {
+    // Remove any existing menu
+    hideRowSendMenu();
+    
+    const tabs = availableSheetTabs.filter(t => t !== currentSheetTab);
+    if (tabs.length === 0) return;
+    
+    // Create fixed-position menu
+    const menu = document.createElement('div');
+    menu.className = 'floating-tab-menu';
+    menu.style.display = 'flex';
+    menu.style.position = 'fixed';
+    
+    // Position above the SEND button
+    const btnRect = wrapperEl.getBoundingClientRect();
+    menu.style.bottom = (window.innerHeight - btnRect.top + 4) + 'px';
+    menu.style.right = (window.innerWidth - btnRect.right) + 'px';
+    
+    menu.innerHTML = tabs.map(tab => `<button class="tab-chip" data-tab="${tab}">${tab}</button>`).join('');
+        menu.querySelectorAll('.tab-chip').forEach(chip => {
+        chip.onclick = async (e) => {
+            e.stopPropagation();
+            const log = logs[logIndex];
+            if (!log) return;
+            const ok = await sendLogToTargetTab(chip.dataset.tab, log, chip);
+            if (ok) {
+                chip.classList.add('sent');
+                chip.innerText = '✓';
+                setTimeout(() => window.forceHideRowSendMenu(), 600);
+            }
+        };
+    });
+    
+    // Keep menu alive when hovering over it
+    menu.onmouseenter = () => { menu._hovered = true; };
+    menu.onmouseleave = () => { menu._hovered = false; hideRowSendMenu(); };
+    wrapperEl._menuRef = menu;
+    
+    document.body.appendChild(menu);
+    _activeRowMenu = { menu, wrapper: wrapperEl };
+};
+
+window.forceHideRowSendMenu = function() {
+    if (_activeRowMenu) {
+        _activeRowMenu.menu.remove();
+        if (_activeRowMenu.wrapper) _activeRowMenu.wrapper._menuRef = null;
+        _activeRowMenu = null;
+    }
+};
+
+window.hideRowSendMenu = function(wrapperEl) {
+    if (!_activeRowMenu) return;
+    const { menu, wrapper } = _activeRowMenu;
+    // Don't hide if cursor is still over menu or wrapper
+    setTimeout(() => {
+        if (menu._hovered) return;
+        if (wrapper.matches(':hover')) return;
+        menu.remove();
+        wrapper._menuRef = null;
+        _activeRowMenu = null;
+    }, 80);
+};
+
+function buildImportShortMenu() {
+    const menu = document.getElementById('importShortFloatingMenu');
+    if (!menu) return;
+    const tabs = availableSheetTabs.filter(t => t !== currentSheetTab);
+    if (tabs.length === 0) { menu.innerHTML = '<div class="floating-tab-menu-inner"><span style="font-size:9px;color:var(--text-muted);padding:2px 6px;">No other tabs</span></div>'; return; }
+    menu.innerHTML = '<div class="floating-tab-menu-inner">' + tabs.map(tab => `<button class="tab-chip" data-tab="${tab}">${tab}</button>`).join('') + '</div>';
+    menu.querySelectorAll('.tab-chip').forEach(chip => {
+        chip.onclick = async (e) => {
+            e.stopPropagation();
+            if (!video.duration) { openMessageModal('Lỗi', 'Chưa có video.'); return; }
+            
+            let logDataToSend = null;
+            let usedForm = false;
+            
+            // 1. Try to get data from current form if user is actively filling it
+            if (activeInSec !== null) {
+                const actionName = selectedAction || 'OTHERS';
+                if (actionName === 'DELETE' && activeOutSec === null) { openMessageModal('Lỗi', 'Action DELETE bắt buộc phải có TC OUT.'); return; }
+                const st = document.getElementById('inputScript').value.trim();
+                const nt = document.getElementById('inputNote').value.trim();
+                logDataToSend = {
+                    action: actionName,
+                    inSec: activeInSec, outSec: activeOutSec, swapSec: activeSwapSec,
+                    tcswap: activeSwapSec !== null ? formatTC(activeSwapSec) : '',
+                    tcin: formatTC(activeInSec),
+                    tcout: activeOutSec !== null ? formatTC(activeOutSec) : '',
+                    script: st, note: nt, timestamp: Date.now()
+                };
+                usedForm = true;
+            } 
+            // 2. If form is empty, check clipboard
+            else if (clipboardLogData !== null) {
+                logDataToSend = { ...clipboardLogData, timestamp: Date.now() };
+            } 
+            // 3. Nothing to send
+            else {
+                openMessageModal('Lỗi', 'Vui lòng thiết lập TC IN trước khi Import, hoặc Import 1 action trước để dùng lại dữ liệu (Clipboard).'); 
+                return; 
+            }
+
+            const ok = await sendLogToTargetTab(chip.dataset.tab, logDataToSend, chip);
+            if (ok) {
+                if (usedForm) {
+                    document.getElementById('inputScript').value = '';
+                    document.getElementById('inputNote').value = '';
+                    activeInSec = null; activeOutSec = null; activeSwapSec = null;
+                    document.getElementById('valTcIn').innerText = '00:00:00:00';
+                    document.getElementById('valTcOut').innerText = '00:00:00:00';
+                    if (document.getElementById('valTcSwap')) document.getElementById('valTcSwap').innerText = '00:00:00:00';
+                    if (btnToolbarImport) btnToolbarImport.classList.remove('pulse-import');
+                }
+                // Keep clipboard intact so user can send it to multiple short tabs!
+                chip.classList.add('sent');
+                chip.innerText = '✓';
+                setTimeout(() => { chip.classList.remove('sent'); chip.innerText = chip.dataset.tab; }, 800);
+            }
+        };
+    });
+}
+
+// Hide Import Short button when already on a Short tab
+function updateImportShortVisibility() {
+    const wrapper = document.querySelector('.import-short-wrapper');
+    if (wrapper) {
+        wrapper.style.display = (currentSheetTab === 'Full-show') ? 'flex' : 'none';
+    }
+}
+
+// Build import short menu whenever sheet tabs change
+const _origRenderSheetTabs = renderSheetTabs;
+renderSheetTabs = function() {
+    _origRenderSheetTabs();
+    buildImportShortMenu();
+    updateImportShortVisibility();
+};
+buildImportShortMenu();
+updateImportShortVisibility();
+
+const _originalUpdateGoogleUI = window.updateGoogleUI;
+if (typeof _originalUpdateGoogleUI === 'function') {
+    window.updateGoogleUI = function() {
+        _originalUpdateGoogleUI();
+        if (isTokenValid()) {
+            loadSheetTabsFromGoogle();
+        }
+    };
+}
 
 renderSettings();
 resolveCurrentSpreadsheetMeta().finally(() => {

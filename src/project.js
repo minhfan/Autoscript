@@ -147,9 +147,7 @@
     }
 
     function buildProjectAppUrl(project) {
-        const projectName = getDisplayProjectName(project && project.name);
-        const projectSlug = slugifyProjectName(projectName);
-        return `/tcpscript/app/${encodeURIComponent(project.id)}/${encodeURIComponent(projectSlug)}`;
+        return `/tcpscript/app/${encodeURIComponent(project.id)}`;
     }
 
     function isLikelyExternalLink(value) {

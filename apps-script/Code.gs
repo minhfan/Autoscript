@@ -2,7 +2,8 @@
  * GOOGLE APPS SCRIPT BACKEND WEB APP (Code.gs)
  *
  * Bản cập nhật ổn định: tạo project từ template, cập nhật metadata,
- * rename file Google Sheet khi project name thay đổi, và đồng bộ log.
+ * rename file Google Sheet khi project name thay đổi, đồng bộ log,
+ * và hỗ trợ nạp danh sách Sheet Tabs cũng như gửi logs đơn lẻ (Cutdown).
  */
 
 var SPREADSHEET_ID = "1S6YxzKJE7X5vZRZduA36KDc_E00Cdkxp2mD3VXhwfmA";
@@ -14,6 +15,22 @@ function doGet(e) {
   try {
     var action = e && e.parameter ? e.parameter.action : null;
 
+    // LẤY DANH SÁCH SHEET TABS
+    if (action === "getTabs") {
+      var sheetId = e.parameter.id;
+      var ss = SpreadsheetApp.openById(sheetId);
+      var sheets = ss.getSheets();
+      var tabs = [];
+      for (var i = 0; i < sheets.length; i++) {
+        tabs.push(sheets[i].getName());
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        tabs: tabs
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // TẠO PROJECT MỚI TỪ TEMPLATE
     if (action === "createProject") {
       var projectName = e.parameter.name || "Autoscript Project";
       var templateId = e.parameter.templateId || SPREADSHEET_ID;
@@ -66,7 +83,7 @@ function doGet(e) {
 
         var lastRow = newSheet.getLastRow();
         if (lastRow >= 5) {
-          newSheet.getRange(5, 1, lastRow - 5 + 1, 6).clearContent();
+          newSheet.getRange(5, 1, lastRow - 5 + 1, 7).clearContent();
         }
       }
 
@@ -84,6 +101,7 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    // CẬP NHẬT METADATA CỦA PROJECT
     if (action === "updateInfo") {
       var targetId = e.parameter.spreadsheetId;
       if (!targetId) throw new Error("Thiếu spreadsheetId");
@@ -112,6 +130,7 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    // LẤY THÔNG TIN CỦA PROJECT (SPEAKER & SOURCE)
     if (action === "getProjectInfo") {
       var infoTargetId = e.parameter.spreadsheetId;
       if (!infoTargetId) throw new Error("Thiếu spreadsheetId");
@@ -132,6 +151,7 @@ function doGet(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // MẶC ĐỊNH (Legacy / Kiểm tra kết nối)
     if (!SPREADSHEET_ID || SPREADSHEET_ID === "ĐIỀN_ID_TRANG_TÍNH_CỦA_BẠN_VÀO_ĐÂY") {
       return ContentService.createTextOutput(JSON.stringify({
         status: "error",
@@ -179,97 +199,126 @@ function doGet(e) {
 }
 
 /**
- * Xử lý request POST: nhận dữ liệu log từ frontend và ghi vào sheet.
+ * Xử lý request POST: Đồng bộ toàn bộ logs hoặc chèn logs đơn lẻ.
  */
 function doPost(e) {
   try {
     var payload = JSON.parse(e.postData.contents);
-    var targetSpreadsheetId = SPREADSHEET_ID;
-    var data = [];
+    var action = payload.action;
 
-    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
-      if (payload.spreadsheetId) {
-        targetSpreadsheetId = payload.spreadsheetId;
+    // Hỗ trợ tương thích ngược cho các request truyền thống
+    if (!action && Array.isArray(payload)) {
+      payload = {
+        action: 'syncLogs',
+        sheetId: SPREADSHEET_ID,
+        tab: 'Full-show',
+        values: payload.map(function(log) {
+          return ["", log.action, log.tcin, log.tcout, log.tcswap, log.script, log.note];
+        })
+      };
+      action = 'syncLogs';
+    } else if (!action && payload && payload.logs) {
+      payload = {
+        action: 'syncLogs',
+        sheetId: payload.spreadsheetId || SPREADSHEET_ID,
+        tab: 'Full-show',
+        values: payload.logs.map(function(log) {
+          return ["", log.action, log.tcin, log.tcout, log.tcswap, log.script, log.note];
+        })
+      };
+      action = 'syncLogs';
+    }
+
+    // ĐỒNG BỘ TOÀN BỘ LOGS CHO 1 TAB
+    if (action === 'syncLogs') {
+      var sheetId = payload.sheetId;
+      var tabName = payload.tab || 'Full-show';
+      var values = payload.values;
+      var ss = SpreadsheetApp.openById(sheetId);
+      var sheet = ss.getSheetByName(tabName);
+      if (!sheet) {
+        return ContentService.createTextOutput(JSON.stringify({status: 'error', message: 'Tab không tồn tại: ' + tabName})).setMimeType(ContentService.MimeType.JSON);
       }
-      data = payload.logs || [];
-    } else if (Array.isArray(payload)) {
-      data = payload;
+
+      // Xoá vùng cũ từ dòng 5 tới cột G trở xuống
+      var lastRow = sheet.getLastRow();
+      if (lastRow >= 5) {
+        sheet.getRange(5, 1, lastRow - 4, 7).clearContent();
+      }
+
+      // Ghi dữ liệu mới nếu có
+      if (values && values.length > 0) {
+        values = cleanValues(sheet, values);
+        sheet.getRange(5, 1, values.length, values[0].length).setValues(values);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
     }
 
-    var spreadsheet = SpreadsheetApp.openById(targetSpreadsheetId);
-    if (!spreadsheet) {
-      throw new Error("Không thể kết nối đến Google Sheets. ID nhận được: " + targetSpreadsheetId);
+    // CHÈN THÊM LOG ĐƠN LẺ VÀO TAB CHỈ ĐỊNH (CUTDOWN)
+    if (action === 'appendLog') {
+      var sheetId = payload.sheetId;
+      var tabName = payload.tab;
+      var values = payload.values;
+      var ss = SpreadsheetApp.openById(sheetId);
+      var sheet = ss.getSheetByName(tabName);
+      if (!sheet) {
+        return ContentService.createTextOutput(JSON.stringify({status: 'error', message: 'Tab không tồn tại: ' + tabName})).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // Tìm dòng trống tiếp theo (tối thiểu bắt đầu từ dòng 5)
+      var lastRow = sheet.getLastRow();
+      var targetRow = Math.max(5, lastRow + 1);
+
+      if (values && values.length > 0) {
+        values = cleanValues(sheet, values);
+        sheet.getRange(targetRow, 1, values.length, values[0].length).setValues(values);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
     }
 
-    var sheet = spreadsheet.getSheetByName("Full-show");
-    if (!sheet) {
-      return ContentService.createTextOutput(JSON.stringify({
-        status: "error",
-        message: "Không tìm thấy tab sheet tên 'Full-show' trong file Google Sheet."
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: 'Unknown action: ' + action
+    })).setMimeType(ContentService.MimeType.JSON);
 
-    var startRow = 5;
-    var lastRow = sheet.getLastRow();
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
 
-    if (lastRow >= startRow) {
-      sheet.getRange(startRow, 1, lastRow - startRow + 1, 6).clearContent();
-    }
-
-    if (data && data.length > 0) {
-      var sampleCell = sheet.getRange(5, 2);
-      var allowedActions = getAllowedValues(sampleCell);
-
-      for (var i = 0; i < data.length; i++) {
-        var row = startRow + i;
-        var log = data[i];
-
-        var actionValue = log.action || "";
-        if (actionValue === "DELETE" && allowedActions) {
+/**
+ * Hỗ trợ chuyển đổi giá trị Action "DELETE" dựa trên Data Validation thực tế của cột B dòng 5.
+ */
+function cleanValues(sheet, values) {
+  if (!values || !values.length) return values;
+  try {
+    var sampleCell = sheet.getRange(5, 2);
+    var allowedActions = getAllowedValues(sampleCell);
+    if (allowedActions) {
+      for (var i = 0; i < values.length; i++) {
+        var actionValue = values[i][1] || "";
+        if (actionValue === "DELETE") {
           if (allowedActions.indexOf("DELETE") === -1) {
             for (var k = 0; k < allowedActions.length; k++) {
               var val = allowedActions[k].toString().toUpperCase();
               if (val.indexOf("DEL") === 0) {
-                actionValue = allowedActions[k];
+                values[i][1] = allowedActions[k];
                 break;
               }
             }
           }
         }
-
-        sheet.getRange(row, 1).setValue("");
-
-        try {
-          sheet.getRange(row, 2).setValue(actionValue);
-        } catch (valErr) {
-          var actionCell = sheet.getRange(row, 2);
-          actionCell.clearDataValidation();
-          actionCell.setValue(actionValue);
-        }
-
-        var cellIn = sheet.getRange(row, 3);
-        cellIn.setNumberFormat("@");
-        cellIn.setValue(log.tcin || "00:00:00:00");
-
-        var cellOut = sheet.getRange(row, 4);
-        cellOut.setNumberFormat("@");
-        cellOut.setValue(log.tcout || "00:00:00:00");
-
-        sheet.getRange(row, 5).setValue(log.script || "");
-        sheet.getRange(row, 6).setValue(log.note || "");
       }
     }
-
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      message: "Đã đồng bộ thành công " + data.length + " dòng."
-    })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      message: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
+    Logger.log("cleanValues error: " + err.toString());
   }
+  return values;
 }
 
 /**
@@ -296,30 +345,7 @@ function getAllowedValues(cell) {
 }
 
 /**
- * Hàm test đồng bộ trong Apps Script Editor.
- */
-function testSync() {
-  var testData = JSON.stringify([
-    {
-      action: "DELETE",
-      tcin: "00:01:00:00",
-      tcout: "00:02:00:00",
-      script: "Test Script từ Apps Script Editor",
-      note: "Test Note"
-    }
-  ]);
-
-  var response = doPost({
-    postData: {
-      contents: testData
-    }
-  });
-
-  Logger.log(response.getContent());
-}
-
-/**
- * Chạy thủ công để kích hoạt quyền ghi Google Drive.
+ * Kích hoạt quyền ghi Google Drive.
  */
 function authorizeDrive() {
   var tempFile = DriveApp.createFile("Autoscript_Auth_Temp.txt", "Temp");

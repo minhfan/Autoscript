@@ -1537,8 +1537,8 @@
 
     <header>
         <div class="header-logo">
-            <a href="/project" title="Back to Projects" style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 10px; font-weight: 500; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border, #334155); margin-right: 10px; transition: all 0.2s;" onmouseover="this.style.color='var(--accent, #10b981)';this.style.borderColor='var(--accent, #10b981)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border, #334155)'">&larr; Projects</a>
-            <a href="/project" class="app-topbar-logo" aria-label="Back to project list">
+            <a href="/tcpscript/project" title="Back to Projects" style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 10px; font-weight: 500; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border, #334155); margin-right: 10px; transition: all 0.2s;" onmouseover="this.style.color='var(--accent, #10b981)';this.style.borderColor='var(--accent, #10b981)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border, #334155)'">&larr; Projects</a>
+            <a href="/tcpscript/project" class="app-topbar-logo" aria-label="Back to project list">
                 <span class="logo-title">TCP <span>Autoscript</span> <em>v2.0</em></span>
             </a>
         </div>
@@ -1920,11 +1920,12 @@ let pendingVideoMeta = null;
 
 function getSpreadsheetIdFromPath() {
     const segments = window.location.pathname.split('/').filter(Boolean);
-    if (segments[0] !== 'app' || !segments[1]) return '';
+    const appIndex = segments.indexOf('app');
+    if (appIndex === -1 || !segments[appIndex + 1]) return '';
     try {
-        return decodeURIComponent(segments[1]);
+        return decodeURIComponent(segments[appIndex + 1]);
     } catch (error) {
-        return segments[1];
+        return segments[appIndex + 1];
     }
 }
 
@@ -1932,7 +1933,7 @@ async function resolveCurrentSpreadsheetMeta() {
     if (!currentSpreadsheetId) return;
 
     try {
-        const res = await fetch(`/api/projects/meta?id=${encodeURIComponent(currentSpreadsheetId)}`, {
+        const res = await fetch(`/tcpscript/api/projects/meta?id=${encodeURIComponent(currentSpreadsheetId)}`, {
             credentials: 'same-origin'
         });
         if (!res.ok) return;
@@ -2101,7 +2102,7 @@ function getLegacyLocalLogs() {
 async function saveProjectLogsToKV() {
     if (!currentSpreadsheetId) return;
 
-    await fetch('/api/project-logs', {
+    await fetch('/tcpscript/api/project-logs', {
         method: 'PUT',
         credentials: 'same-origin',
         headers: {
@@ -2126,7 +2127,7 @@ async function loadProjectLogsFromKV() {
     }
 
     try {
-        const res = await fetch(`/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}`, {
+        const res = await fetch(`/tcpscript/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}`, {
             credentials: 'same-origin'
         });
 
@@ -3944,7 +3945,7 @@ async function persistProjectVideoMeta(meta) {
     renderProjectVideoMeta();
 
     try {
-        await fetch('/api/projects/video-meta', {
+        await fetch('/tcpscript/api/projects/video-meta', {
             method: 'PUT',
             credentials: 'same-origin',
             headers: {

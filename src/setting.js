@@ -13,16 +13,16 @@
     const sessionUser = localStorage.getItem('autoscript_session_username');
 
     if (!sessionToken || !sessionUser) {
-        window.location.href = 'login';
+        window.location.href = '/tcpscript/login';
         return;
     }
 
     if (sessionUser.toLowerCase() !== 'admin') {
-        window.location.href = 'project.html';
+        window.location.href = '/tcpscript/project';
         return;
     }
 
-    const API_URL = '/api/settings';
+    const API_URL = '/tcpscript/api/settings';
     const SETTING_TAB_STORAGE_KEY = 'autoscript_setting_active_tab';
     let users = [];
 
@@ -224,7 +224,7 @@
                 headers: getAuthHeaders()
             });
             if (res.status === 401) {
-                window.location.href = 'login';
+                window.location.href = '/tcpscript/login';
                 return;
             }
             if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -344,7 +344,7 @@
 
     async function loadUsersList() {
         try {
-            const res = await fetch('/api/users', {
+            const res = await fetch('/tcpscript/api/users', {
                 headers: getAuthHeaders()
             });
             if (!res.ok) throw new Error('Failed to retrieve user profiles');
@@ -415,7 +415,7 @@
                 }
 
                 try {
-                    const res = await fetch('/api/users', {
+                    const res = await fetch('/tcpscript/api/users', {
                         method: 'POST',
                         headers: getAuthHeaders(),
                         body: JSON.stringify({
@@ -457,7 +457,7 @@
                 }
 
                 try {
-                    const res = await fetch('/api/users', {
+                    const res = await fetch('/tcpscript/api/users', {
                         method: 'POST',
                         headers: getAuthHeaders(),
                         body: JSON.stringify({
@@ -496,7 +496,7 @@
                 }
 
                 try {
-                    const res = await fetch('/api/users', {
+                    const res = await fetch('/tcpscript/api/users', {
                         method: 'DELETE',
                         headers: getAuthHeaders(),
                         body: JSON.stringify({ username })
@@ -541,7 +541,7 @@
         }
 
         try {
-            const res = await fetch('/api/users', {
+            const res = await fetch('/tcpscript/api/users', {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({

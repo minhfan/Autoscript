@@ -1080,6 +1080,13 @@
             justify-content: center;
             align-items: center;
         }
+        .td-play {
+            width: 44px;
+            min-width: 44px;
+            max-width: 44px;
+            text-align: center;
+            padding: 0;
+        }
 
         .action-tag {
             padding: 3px 8px;
@@ -1253,7 +1260,7 @@
         .message-modal-body {
             margin-top: 10px;
             color: var(--text-sub);
-            font-size: 10px;
+            font-size: 13px;
             line-height: 1.7;
             white-space: pre-wrap;
         }
@@ -1261,18 +1268,41 @@
             display: flex;
             justify-content: flex-end;
             margin-top: 20px;
+            gap: 12px;
+        }
+        .btn-modal-base {
+            padding: 10px 24px;
+            border-radius: var(--r-sm);
+            cursor: pointer;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            transition: all var(--t-fast);
+            border: 1px solid transparent;
+            min-width: 100px;
+            outline: none;
+        }
+        .btn-modal-cancel {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-main);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+        }
+        .btn-modal-cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #fff;
         }
         .btn-modal-primary {
-            min-width: 96px;
             background: rgba(16, 185, 129, 0.16);
-            border: 1px solid rgba(16, 185, 129, 0.65);
+            border-color: rgba(16, 185, 129, 0.65);
             color: #34d399;
             box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.14) inset;
         }
         .btn-modal-primary:hover {
-            background: rgba(16, 185, 129, 0.24);
+            background: rgba(16, 185, 129, 0.25);
             border-color: #10b981;
-            color: #6ee7b7;
+            color: #fff;
         }
 
         /* ============================================================
@@ -1507,8 +1537,8 @@
 
     <header>
         <div class="header-logo">
-            <a href="/project" title="Back to Projects" style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 10px; font-weight: 500; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border, #334155); margin-right: 10px; transition: all 0.2s;" onmouseover="this.style.color='var(--accent, #10b981)';this.style.borderColor='var(--accent, #10b981)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border, #334155)'">&larr; Projects</a>
-            <a href="/project" class="app-topbar-logo" aria-label="Back to project list">
+            <a href="/tcpscript/project" title="Back to Projects" style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 10px; font-weight: 500; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border, #334155); margin-right: 10px; transition: all 0.2s;" onmouseover="this.style.color='var(--accent, #10b981)';this.style.borderColor='var(--accent, #10b981)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border, #334155)'">&larr; Projects</a>
+            <a href="/tcpscript/project" class="app-topbar-logo" aria-label="Back to project list">
                 <span class="logo-title">TCP <span>Autoscript</span> <em>v2.0</em></span>
             </a>
         </div>
@@ -1604,6 +1634,14 @@
                                 <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #ea580c;"></div>
                                 <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #ea580c;"></div>
                             </div>
+                            <div id="activeInIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: calc(100% + 14px); z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeInSec !== null) { video.currentTime = activeInSec; } event.stopPropagation();">
+                                <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #3b82f6;"></div>
+                                <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #3b82f6;"></div>
+                            </div>
+                            <div id="activeOutIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: calc(100% + 14px); z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeOutSec !== null) { video.currentTime = activeOutSec; } event.stopPropagation();">
+                                <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #ef4444;"></div>
+                                <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #ef4444;"></div>
+                            </div>
                             <div id="playheadIndicator" style="position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text-main); z-index: 20; pointer-events: none; left: 0%;">
                                 <div style="position: absolute; top: -6px; left: -4px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--text-main);"></div>
                             </div>
@@ -1672,7 +1710,9 @@
                     <span id="defaultScriptTitle" style="font-weight: 700;">Script</span>
                     <a id="activeSheetLink" href="#" target="_blank" style="display: none; color: var(--text-main); text-decoration: none; align-items: center; gap: 8px; font-weight: 700; transition: color var(--t-fast);">
                         <span id="activeSheetName">Sheet</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 99px; background: var(--accent-dim); border: 1px solid var(--border-bright);">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </span>
                     </a>
                     <span class="log-count-badge" id="logCount" style="margin-left: 8px; font-size: 14px;">0</span>
                 </h2>
@@ -1701,11 +1741,11 @@
                         <input type="text" id="searchInput" placeholder="Search script, timecode..." style="background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); color: var(--text-main); font-size: 9.17px; padding: 6px 10px 6px 26px; width: 220px; outline: none; font-family: 'Outfit', sans-serif;">
                     </div>
                     <div style="display: flex; gap: 5px; margin-left: auto; align-items: center;">
-                        <button type="button" class="btn-action btn-sync-brand" id="btnSyncSheets" title="Sync current sheet">Sync Sheet</button>
                         <label class="btn-action btn-import" id="lblImport" style="cursor: pointer; margin: 0;">
                             <input type="file" id="csvImport" accept=".csv" style="display: none;">
                             Import
                         </label>
+                        <button type="button" class="btn-action btn-sync-brand" id="btnSyncSheets" title="Sync current sheet">Sync Sheet</button>
                     </div>
                 </div>
             <div class="table-wrap">
@@ -1765,7 +1805,18 @@
             <h2 id="messageModalTitle">Thông báo</h2>
             <div id="messageModalBody" class="message-modal-body"></div>
             <div class="message-modal-actions">
-                <button class="close-btn btn-modal-primary" id="btnCloseMessageModal">Đóng</button>
+                <button class="btn-modal-base btn-modal-primary" id="btnCloseMessageModal">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal" style="display:none;">
+        <div class="modal-content message-modal-content">
+            <h2 id="confirmModalTitle">Xác nhận</h2>
+            <div id="confirmModalBody" class="message-modal-body"></div>
+            <div class="message-modal-actions" style="display:flex; gap:10px; justify-content:flex-end;">
+                <button class="btn-modal-base btn-modal-cancel" id="btnConfirmCancel">Hủy</button>
+                <button class="btn-modal-base btn-modal-primary" id="btnConfirmOK">OK</button>
             </div>
         </div>
     </div>
@@ -1869,11 +1920,12 @@ let pendingVideoMeta = null;
 
 function getSpreadsheetIdFromPath() {
     const segments = window.location.pathname.split('/').filter(Boolean);
-    if (segments[0] !== 'app' || !segments[1]) return '';
+    const appIndex = segments.indexOf('app');
+    if (appIndex === -1 || !segments[appIndex + 1]) return '';
     try {
-        return decodeURIComponent(segments[1]);
+        return decodeURIComponent(segments[appIndex + 1]);
     } catch (error) {
-        return segments[1];
+        return segments[appIndex + 1];
     }
 }
 
@@ -1881,7 +1933,7 @@ async function resolveCurrentSpreadsheetMeta() {
     if (!currentSpreadsheetId) return;
 
     try {
-        const res = await fetch(`/api/projects/meta?id=${encodeURIComponent(currentSpreadsheetId)}`, {
+        const res = await fetch(`/tcpscript/api/projects/meta?id=${encodeURIComponent(currentSpreadsheetId)}`, {
             credentials: 'same-origin'
         });
         if (!res.ok) return;
@@ -1976,7 +2028,7 @@ function initGoogleOAuth() {
             callback: async (response) => {
                 if (response.error !== undefined) {
                     console.error(response);
-                    alert('Lỗi đăng nhập Google: ' + response.error);
+                    openMessageModal('Lỗi đăng nhập', 'Lỗi đăng nhập Google: ' + response.error);
                     return;
                 }
                 googleAccessToken = response.access_token;
@@ -1997,7 +2049,7 @@ function initGoogleOAuth() {
                 }
                 
                 updateGoogleUI();
-                alert('Đăng nhập Google thành công!');
+                openMessageModal('Thành công', 'Đăng nhập Google thành công!');
             }
         });
     } catch (err) {
@@ -2007,7 +2059,7 @@ function initGoogleOAuth() {
 
 function handleGoogleAuthClick() {
     if (!googleClientId) {
-        alert('Vui lòng nhập Google OAuth Client ID trong Settings trước!');
+        openMessageModal('Cấu hình cần thiết', 'Vui lòng nhập Google OAuth Client ID trong Settings trước!');
         return;
     }
     if (isTokenValid()) {
@@ -2019,7 +2071,7 @@ function handleGoogleAuthClick() {
         localStorage.removeItem('autoscript_google_token_expiry');
         localStorage.removeItem('autoscript_google_user_email');
         updateGoogleUI();
-        alert('Đã đăng xuất tài khoản Google.');
+        openMessageModal('Thông báo', 'Đã đăng xuất tài khoản Google.');
     } else {
         if (!tokenClient) {
             initGoogleOAuth();
@@ -2027,7 +2079,7 @@ function handleGoogleAuthClick() {
         if (tokenClient) {
             tokenClient.requestAccessToken();
         } else {
-            alert('Không thể khởi tạo Client đăng nhập Google. Kiểm tra lại Client ID!');
+            openMessageModal('Lỗi', 'Không thể khởi tạo Client đăng nhập Google. Kiểm tra lại Client ID!');
         }
     }
 }
@@ -2050,7 +2102,7 @@ function getLegacyLocalLogs() {
 async function saveProjectLogsToKV() {
     if (!currentSpreadsheetId) return;
 
-    await fetch('/api/project-logs', {
+    await fetch('/tcpscript/api/project-logs', {
         method: 'PUT',
         credentials: 'same-origin',
         headers: {
@@ -2075,7 +2127,7 @@ async function loadProjectLogsFromKV() {
     }
 
     try {
-        const res = await fetch(`/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}`, {
+        const res = await fetch(`/tcpscript/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}`, {
             credentials: 'same-origin'
         });
 
@@ -2214,12 +2266,41 @@ function closeMessageModal() {
 
 function openMessageModal(title, message) {
     if (!mMessage || !messageTitleEl || !messageBodyEl) {
-        alert(message);
+        console.warn('[Modal fallback]', title, message);
         return;
     }
     messageTitleEl.innerText = title || 'Thông báo';
     messageBodyEl.innerText = message || '';
     mMessage.style.display = 'flex';
+}
+
+function openConfirmModal(title, message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmModalTitle');
+        const bodyEl = document.getElementById('confirmModalBody');
+        const btnOK = document.getElementById('btnConfirmOK');
+        const btnCancel = document.getElementById('btnConfirmCancel');
+        if (!modal || !titleEl || !bodyEl) {
+            resolve(confirm(message));
+            return;
+        }
+        titleEl.innerText = title || 'Xác nhận';
+        bodyEl.innerText = message || '';
+        modal.style.display = 'flex';
+        function cleanup() {
+            modal.style.display = 'none';
+            btnOK.removeEventListener('click', onOK);
+            btnCancel.removeEventListener('click', onCancel);
+            modal.removeEventListener('click', onBackdrop);
+        }
+        function onOK() { cleanup(); resolve(true); }
+        function onCancel() { cleanup(); resolve(false); }
+        function onBackdrop(e) { if (e.target === modal) { cleanup(); resolve(false); } }
+        btnOK.addEventListener('click', onOK);
+        btnCancel.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+    });
 }
 
 // ── 6. UNDO / REDO ───────────────────────────────────────────
@@ -2376,7 +2457,8 @@ function renderTable() {
         count++;
         const colorSet = actionColors[log.action] || actionColors['OTHERS'];
         const bg  = colorSet.bg, txt = colorSet.color;
-        const playButton = (log.action === 'DELETE' || log.action === 'SWAP') ? `<button class="btn-play-delete" onclick="playActionPreview(${index})" title="Preview action">&#9658;</button>` : '';
+        const showPreview = (log.action === 'DELETE' || log.action === 'SWAP');
+        const playButton = showPreview ? `<button class="btn-play-delete" onclick="playActionPreview(${index})" title="Preview action">&#9658;</button>` : '';
         const isEditing = (index === editingRowIndex);
         const editable = isEditing ? 'contenteditable="true"' : '';
         const editClass = isEditing ? 'row-editing' : '';
@@ -2384,21 +2466,24 @@ function renderTable() {
         let actionCell;
         if (isEditing) {
             const opts = actionList.map(a => `<option value="${a}" ${a === log.action ? 'selected' : ''}>${escapeHtml(a)}</option>`).join('');
-            actionCell = `<select onchange="window.updateRowAction(${index}, this.value)" style="width:auto; padding:4px 10px; font-size:11px; font-weight:600; background:${bg}; color:${txt}; border:1px solid rgba(255,255,255,0.2); border-radius:12px; outline:none; text-align:center; cursor:pointer; font-family:'Outfit',sans-serif;">${opts}</select>`;
+            actionCell = `<select onchange="window.updateRowAction(${index}, this.value)" style="width:auto; padding:3px 8px; font-size:7.92px; font-weight:700; background:${bg}; color:${txt}; border:1px solid rgba(255,255,255,0.2); border-radius:var(--r-sm); outline:none; text-align:center; cursor:pointer; font-family:'Outfit',sans-serif; min-width:68px; letter-spacing:0.05em;">${opts}</select>`;
         } else {
             actionCell = `<span class="action-tag" style="background:${bg};color:${txt}">${escapeHtml(log.action)}</span>`;
         }
         
+        const swapVal = log.tcswap || '';
+        const outVal = log.tcout === '00:00:00:00' ? '' : log.tcout;
+        
         tbody.innerHTML += `
             <tr id="row-${index}" class="log-row ${editClass}" oncontextmenu="showRowMenu(event, ${index})">
                 <td class="td-stt">${index + 1}</td>
-                <td class="td-play" style="text-align:center;"><span class="row-tools">${playButton}</span></td>
+                <td class="td-play">${playButton}</td>
                 <td class="td-action">${actionCell}</td>
-                <td class="td-tc" ${editable} onclick="window.jumpToTC(${index},'tcswap')" onblur="inlineUpdate(${index},'tcswap',this)">${escapeHtml(log.tcswap || '')}</td>
+                <td class="td-tc" ${editable} onclick="window.jumpToTC(${index},'tcswap')" onblur="inlineUpdate(${index},'tcswap',this)">${swapVal ? escapeHtml(swapVal) : ''}</td>
                 <td class="td-tc" ${editable} onclick="window.jumpToTC(${index},'tcin')" onblur="inlineUpdate(${index},'tcin',this)">${escapeHtml(log.tcin)}</td>
-                <td class="td-tc" ${editable} onclick="window.jumpToTC(${index},'tcout')" onblur="inlineUpdate(${index},'tcout',this)">${escapeHtml(log.tcout === '00:00:00:00' ? '' : log.tcout)}</td>
-                <td class="td-text" ${editable} onblur="inlineUpdate(${index},'script',this)">${escapeHtml(log.script)}</td>
-                <td class="td-text" ${editable} onblur="inlineUpdate(${index},'note',this)">${escapeHtml(log.note)}</td>
+                <td class="td-tc" ${editable} onclick="window.jumpToTC(${index},'tcout')" onblur="inlineUpdate(${index},'tcout',this)">${outVal ? escapeHtml(outVal) : ''}</td>
+                <td class="td-text" ${editable} onclick="if(this.getAttribute('contenteditable')!=='true') window.jumpToTC(${index},'tcin')" onblur="inlineUpdate(${index},'script',this)">${escapeHtml(log.script)}</td>
+                <td class="td-text" ${editable} onclick="if(this.getAttribute('contenteditable')!=='true') window.jumpToTC(${index},'tcin')" onblur="inlineUpdate(${index},'note',this)">${escapeHtml(log.note)}</td>
                 <td class="td-delete"><span class="row-tools"><button class="btn-delete" onclick="deleteLog(${index})" title="Delete">&#10006;</button></span></td>
             </tr>`;
     });
@@ -2610,6 +2695,26 @@ function updateActiveRange() {
     } else {
         if (swapIndicator) swapIndicator.style.display = 'none';
     }
+
+    const inIndicator = document.getElementById('activeInIndicator');
+    if (activeInSec !== null) {
+        if (inIndicator) {
+            inIndicator.style.display = 'block';
+            inIndicator.style.left = (activeInSec / video.duration) * 100 + '%';
+        }
+    } else {
+        if (inIndicator) inIndicator.style.display = 'none';
+    }
+
+    const outIndicator = document.getElementById('activeOutIndicator');
+    if (activeOutSec !== null) {
+        if (outIndicator) {
+            outIndicator.style.display = 'block';
+            outIndicator.style.left = (activeOutSec / video.duration) * 100 + '%';
+        }
+    } else {
+        if (outIndicator) outIndicator.style.display = 'none';
+    }
 }
 
 // ── 13. TC IN / OUT ──────────────────────────────────────────
@@ -2626,6 +2731,14 @@ function markInPoint() {
             if (cells[4]) cells[4].innerText = formatTC(activeInSec);
         }
         drawMarkers();
+        updateActiveRange();
+        return;
+    }
+    // Toggle: de-select if already selected
+    if (activeInSec !== null) {
+        activeInSec = null;
+        boxIn.classList.remove('active');
+        valTcIn.innerText = formatTC(video.currentTime);
         updateActiveRange();
         return;
     }
@@ -2656,6 +2769,14 @@ function markOutPoint() {
         updateActiveRange();
         return;
     }
+    // Toggle: de-select if already selected
+    if (activeOutSec !== null) {
+        activeOutSec = null;
+        boxOut.classList.remove('active');
+        valTcOut.innerText = formatTC(video.currentTime);
+        updateActiveRange();
+        return;
+    }
     activeOutSec = video.currentTime;
     if (activeInSec !== null && activeInSec >= activeOutSec) {
         activeInSec = null;
@@ -2683,6 +2804,14 @@ function markSwapPoint() {
         updateActiveRange();
         return;
     }
+    // Toggle: de-select if already selected
+    if (activeSwapSec !== null) {
+        activeSwapSec = null;
+        if (boxSwap) boxSwap.classList.remove('active');
+        if (valTcSwap) valTcSwap.innerText = formatTC(video.currentTime);
+        updateActiveRange();
+        return;
+    }
     activeSwapSec = video.currentTime;
     if (valTcSwap) valTcSwap.innerText = formatTC(activeSwapSec);
     if (boxSwap) boxSwap.classList.add('active');
@@ -2705,15 +2834,15 @@ function jumpMarker(direction) {
 }
 
 // ── 15. SAVE LOG (Import Action) ─────────────────────────────
-function logAction(actionName) {
+async function logAction(actionName) {
     if (!video.duration) return;
     
     if (actionName === 'DELETE') {
         if (editingRowIndex !== null && logs[editingRowIndex].outSec === null && activeOutSec === null) {
-            alert('Lỗi: Action DELETE bắt buộc phải có TC OUT. Vui lòng thêm TC OUT!');
+            openMessageModal('Lỗi', 'Action DELETE bắt buộc phải có TC OUT. Vui lòng thêm TC OUT!');
             return;
         } else if (editingRowIndex === null && activeOutSec === null) {
-            alert('Lỗi: Action DELETE bắt buộc phải có TC OUT. Vui lòng thêm TC OUT!');
+            openMessageModal('Lỗi', 'Action DELETE bắt buộc phải có TC OUT. Vui lòng thêm TC OUT!');
             return;
         }
     }
@@ -2735,7 +2864,24 @@ function logAction(actionName) {
     }
 
     if (activeInSec === null) return;
-    
+
+    // Warning: check if new action overlaps with any existing DELETE zone
+    if (actionName !== 'DELETE') {
+        const newIn = activeInSec;
+        const newOut = activeOutSec !== null ? activeOutSec : activeInSec;
+        const overlappingDelete = logs.find(l => 
+            l.action === 'DELETE' && l.inSec !== null && l.outSec !== null &&
+            newIn < l.outSec && newOut > l.inSec
+        );
+        if (overlappingDelete) {
+            const confirmed = await openConfirmModal(
+                '⚠️ Cảnh báo vùng DELETE',
+                `Vùng TC IN/OUT của action "${actionName}" đang nằm trong (hoặc chồng lấn) một vùng DELETE đã đánh dấu trước đó (${formatTC(overlappingDelete.inSec)} → ${formatTC(overlappingDelete.outSec)}).\n\nĐoạn này sẽ bị xóa khi xuất bản, action mới có thể không có ý nghĩa.\n\nBạn có muốn tiếp tục thêm không?`
+            );
+            if (!confirmed) return;
+        }
+    }
+
     saveState();
     const st = document.getElementById('inputScript').value.trim();
     const nt = document.getElementById('inputNote').value.trim();
@@ -2874,7 +3020,7 @@ window.playActionPreview = function(index) {
     const log = logs[index];
     if (!log) return;
     
-    // Remember original state and FORCE ON
+    // Remember original state and FORCE Preview Cut ON
     originalPreviewCutState = isPreviewCut;
     if (!isPreviewCut) {
         isPreviewCut = true;
@@ -2886,37 +3032,37 @@ window.playActionPreview = function(index) {
     previewState.logIndex = index;
     previewState.restorePreviewCut = true;
     
-    if (log.action === 'SWAP') {
+    const iSec = Number.isFinite(log.inSec) ? log.inSec : parseTC(log.tcin);
+    const oSec = Number.isFinite(log.outSec) ? log.outSec : parseTC(log.tcout);
+    const sSec = (log.action === 'SWAP' && Number.isFinite(log.swapSec)) ? log.swapSec : parseTC(log.tcswap || '');
+    
+    if (log.action === 'SWAP' && Number.isFinite(sSec) && sSec > 0) {
+        // SWAP preview: show swap point context → jump to IN → play to OUT → jump back to swap → end
         previewState.phase = 1;
-        const sSec = Number.isFinite(log.swapSec) ? log.swapSec : parseTC(log.tcswap);
-        if (Number.isFinite(sSec) && sSec > 0) {
-            video.currentTime = Math.max(0, sSec - 3);
-            video.play();
-        } else {
-            previewState.phase = 2;
-            const iSec = Number.isFinite(log.inSec) ? log.inSec : parseTC(log.tcin);
-            video.currentTime = iSec;
-            video.play();
-        }
+        video.currentTime = Math.max(0, sSec - 2);
+    } else if (log.action === 'DELETE') {
+        // DELETE preview: show 2s before IN, skip delete zone (auto by isPreviewCut), play 3s after OUT
+        previewState.phase = 0;
+        video.currentTime = Math.max(0, iSec - 2);
     } else {
-        previewState.phase = 0; // Standard preview
-        const startSec = Number.isFinite(log.inSec) ? log.inSec : parseTC(log.tcin);
-        if (Number.isFinite(startSec)) {
-            video.currentTime = Math.max(0, startSec - 3);
-            video.play();
-        }
+        // Standard preview for SWAP without swap point
+        previewState.phase = 0;
+        video.currentTime = Number.isFinite(iSec) ? Math.max(0, iSec - 2) : 0;
     }
+    
+    video.play();
 
-    let targetZoom = 50;
+    // Smart zoom to focus on the action area
     let pts = [];
-    if (log.inSec !== null) pts.push(log.inSec);
-    if (log.outSec !== null) pts.push(log.outSec);
-    if (log.action === 'SWAP' && log.swapSec !== null) pts.push(log.swapSec);
-    let validDur = 0, centerSec = log.inSec || 0;
+    if (Number.isFinite(iSec)) pts.push(iSec);
+    if (Number.isFinite(oSec) && oSec > 0) pts.push(oSec);
+    if (log.action === 'SWAP' && Number.isFinite(sSec) && sSec > 0) pts.push(sSec);
+    let centerSec = iSec || 0;
+    let targetZoom = 50;
     if (pts.length >= 2) {
         let minSec = Math.min(...pts);
         let maxSec = Math.max(...pts);
-        validDur = maxSec - minSec;
+        let validDur = maxSec - minSec;
         if (validDur > 0) {
             targetZoom = Math.max(1, Math.min(50, video.duration / (validDur * 3)));
             centerSec = minSec + validDur / 2;
@@ -3468,10 +3614,10 @@ if (csvImportEl) {
                 }
             }
             if (newLogs.length > 0) {
-                if (confirm(`Found ${newLogs.length} rows. Overwrite current list?`)) {
-                    logs = newLogs; renderTable(); drawMarkers(); saveSession();
-                }
-            } else alert('Invalid or empty CSV!');
+                openConfirmModal('Import CSV', `Tìm thấy ${newLogs.length} dòng. Ghi đè danh sách hiện tại?`).then(ok => {
+                    if (ok) { logs = newLogs; renderTable(); drawMarkers(); saveSession(); }
+                });
+            } else openMessageModal('Lỗi Import', 'File CSV không hợp lệ hoặc rỗng!');
         };
         reader.readAsText(file); e.target.value = '';
     });
@@ -3480,7 +3626,7 @@ if (csvImportEl) {
 // -- Google Sheets Synchronization --
 async function syncToGoogleSheets() {
     if (!logs.length) {
-        alert('Danh sách log rỗng! Không có gì để đồng bộ.');
+        openMessageModal('Thông báo', 'Danh sách log rỗng! Không có gì để đồng bộ.');
         return;
     }
 
@@ -3543,12 +3689,12 @@ async function syncToGoogleSheets() {
                 throw new Error('Lỗi ghi dữ liệu: ' + errMsg);
             }
             
-            alert('Đồng bộ trực tiếp qua Google REST API thành công! Vui lòng kiểm tra file Google Sheets của bạn.');
+            openMessageModal('Thành công', 'Đồng bộ trực tiếp qua Google REST API thành công! Vui lòng kiểm tra file Google Sheets của bạn.');
             
         } else {
             // --- PHƯƠNG ÁN 1: ĐỒNG BỘ QUA GOOGLE APPS SCRIPT WEB APP ---
             if (!googleSheetsUrl) {
-                alert('Vui lòng vào Settings cấu hình Google Sheets Web App URL hoặc đăng nhập Google trước khi đồng bộ!');
+                openMessageModal('Cấu hình cần thiết', 'Vui lòng vào Settings cấu hình Google Sheets Web App URL hoặc đăng nhập Google trước khi đồng bộ!');
                 if (mSettings) mSettings.style.display = 'flex';
                 return;
             }
@@ -3573,11 +3719,11 @@ async function syncToGoogleSheets() {
                 body: JSON.stringify(payload)
             });
             
-            alert('Yêu cầu đồng bộ đã được gửi thành công! Vui lòng kiểm tra file Google Sheets của bạn.');
+            openMessageModal('Thành công', 'Yêu cầu đồng bộ đã được gửi thành công! Vui lòng kiểm tra file Google Sheets của bạn.');
         }
     } catch (error) {
         console.error('[AUTOSCRIPT SYNC ERROR]', error);
-        alert('Lỗi gửi yêu cầu đồng bộ: ' + error.message);
+        openMessageModal('Lỗi đồng bộ', 'Lỗi gửi yêu cầu đồng bộ: ' + error.message);
     } finally {
         if (btn) {
             btn.innerText = originalText;
@@ -3799,7 +3945,7 @@ async function persistProjectVideoMeta(meta) {
     renderProjectVideoMeta();
 
     try {
-        await fetch('/api/projects/video-meta', {
+        await fetch('/tcpscript/api/projects/video-meta', {
             method: 'PUT',
             credentials: 'same-origin',
             headers: {
@@ -3840,6 +3986,13 @@ document.addEventListener('keydown', e => {
         closeMessageModal();
         return;
     }
+    const cModal = document.getElementById('confirmModal');
+    if (cModal && cModal.style.display === 'flex' && e.key === 'Escape') {
+        e.preventDefault();
+        const btnCancel = document.getElementById('btnConfirmCancel');
+        if (btnCancel) btnCancel.click();
+        return;
+    }
     if (listeningAction) {
         e.preventDefault();
         if (e.key === 'Escape') { listeningAction = null; renderSettings(); return; }
@@ -3868,6 +4021,16 @@ document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); redo(); return; }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
     
+    const active = document.activeElement;
+    const isTypingInput = active.tagName === 'INPUT' && !['button','checkbox','radio','range','submit','reset','color'].includes(active.type);
+    const typing = isTypingInput || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable;
+    if (e.key === 'Escape') { active.blur(); return; }
+
+    // Always allow Save shortcut even when typing
+    if (matchShortcut(e, 'save')) { e.preventDefault(); saveLog(); return; }
+
+    if (typing) return;
+
     if (matchShortcut(e, 'zoom1x')) {
         e.preventDefault();
         applyZoom(1);
@@ -3883,16 +4046,6 @@ document.addEventListener('keydown', e => {
         applyZoom(Math.min(50, timelineZoom + 5));
         return;
     }
-
-    const active = document.activeElement;
-    const isTypingInput = active.tagName === 'INPUT' && !['button','checkbox','radio','range','submit','reset','color'].includes(active.type);
-    const typing = isTypingInput || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable;
-    if (e.key === 'Escape') { active.blur(); return; }
-
-    // Always allow Save shortcut even when typing
-    if (matchShortcut(e, 'save')) { e.preventDefault(); saveLog(); return; }
-
-    if (typing) return;
 
     if (matchShortcut(e, 'play')) { e.preventDefault(); togglePlayback(); }
     else if (matchShortcut(e, 'tcin'))       { e.preventDefault(); markInPoint(); }

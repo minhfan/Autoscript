@@ -15,7 +15,7 @@
         if (!sessionToken || !sessionUser) {
             localStorage.removeItem('autoscript_session_token');
             localStorage.removeItem('autoscript_session_username');
-            window.location.href = 'login';
+            window.location.href = '/tcpscript/login';
             return false;
         }
         return true;
@@ -149,7 +149,7 @@
     function buildProjectAppUrl(project) {
         const projectName = getDisplayProjectName(project && project.name);
         const projectSlug = slugifyProjectName(projectName);
-        return `/app/${encodeURIComponent(project.id)}/${encodeURIComponent(projectSlug)}`;
+        return `/tcpscript/app/${encodeURIComponent(project.id)}/${encodeURIComponent(projectSlug)}`;
     }
 
     function isLikelyExternalLink(value) {
@@ -368,7 +368,7 @@
         if (projectsView) projectsView.style.display = 'none';
 
         try {
-            const res = await fetch('/api/projects', {
+            const res = await fetch('/tcpscript/api/projects', {
                 headers: getAuthHeaders()
             });
             if (res.status === 401) {
@@ -521,7 +521,7 @@
                 }
 
                 try {
-                    const res = await fetch('/api/projects', {
+                    const res = await fetch('/tcpscript/api/projects', {
                         method: 'DELETE',
                         headers: getAuthHeaders(),
                         body: JSON.stringify({ id: pId })
@@ -595,7 +595,7 @@
         showModalStatus('Creating Google Sheet clone via Apps Script owner...', 'loading');
 
         try {
-            const res = await fetch('/api/projects', {
+            const res = await fetch('/tcpscript/api/projects', {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
@@ -759,7 +759,7 @@
 
         // Save to backend via proxy
         try {
-            const res = await fetch('/api/projects', {
+            const res = await fetch('/tcpscript/api/projects', {
                 method: 'PUT',
                 headers: getAuthHeaders(),
                 body: JSON.stringify(updateBody)
@@ -788,7 +788,7 @@
         localStorage.removeItem('autoscript_session_token');
         localStorage.removeItem('autoscript_session_username');
         document.cookie = 'autoscript_session_token=; path=/; max-age=0; SameSite=Lax';
-        window.location.href = 'login';
+        window.location.href = '/tcpscript/login';
     }
 
     // ── Event Listeners ──────────────────────────────────────

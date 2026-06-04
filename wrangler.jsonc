@@ -8,18 +8,19 @@
     "binding": "ASSETS",
     "html_handling": "none",
     "run_worker_first": [
-      "/",
-      "/index.html",
-      "/login*",
-      "/app*",
-      "/project*",
-      "/setting*"
+      "/tcpscript",
+      "/tcpscript/index.html",
+      "/tcpscript/login*",
+      "/tcpscript/app*",
+      "/tcpscript/project*",
+      "/tcpscript/setting*",
+      "/tcpscript/api*"
     ]
   },
   "kv_namespaces": [
     {
       "binding": "SETTINGS_KV",
-      "id": "795030a030234b86ac31750c94c9e60b"
+      "id": "dd5dc60c58a74a4f88684641ca495836"
     }
   ]
 }

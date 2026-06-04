@@ -1,75 +1,74 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env zsh
+# Tự động dừng script nếu có lệnh nào trả về lỗi (exit code khác 0)
+set -e
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MODE="deploy"
+# Khai báo màu sắc cho giao diện hiển thị
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+RED='\033[1;31m'
+NC='\033[0m' # No Color
 
-for arg in "$@"; do
-  case "$arg" in
-    --dry-run)
-      MODE="dry-run"
-      ;;
-    --no-pause)
-      # Giữ tương thích với file .bat, không cần xử lý trên macOS/Linux.
-      ;;
-    *)
-      echo "[Autoscript] Lỗi: Tham số không hỗ trợ: $arg"
-      echo "[Autoscript] Cách dùng: ./Deploy_Cloudflare.sh [--dry-run]"
-      exit 1
-      ;;
-  esac
-done
+# Hàm in lỗi và thoát
+error_exit() {
+  echo -e "${RED}[Lỗi] $1${NC}"
+  exit 1
+}
 
+echo -e "${YELLOW}[Autoscript] Khởi động tiến trình Deploy lên Cloudflare...${NC}"
+
+# Chuyển tới thư mục chứa script
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_ROOT"
+echo -e "${GREEN}[Autoscript] Thư mục dự án: $PROJECT_ROOT${NC}"
 
-echo
-echo "[Autoscript] Bắt đầu deploy Cloudflare Worker."
-echo "[Autoscript] Thư mục dự án: $PROJECT_ROOT"
-
-if [[ ! -f "package.json" ]]; then
-  echo "[Autoscript] Lỗi: Thiếu package.json."
-  exit 1
-fi
-
-if [[ ! -f "wrangler.jsonc" ]]; then
-  echo "[Autoscript] Lỗi: Thiếu wrangler.jsonc."
-  exit 1
-fi
-
-if [[ ! -f "src/app.html" ]]; then
-  echo "[Autoscript] Lỗi: Thiếu src/app.html."
-  exit 1
-fi
-
+# 1. Kiểm tra môi trường (Node.js & npm)
 if ! command -v node >/dev/null 2>&1; then
-  echo "[Autoscript] Lỗi: Không tìm thấy Node.js trong PATH."
-  exit 1
+  error_exit "Chưa cài đặt Node.js! Vui lòng tải và cài đặt tại: https://nodejs.org/"
 fi
 
 if ! command -v npm >/dev/null 2>&1; then
-  echo "[Autoscript] Lỗi: Không tìm thấy npm trong PATH."
-  exit 1
+  error_exit "Chưa cài đặt npm! Vui lòng cài đặt npm cùng với Node.js."
 fi
 
-if [[ ! -x "node_modules/.bin/wrangler" ]]; then
-  echo "[Autoscript] Chưa có dependencies. Đang chạy npm install..."
+# 2. Kiểm tra các file quan trọng
+for file in "package.json" "wrangler.jsonc" "src/app.html"; do
+  if [[ ! -f "$file" ]]; then
+    error_exit "Không tìm thấy file bắt buộc: $file"
+  fi
+done
+
+# 3. Cài đặt thư viện nếu chưa có
+if [[ ! -d "node_modules" ]] || [[ ! -x "node_modules/.bin/wrangler" ]]; then
+  echo -e "${YELLOW}[Autoscript] Đang tiến hành cài đặt thư viện (npm install)...${NC}"
   npm install
+  echo -e "${GREEN}[Autoscript] Cài đặt thư viện thành công!${NC}"
 fi
 
-echo "[Autoscript] Kiểm tra đăng nhập Cloudflare..."
-if ! npx wrangler whoami; then
-  echo "[Autoscript] Lỗi: Chưa đăng nhập Cloudflare hoặc token không hợp lệ."
-  echo "[Autoscript] Chạy lệnh này rồi thử lại: npx wrangler login"
+# 4. Kiểm tra trạng thái đăng nhập Cloudflare
+echo -e "${YELLOW}[Autoscript] Kiểm tra kết nối tài khoản Cloudflare...${NC}"
+if ! npx wrangler whoami >/dev/null 2>&1; then
+  echo -e "${RED}[Lỗi] Bạn chưa đăng nhập Cloudflare hoặc phiên làm việc đã hết hạn.${NC}"
+  echo -e "${YELLOW}Vui lòng chạy lệnh sau trên Terminal để đăng nhập lại:${NC} npx wrangler login"
   exit 1
 fi
+echo -e "${GREEN}[Autoscript] Đã kết nối Cloudflare thành công.${NC}"
 
+# 5. Xử lý cờ (dry-run)
+MODE="deploy"
+if [[ "$1" == "--dry-run" ]]; then
+  MODE="dry-run"
+fi
+
+# 6. Triển khai (Deploy)
+echo -e "${YELLOW}==============================================${NC}"
 if [[ "$MODE" == "dry-run" ]]; then
-  echo "[Autoscript] Chạy dry-run, chưa deploy thật."
+  echo -e "${YELLOW}[Autoscript] Đang chạy chế độ chạy thử (--dry-run), chưa đẩy lên Cloudflare thật...${NC}"
   npm run deploy:dry-run
 else
-  echo "[Autoscript] Deploy thật lên Cloudflare."
+  echo -e "${YELLOW}[Autoscript] Bắt đầu đẩy mã nguồn lên Cloudflare Workers...${NC}"
   npm run deploy
 fi
+echo -e "${YELLOW}==============================================${NC}"
 
-echo
-echo "[Autoscript] Deploy Cloudflare hoàn tất."
+# Hoàn tất
+echo -e "${GREEN}[Autoscript] 🎉 Triển khai lên Cloudflare thành công!${NC}"

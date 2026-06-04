@@ -80,7 +80,7 @@
     // ── Fetch & Render Profiles ──────────────────────────────
     async function loadProfiles() {
         try {
-            const res = await fetch('/api/users/profiles');
+            const res = await fetch('/tcpscript/api/users/profiles');
             if (!res.ok) throw new Error('Failed to load user profiles');
             const loadedProfiles = await res.json();
             adminProfile = loadedProfiles.find(profile => profile.username.toLowerCase() === 'admin') || null;
@@ -218,7 +218,7 @@
         pinBoxes.forEach(b => b.disabled = true);
 
         try {
-            const res = await fetch('/api/login', {
+            const res = await fetch('/tcpscript/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -240,7 +240,7 @@
 
             // Fetch and cache webAppUrl and templateId locally so other pages can retrieve them instantly
             try {
-                const settingsRes = await fetch('/api/settings', {
+                const settingsRes = await fetch('/tcpscript/api/settings', {
                     headers: { 'Authorization': `Bearer ${data.token}` }
                 });
                 if (settingsRes.ok) {
@@ -257,7 +257,7 @@
             }
 
             // Redirect to project management dashboard
-            window.location.href = 'project.html';
+            window.location.href = '/tcpscript/project';
 
         } catch (err) {
             console.error('Auth error:', err);

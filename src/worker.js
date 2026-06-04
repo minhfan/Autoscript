@@ -9,6 +9,16 @@ const SESSION_COOKIE_NAME = 'autoscript_session_token';
 export default {
     async fetch(request, env) {
         const url = new URL(request.url);
+        const PREFIX = '/tcpscript';
+
+        // ── Ensure prefix match ────────────────────────────
+        if (!url.pathname.startsWith(PREFIX)) {
+            if (env.ASSETS) return env.ASSETS.fetch(request);
+            return new Response('Not Found', { status: 404 });
+        }
+
+        // ── Strip prefix for internal routing ──────────────
+        url.pathname = url.pathname.slice(PREFIX.length) || '/';
 
         // ── CORS preflight ─────────────────────────────────
         if (request.method === 'OPTIONS') {
@@ -29,14 +39,14 @@ export default {
 
         if (url.pathname === '/' || url.pathname === '/index.html') {
             const user = await verifyTokenAndGetUser(request);
-            const targetPath = user ? '/project' : '/login';
+            const targetPath = user ? `${PREFIX}/project` : `${PREFIX}/login`;
             return Response.redirect(`${url.origin}${targetPath}`, 302);
         }
 
         if (url.pathname.startsWith('/app/')) {
             const user = await verifyTokenAndGetUser(request);
             if (!user) {
-                return Response.redirect(`${url.origin}/login`, 302);
+                return Response.redirect(`${url.origin}${PREFIX}/login`, 302);
             }
             const requestedProjectId = getProjectIdFromAppPath(url.pathname);
             if (!requestedProjectId) {
@@ -134,7 +144,7 @@ export default {
         const protectedAssetRoutes = ['/project.html', '/setting.html', '/app.html'];
 
         if (publicAssetRoutes.includes(url.pathname)) {
-            return env.ASSETS.fetch(request);
+            return env.ASSETS.fetch(new Request(url.toString(), request));
         }
 
         if (publicCleanRoutes.includes(url.pathname)) {
@@ -145,7 +155,7 @@ export default {
         if (protectedCleanRoutes.includes(url.pathname)) {
             const user = await verifyTokenAndGetUser(request);
             if (!user) {
-                return Response.redirect(`${url.origin}/login`, 302);
+                return Response.redirect(`${url.origin}${PREFIX}/login`, 302);
             }
             url.pathname += '.html';
             return env.ASSETS.fetch(new Request(url.toString(), request));
@@ -154,13 +164,13 @@ export default {
         if (protectedAssetRoutes.includes(url.pathname)) {
             const user = await verifyTokenAndGetUser(request);
             if (!user) {
-                return Response.redirect(`${url.origin}/login`, 302);
+                return Response.redirect(`${url.origin}${PREFIX}/login`, 302);
             }
         }
 
         // ── Fall through to static assets ──────────────────
         if (env.ASSETS) {
-            return env.ASSETS.fetch(request);
+            return env.ASSETS.fetch(new Request(url.toString(), request));
         }
         return new Response('Not Found', { status: 404 });
     },

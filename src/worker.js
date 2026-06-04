@@ -33,8 +33,27 @@ export default {
             return Response.redirect(`${url.origin}${targetPath}`, 302);
         }
 
+        if (url.pathname.startsWith('/app/')) {
+            const user = await verifyTokenAndGetUser(request);
+            if (!user) {
+                return Response.redirect(`${url.origin}/login`, 302);
+            }
+            const requestedProjectId = getProjectIdFromAppPath(url.pathname);
+            if (!requestedProjectId) {
+                return new Response('Project not found', { status: 404 });
+            }
+            const userProjects = await env.SETTINGS_KV.get(`user_projects:${user.username}`, { type: 'json' }) || [];
+            const matchedProject = userProjects.find((item) => item.id === requestedProjectId);
+            if (!matchedProject) {
+                return new Response('Project not found', { status: 404 });
+            }
+            const assetUrl = new URL(request.url);
+            assetUrl.pathname = '/app.html';
+            return env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+        }
+
         // ── Authenticated Routes ───────────────────────────
-        if (url.pathname.startsWith('/api/users') || url.pathname.startsWith('/api/projects') || url.pathname.startsWith('/api/settings')) {
+        if (url.pathname.startsWith('/api/users') || url.pathname.startsWith('/api/projects') || url.pathname.startsWith('/api/project-logs') || url.pathname.startsWith('/api/settings')) {
             const user = await verifyTokenAndGetUser(request);
             if (!user) {
                 return jsonResponse({ error: 'Unauthorized: Invalid or expired token' }, 401);
@@ -73,6 +92,10 @@ export default {
             }
 
             // Route Projects
+            if (url.pathname === '/api/projects/meta' && request.method === 'GET') {
+                return handleGetProjectMeta(user.username, url, env);
+            }
+
             if (url.pathname === '/api/projects') {
                 if (request.method === 'GET') {
                     return handleGetProjects(user.username, env);
@@ -85,6 +108,16 @@ export default {
                 }
                 if (request.method === 'DELETE') {
                     return handleDeleteProject(user.username, request, env);
+                }
+                return jsonResponse({ error: 'Method not allowed' }, 405);
+            }
+
+            if (url.pathname === '/api/project-logs') {
+                if (request.method === 'GET') {
+                    return handleGetProjectLogs(user.username, url, env);
+                }
+                if (request.method === 'PUT') {
+                    return handlePutProjectLogs(user.username, request, env);
                 }
                 return jsonResponse({ error: 'Method not allowed' }, 405);
             }
@@ -313,6 +346,53 @@ async function handleDeleteUser(request, env) {
 async function handleGetProjects(username, env) {
     const projects = await env.SETTINGS_KV.get(`user_projects:${username}`, { type: 'json' }) || [];
     return jsonResponse(projects);
+}
+
+async function handleGetProjectMeta(username, url, env) {
+    const projectId = (url.searchParams.get('id') || '').trim();
+    if (!projectId) {
+        return jsonResponse({ error: 'Project ID is required' }, 400);
+    }
+
+    const projects = await env.SETTINGS_KV.get(`user_projects:${username}`, { type: 'json' }) || [];
+    const project = projects.find((item) => item.id === projectId);
+
+    if (!project) {
+        return jsonResponse({ error: 'Project not found' }, 404);
+    }
+
+    return jsonResponse(project);
+}
+
+async function handleGetProjectLogs(username, url, env) {
+    const projectId = (url.searchParams.get('id') || '').trim();
+    if (!projectId) {
+        return jsonResponse({ error: 'Project ID is required' }, 400);
+    }
+
+    const logs = await env.SETTINGS_KV.get(`project_logs:${username}:${projectId}`, { type: 'json' }) || [];
+    return jsonResponse({ success: true, logs });
+}
+
+async function handlePutProjectLogs(username, request, env) {
+    try {
+        const body = await request.json();
+        const projectId = (body.projectId || '').trim();
+        const logs = Array.isArray(body.logs) ? body.logs : null;
+
+        if (!projectId) {
+            return jsonResponse({ error: 'Project ID is required' }, 400);
+        }
+        if (!logs) {
+            return jsonResponse({ error: 'Logs array is required' }, 400);
+        }
+
+        await env.SETTINGS_KV.put(`project_logs:${username}:${projectId}`, JSON.stringify(logs));
+        return jsonResponse({ success: true, message: 'Project logs synced successfully.' });
+    } catch (err) {
+        console.error('[Worker] Save project logs error:', err);
+        return jsonResponse({ error: err.message }, 500);
+    }
 }
 
 // ── POST /api/projects — Create sheet via Apps Script owner credentials and save to user list ──
@@ -605,6 +685,18 @@ function getCookieValue(cookieHeader, cookieName) {
         }
     }
     return '';
+}
+
+function getProjectIdFromAppPath(pathname) {
+    const segments = String(pathname || '').split('/').filter(Boolean);
+    if (segments[0] !== 'app' || !segments[1]) {
+        return '';
+    }
+    try {
+        return decodeURIComponent(segments[1]);
+    } catch (error) {
+        return segments[1];
+    }
 }
 
 function buildSessionCookie(token) {

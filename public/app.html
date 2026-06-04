@@ -189,6 +189,40 @@
         }
 
         .header-controls { display: flex; gap: 6px; align-items: center; }
+        .app-topbar-logo {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+        }
+        .app-topbar-logo .logo-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #fafafa;
+            letter-spacing: 0;
+            line-height: 1;
+        }
+        .app-topbar-logo .logo-title span {
+            color: #10b981;
+        }
+        .app-topbar-logo .logo-title em {
+            font-style: normal;
+            font-size: 11px;
+            font-weight: 600;
+            color: #a1a1aa;
+            margin-left: 4px;
+        }
+        .btn-sync-header {
+            background: rgba(16, 185, 129, 0.16);
+            border-color: rgba(16, 185, 129, 0.65);
+            color: #34d399;
+            font-weight: 700;
+            box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.14) inset;
+        }
+        .btn-sync-header:hover {
+            background: rgba(16, 185, 129, 0.24);
+            border-color: #10b981;
+            color: #6ee7b7;
+        }
 
         /* ============================================================
            PREVIEW CUT & SKIP BUTTONS
@@ -1111,6 +1145,19 @@
             color: #FFC107 !important;
             background: rgba(255, 193, 7, 0.15) !important;
         }
+        .btn-sync-brand {
+            background: rgba(16, 185, 129, 0.16);
+            border-color: rgba(16, 185, 129, 0.65);
+            color: #34d399;
+            font-weight: 700;
+            box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.14) inset;
+        }
+        .btn-sync-brand:hover,
+        .btn-sync-brand.active {
+            background: rgba(16, 185, 129, 0.24) !important;
+            border-color: #10b981 !important;
+            color: #6ee7b7 !important;
+        }
 
         .btn-new-project {
             background: var(--danger-dim);
@@ -1183,6 +1230,34 @@
             font-size: 13.33px;
             font-weight: 700;
             margin-bottom: 4px;
+        }
+        .message-modal-content {
+            width: min(480px, calc(100vw - 32px));
+            padding: 24px;
+        }
+        .message-modal-body {
+            margin-top: 10px;
+            color: var(--text-sub);
+            font-size: 10px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+        .message-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .btn-modal-primary {
+            min-width: 96px;
+            background: rgba(16, 185, 129, 0.16);
+            border: 1px solid rgba(16, 185, 129, 0.65);
+            color: #34d399;
+            box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.14) inset;
+        }
+        .btn-modal-primary:hover {
+            background: rgba(16, 185, 129, 0.24);
+            border-color: #10b981;
+            color: #6ee7b7;
         }
 
         /* ============================================================
@@ -1417,8 +1492,10 @@
 
     <header>
         <div class="header-logo">
-            <a href="project.html" title="Back to Projects" style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 10px; font-weight: 500; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border, #334155); margin-right: 10px; transition: all 0.2s;" onmouseover="this.style.color='var(--accent, #10b981)';this.style.borderColor='var(--accent, #10b981)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border, #334155)'">&larr; Projects</a>
-            <h1>Autoscript <span>TCP</span></h1>
+            <a href="/project" title="Back to Projects" style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 10px; font-weight: 500; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border, #334155); margin-right: 10px; transition: all 0.2s;" onmouseover="this.style.color='var(--accent, #10b981)';this.style.borderColor='var(--accent, #10b981)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border, #334155)'">&larr; Projects</a>
+            <a href="/project" class="app-topbar-logo" aria-label="Back to project list">
+                <span class="logo-title">TCP <span>Autoscript</span> <em>v2.0</em></span>
+            </a>
         </div>
         <div class="header-controls">
             <span id="saveStatus">Saved</span>
@@ -1608,9 +1685,7 @@
                         <input type="text" id="searchInput" placeholder="Search script, timecode..." style="background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); color: var(--text-main); font-size: 9.17px; padding: 6px 10px 6px 26px; width: 220px; outline: none; font-family: 'Outfit', sans-serif;">
                     </div>
                     <div style="display: flex; gap: 5px; margin-left: auto; align-items: center;">
-                        <button type="button" class="btn-action" id="btnSyncSheets" style="margin: 0;" title="Sync current sheet">
-                            Sync Sheet
-                        </button>
+                        <button type="button" class="btn-action btn-sync-brand" id="btnSyncSheets" title="Sync current sheet">Sync Sheet</button>
                         <label class="btn-action btn-import" id="lblImport" style="cursor: pointer; margin: 0;">
                             <input type="file" id="csvImport" accept=".csv" style="display: none;">
                             Import
@@ -1666,6 +1741,16 @@
             <div class="shortcut-grid" id="settingsGrid"></div>
             <!-- Google Sheets settings removed -->
             <button class="close-btn" id="btnCloseSettings">Save Settings</button>
+        </div>
+    </div>
+
+    <div id="messageModal" class="modal">
+        <div class="modal-content message-modal-content">
+            <h2 id="messageModalTitle">Thông báo</h2>
+            <div id="messageModalBody" class="message-modal-body"></div>
+            <div class="message-modal-actions">
+                <button class="close-btn btn-modal-primary" id="btnCloseMessageModal">Đóng</button>
+            </div>
         </div>
     </div>
 
@@ -1763,15 +1848,47 @@ let currentSpreadsheetId   = localStorage.getItem('autoscript_current_spreadshee
 let currentSpreadsheetUrl  = localStorage.getItem('autoscript_current_spreadsheet_url') || '';
 let currentSpreadsheetName = localStorage.getItem('autoscript_current_spreadsheet_name') || '';
 
+function getSpreadsheetIdFromPath() {
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    if (segments[0] !== 'app' || !segments[1]) return '';
+    try {
+        return decodeURIComponent(segments[1]);
+    } catch (error) {
+        return segments[1];
+    }
+}
+
+async function resolveCurrentSpreadsheetMeta() {
+    if (!currentSpreadsheetId) return;
+
+    try {
+        const res = await fetch(`/api/projects/meta?id=${encodeURIComponent(currentSpreadsheetId)}`, {
+            credentials: 'same-origin'
+        });
+        if (!res.ok) return;
+
+        const project = await res.json();
+        currentSpreadsheetUrl = project.url || currentSpreadsheetUrl || `https://docs.google.com/spreadsheets/d/${currentSpreadsheetId}/edit`;
+        currentSpreadsheetName = project.name || currentSpreadsheetName || 'Google Sheet';
+        localStorage.setItem('autoscript_current_spreadsheet_id', currentSpreadsheetId);
+        localStorage.setItem('autoscript_current_spreadsheet_url', currentSpreadsheetUrl);
+        localStorage.setItem('autoscript_current_spreadsheet_name', currentSpreadsheetName);
+    } catch (error) {
+        console.warn('[APP] Failed to resolve project metadata:', error);
+    }
+}
+
 // ── Read spreadsheet info from URL query params (from /project page) ──
 (function applyUrlParams() {
     const urlParams = new URLSearchParams(window.location.search);
     const urlSheetId   = urlParams.get('sheetId');
     const urlSheetName = urlParams.get('sheetName');
     const urlSheetUrl  = urlParams.get('sheetUrl');
-    if (urlSheetId) {
-        currentSpreadsheetId   = urlSheetId;
-        currentSpreadsheetUrl  = urlSheetUrl || `https://docs.google.com/spreadsheets/d/${urlSheetId}/edit`;
+    const pathSheetId  = getSpreadsheetIdFromPath();
+    const resolvedSheetId = urlSheetId || pathSheetId;
+    if (resolvedSheetId) {
+        currentSpreadsheetId   = resolvedSheetId;
+        currentSpreadsheetUrl  = urlSheetUrl || `https://docs.google.com/spreadsheets/d/${resolvedSheetId}/edit`;
         currentSpreadsheetName = urlSheetName || 'Google Sheet';
         localStorage.setItem('autoscript_current_spreadsheet_id', currentSpreadsheetId);
         localStorage.setItem('autoscript_current_spreadsheet_url', currentSpreadsheetUrl);
@@ -1892,8 +2009,75 @@ function handleGoogleAuthClick() {
 }
 
 // ── 2. SESSION DATA ──────────────────────────────────────────
+const LEGACY_LOG_STORAGE_KEY = 'autoscript_tcp_v9';
 let logs = [];
-try { logs = JSON.parse(localStorage.getItem('autoscript_tcp_v9')) || []; } catch(e) { logs = []; }
+let projectLogsSaveTimer = null;
+let isProjectLogsLoaded = false;
+
+function getLegacyLocalLogs() {
+    try {
+        const savedLogs = JSON.parse(localStorage.getItem(LEGACY_LOG_STORAGE_KEY));
+        return Array.isArray(savedLogs) ? savedLogs : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+async function saveProjectLogsToKV() {
+    if (!currentSpreadsheetId) return;
+
+    await fetch('/api/project-logs', {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            projectId: currentSpreadsheetId,
+            logs
+        })
+    });
+
+    localStorage.removeItem(LEGACY_LOG_STORAGE_KEY);
+}
+
+async function loadProjectLogsFromKV() {
+    const legacyLogs = getLegacyLocalLogs();
+
+    if (!currentSpreadsheetId) {
+        logs = legacyLogs;
+        isProjectLogsLoaded = true;
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}`, {
+            credentials: 'same-origin'
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to load project logs (HTTP ${res.status})`);
+        }
+
+        const data = await res.json();
+        const kvLogs = Array.isArray(data.logs) ? data.logs : [];
+
+        if (kvLogs.length > 0) {
+            logs = kvLogs;
+            localStorage.removeItem(LEGACY_LOG_STORAGE_KEY);
+        } else if (legacyLogs.length > 0) {
+            logs = legacyLogs;
+            await saveProjectLogsToKV();
+        } else {
+            logs = [];
+        }
+    } catch (error) {
+        console.warn('[APP] Failed to load project logs from KV:', error);
+        logs = legacyLogs;
+    } finally {
+        isProjectLogsLoaded = true;
+    }
+}
 
 // ── 3. SHORTCUT DEFINITIONS ──────────────────────────────────
 const defaultShortcuts = {
@@ -1964,6 +2148,9 @@ const btnPlayReverse = document.getElementById('btnPlayReverse');
 const timelineWrapper  = document.getElementById('customTimeline');
 const timelineProgress = document.getElementById('timelineProgress');
 const hoverTooltip   = document.getElementById('hoverTooltip');
+const mMessage       = document.getElementById('messageModal');
+const messageTitleEl = document.getElementById('messageModalTitle');
+const messageBodyEl  = document.getElementById('messageModalBody');
 const actionButtons  = Array.from(document.querySelectorAll('#actionButtonGroup .action-button'));
 const btnToolbarImport = document.getElementById('btnToolbarImport');
 const btnSyncSheets    = document.getElementById('btnSyncSheets');
@@ -1995,6 +2182,22 @@ function matchShortcut(e, name) {
         && e.altKey === sc.alt;
 }
 
+function closeMessageModal() {
+    if (mMessage) {
+        mMessage.style.display = 'none';
+    }
+}
+
+function openMessageModal(title, message) {
+    if (!mMessage || !messageTitleEl || !messageBodyEl) {
+        alert(message);
+        return;
+    }
+    messageTitleEl.innerText = title || 'Thông báo';
+    messageBodyEl.innerText = message || '';
+    mMessage.style.display = 'flex';
+}
+
 // ── 6. UNDO / REDO ───────────────────────────────────────────
 function saveState(clearRedo = true) {
     logHistory.push(JSON.parse(JSON.stringify(logs)));
@@ -2018,9 +2221,28 @@ function redo() {
 
 // ── 7. SESSION SAVE ──────────────────────────────────────────
 function saveSession() {
-    localStorage.setItem('autoscript_tcp_v9', JSON.stringify(logs));
     const status = document.getElementById('saveStatus');
-    if (status) { status.innerText = 'Saving…'; setTimeout(() => { status.innerText = 'Saved'; }, 500); }
+    if (status) {
+        status.innerText = 'Syncing...';
+    }
+
+    if (!isProjectLogsLoaded) {
+        return;
+    }
+
+    if (projectLogsSaveTimer) {
+        clearTimeout(projectLogsSaveTimer);
+    }
+
+    projectLogsSaveTimer = setTimeout(async () => {
+        try {
+            await saveProjectLogsToKV();
+            if (status) status.innerText = 'Saved';
+        } catch (error) {
+            console.error('[APP] Failed to sync project logs:', error);
+            if (status) status.innerText = 'Sync failed';
+        }
+    }, 350);
 }
 
 // ── 8. RENDER SETTINGS (Shortcuts panel) ─────────────────────
@@ -3328,14 +3550,133 @@ async function syncToGoogleSheets() {
     }
 }
 
+async function syncToGoogleSheets() {
+    if (!logs.length) {
+        openMessageModal('Đồng bộ Google Sheets', 'Danh sách log rỗng. Không có gì để đồng bộ.');
+        return;
+    }
+
+    const btn = document.getElementById('btnSyncSheets');
+    const originalText = btn ? btn.innerText : 'Sync Sheet';
+    if (btn) {
+        btn.innerText = 'Syncing...';
+        btn.disabled = true;
+    }
+
+    try {
+        if (isTokenValid()) {
+            const sheetId = currentSpreadsheetId || TEMPLATE_SPREADSHEET_ID;
+            const sheetsClearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Full-show!A5:F:clear`;
+            const clearRes = await fetch(sheetsClearUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${googleAccessToken}`
+                }
+            });
+
+            if (!clearRes.ok) {
+                const errTxt = await clearRes.text();
+                throw new Error('Không thể dọn dẹp hàng cũ trên Sheet: ' + errTxt);
+            }
+
+            const values = logs.map(log => [
+                "",
+                log.action,
+                log.tcin,
+                log.tcout,
+                log.script,
+                log.note
+            ]);
+
+            const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Full-show!A5:F?valueInputOption=USER_ENTERED`;
+            const writeRes = await fetch(writeUrl, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${googleAccessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    range: 'Full-show!A5:F',
+                    majorDimension: 'ROWS',
+                    values
+                })
+            });
+
+            if (!writeRes.ok) {
+                const errData = await writeRes.json();
+                const errMsg = errData.error ? errData.error.message : 'Không rõ nguyên nhân';
+                if (errMsg.includes('violates the data validation rules')) {
+                    throw new Error('Vi phạm quy tắc dropdown (Data Validation) trên cột B của Google Sheets. Hãy kiểm tra các lựa chọn trên Sheet.');
+                }
+                throw new Error('Lỗi ghi dữ liệu: ' + errMsg);
+            }
+
+            openMessageModal('Đồng bộ Google Sheets', 'Đồng bộ trực tiếp qua Google REST API thành công.\nVui lòng kiểm tra file Google Sheets của bạn.');
+        } else {
+            if (!googleSheetsUrl) {
+                openMessageModal('Đồng bộ Google Sheets', 'Vui lòng vào Settings cấu hình Google Sheets Web App URL hoặc đăng nhập Google trước khi đồng bộ.');
+                if (mSettings) mSettings.style.display = 'flex';
+                return;
+            }
+
+            const payload = {
+                spreadsheetId: currentSpreadsheetId || undefined,
+                logs: logs.map(log => ({
+                    action: log.action,
+                    tcin: log.tcin,
+                    tcout: log.tcout,
+                    script: log.script,
+                    note: log.note
+                }))
+            };
+
+            await fetch(googleSheetsUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            openMessageModal('Đồng bộ Google Sheets', 'Yêu cầu đồng bộ đã được gửi thành công.\nVui lòng kiểm tra file Google Sheets của bạn.');
+        }
+    } catch (error) {
+        console.error('[AUTOSCRIPT SYNC ERROR]', error);
+        openMessageModal('Lỗi đồng bộ', error.message || 'Không thể gửi yêu cầu đồng bộ.');
+    } finally {
+        if (btn) {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    }
+}
+
 if (btnSyncSheets) {
     btnSyncSheets.addEventListener('click', syncToGoogleSheets);
+}
+
+const btnCloseMessageModal = document.getElementById('btnCloseMessageModal');
+if (btnCloseMessageModal) {
+    btnCloseMessageModal.addEventListener('click', closeMessageModal);
+}
+if (mMessage) {
+    mMessage.addEventListener('click', event => {
+        if (event.target === mMessage) {
+            closeMessageModal();
+        }
+    });
 }
 
 // -- New Project logic removed as it's now handled in project.html --
 
 // ── 23. KEYBOARD SHORTCUTS ─────────────────────────────────
 document.addEventListener('keydown', e => {
+    if (mMessage && mMessage.style.display === 'flex' && e.key === 'Escape') {
+        e.preventDefault();
+        closeMessageModal();
+        return;
+    }
     if (listeningAction) {
         e.preventDefault();
         if (e.key === 'Escape') { listeningAction = null; renderSettings(); return; }
@@ -3732,12 +4073,16 @@ request.onsuccess = (e) => {
     }
 };
 renderSettings();
-renderTable();
-updateActiveSheetUI();
-updateGoogleUI();
-initGoogleOAuth();
-setTimeout(drawMarkers, 300);
-console.log('[AUTOSCRIPT] ✓ Initialized successfully');
+resolveCurrentSpreadsheetMeta().finally(() => {
+    loadProjectLogsFromKV().finally(() => {
+        renderTable();
+        updateActiveSheetUI();
+        updateGoogleUI();
+        initGoogleOAuth();
+        setTimeout(drawMarkers, 300);
+        console.log('[AUTOSCRIPT] ✓ Initialized successfully');
+    });
+});
 </script>
 </body>
 </html>

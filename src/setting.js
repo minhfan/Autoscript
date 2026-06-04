@@ -23,6 +23,8 @@
     }
 
     const API_URL = '/api/settings';
+    const SETTING_TAB_STORAGE_KEY = 'autoscript_setting_active_tab';
+    let users = [];
 
     // Helper for API headers
     function getAuthHeaders() {
@@ -40,6 +42,15 @@
     const settingFolderId = document.getElementById('settingFolderId');
     const btnSave = document.getElementById('btnSave');
     const formStatus = document.getElementById('formStatus');
+    const usersListBody = document.getElementById('usersListBody');
+    const btnAddUser = document.getElementById('btnAddUser');
+    const addUserModal = document.getElementById('addUserModal');
+    const addUserClose = document.getElementById('addUserClose');
+    const addUserCancel = document.getElementById('addUserCancel');
+    const addUserSave = document.getElementById('addUserSave');
+    const newUsernameInput = document.getElementById('newUsername');
+    const settingTabButtons = Array.from(document.querySelectorAll('[data-setting-tab]'));
+    const settingPanels = Array.from(document.querySelectorAll('[data-setting-panel]'));
 
     // ── Helpers ──────────────────────────────────────────────
     function showStatus(msg, type) {
@@ -53,6 +64,29 @@
                 formStatus.style.display = 'none';
             }, 4000);
         }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function setActiveSettingTab(tabName) {
+        const hasPanel = settingPanels.some((panel) => panel.dataset.settingPanel === tabName);
+        const nextTab = hasPanel ? tabName : 'application';
+
+        settingTabButtons.forEach((button) => {
+            const isActive = button.dataset.settingTab === nextTab;
+            button.classList.toggle('active', isActive);
+            button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            button.tabIndex = isActive ? 0 : -1;
+        });
+
+        settingPanels.forEach((panel) => {
+            panel.hidden = panel.dataset.settingPanel !== nextTab;
+        });
+
+        localStorage.setItem(SETTING_TAB_STORAGE_KEY, nextTab);
     }
 
     // ── Load settings from KV ────────────────────────────────
@@ -178,10 +212,198 @@
         }
     }
 
+    async function loadUsersList() {
+        try {
+            const res = await fetch('/api/users', {
+                headers: getAuthHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to retrieve user profiles');
+            users = await res.json();
+            renderUsersList();
+        } catch (err) {
+            console.error(err);
+            if (usersListBody) {
+                usersListBody.innerHTML = `<tr><td colspan="3" class="users-table-placeholder" style="color: #fca5a5;">Failed to load user accounts.</td></tr>`;
+            }
+        }
+    }
+
+    function renderUsersList() {
+        if (!usersListBody) return;
+        usersListBody.innerHTML = '';
+
+        if (users.length === 0) {
+            usersListBody.innerHTML = `<tr><td colspan="3" class="users-table-placeholder">No profiles configured.</td></tr>`;
+            return;
+        }
+
+        users.forEach((user) => {
+            const isSet = user.hasPin;
+            const badgeClass = isSet ? 'set' : 'unset';
+            const badgeText = isSet ? 'Password PIN Set' : 'No PIN (Unconfigured)';
+            const isSelfAdmin = user.username.toLowerCase() === 'admin';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong style="font-size: 14px; font-weight: 600;">${escapeHtml(user.username)}</strong></td>
+                <td><span class="user-pin-badge ${badgeClass}">${badgeText}</span></td>
+                <td>
+                    <div class="user-actions-cell">
+                        <button type="button" class="btn-user-action reset" data-change-username="${escapeHtml(user.username)}">Change PIN</button>
+                        <button type="button" class="btn-user-action reset" data-reset-username="${escapeHtml(user.username)}">Reset PIN</button>
+                        ${isSelfAdmin ? '' : `<button type="button" class="btn-user-action delete" data-delete-username="${escapeHtml(user.username)}">Delete Profile</button>`}
+                    </div>
+                </td>
+            `;
+
+            usersListBody.appendChild(row);
+        });
+
+        attachUserActionListeners();
+    }
+
+    function attachUserActionListeners() {
+        document.querySelectorAll('[data-change-username]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const username = btn.dataset.changeUsername;
+                const newPin = prompt(`Enter a new 4-digit PIN for user "${username}":`);
+                if (newPin === null) return;
+
+                const pinTrimmed = newPin.trim();
+                if (!/^\d{4}$/.test(pinTrimmed)) {
+                    alert('Error: PIN must be a 4-digit number (e.g. 1234)');
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/users', {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({
+                            username,
+                            pin: pinTrimmed,
+                            action: 'changePin'
+                        })
+                    });
+                    if (!res.ok) {
+                        const data = await res.json();
+                        throw new Error(data.error || 'Failed to change PIN');
+                    }
+                    const data = await res.json();
+                    users = data.users;
+                    renderUsersList();
+                    alert(`Successfully updated PIN for user "${username}" on KV.`);
+                } catch (err) {
+                    alert(err.message);
+                }
+            });
+        });
+
+        document.querySelectorAll('[data-reset-username]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const username = btn.dataset.resetUsername;
+                if (!confirm(`Reset the PIN for user "${username}"?\n\nThey will need to set a new PIN the next time they select this profile.`)) {
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/users', {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({
+                            username,
+                            action: 'reset'
+                        })
+                    });
+                    if (!res.ok) throw new Error('Failed to reset PIN');
+                    const data = await res.json();
+                    users = data.users;
+                    renderUsersList();
+                } catch (err) {
+                    alert(err.message);
+                }
+            });
+        });
+
+        document.querySelectorAll('[data-delete-username]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const username = btn.dataset.deleteUsername;
+                if (!confirm(`DANGER: Delete profile "${username}"?\n\nThis will completely delete their profile and project logs from KV! This cannot be undone.`)) {
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/users', {
+                        method: 'DELETE',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ username })
+                    });
+                    if (!res.ok) throw new Error('Failed to delete user');
+                    const data = await res.json();
+                    users = data.users;
+                    renderUsersList();
+                } catch (err) {
+                    alert(err.message);
+                }
+            });
+        });
+    }
+
+    function openAddUserModal() {
+        if (addUserModal) addUserModal.style.display = 'flex';
+        if (newUsernameInput) {
+            newUsernameInput.value = '';
+            newUsernameInput.focus();
+        }
+    }
+
+    function closeAddUserModal() {
+        if (addUserModal) addUserModal.style.display = 'none';
+    }
+
+    async function handleAddUserSave() {
+        const username = newUsernameInput ? newUsernameInput.value.trim() : '';
+        if (!username) {
+            alert('Please enter a profile name');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    username,
+                    action: 'create'
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to create profile');
+
+            users = data.users;
+            renderUsersList();
+            closeAddUserModal();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
     // ── Event Listeners ──────────────────────────────────────
     if (btnSave) {
         btnSave.addEventListener('click', saveSettings);
     }
+    if (btnAddUser) {
+        btnAddUser.addEventListener('click', openAddUserModal);
+    }
+    settingTabButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            setActiveSettingTab(button.dataset.settingTab);
+        });
+    });
+    if (addUserClose) addUserClose.addEventListener('click', closeAddUserModal);
+    if (addUserCancel) addUserCancel.addEventListener('click', closeAddUserModal);
+    if (addUserSave) addUserSave.addEventListener('click', handleAddUserSave);
 
     // Save on Enter key in inputs
     [settingWebAppUrl, settingTemplateId, settingFolderId].forEach(input => {
@@ -195,7 +417,27 @@
         }
     });
 
+    if (addUserModal) {
+        addUserModal.addEventListener('click', (e) => {
+            if (e.target === addUserModal) {
+                closeAddUserModal();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeAddUserModal();
+        }
+        if (e.key === 'Enter' && addUserModal && addUserModal.style.display === 'flex') {
+            e.preventDefault();
+            handleAddUserSave();
+        }
+    });
+
     // ── Initialize ───────────────────────────────────────────
+    setActiveSettingTab(localStorage.getItem(SETTING_TAB_STORAGE_KEY) || 'application');
     loadSettings();
+    loadUsersList();
 
 })();

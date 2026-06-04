@@ -23,6 +23,7 @@
     --accent: #10b981;
     --accent-dim: rgba(16, 185, 129, 0.15);
     --accent-glow: rgba(16, 185, 129, 0.25);
+    --brand-blue: #7dd3fc;
     --danger: #ef4444;
     --r-sm: 8px;
     --r-md: 12px;
@@ -104,8 +105,8 @@ body {
     font-size: 18px;
     font-weight: 500;
     color: var(--text-muted);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-transform: none;
     margin-bottom: 28px;
 }
 

@@ -15,8 +15,7 @@
     <nav class="topbar" id="topbar">
         <div class="topbar-inner">
             <a href="project.html" class="topbar-logo">
-                <span class="logo-text">Auto<span class="logo-accent">script</span></span>
-                <span class="logo-badge">TCP</span>
+                <span class="logo-title">TCP <span>Autoscript</span> <em>v2.0</em></span>
             </a>
 
             <div class="topbar-right">
@@ -26,7 +25,11 @@
                     </div>
                     <span class="topbar-email" id="topbarEmail">User</span>
                 </div>
-                <button type="button" class="topbar-btn" id="btnLogout" title="Sign out">
+                <a href="setting.html" class="topbar-btn topbar-btn-settings" id="btnSettings" title="Settings" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Settings</span>
+                </a>
+                <button type="button" class="topbar-btn topbar-btn-logout" id="btnLogout" title="Sign out">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                     <span>Sign out</span>
                 </button>
@@ -42,11 +45,32 @@
                 <h1 id="pageTitle">Projects</h1>
                 <p class="page-subtitle" id="pageSubtitle">Manage your video logging projects</p>
             </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <button type="button" class="btn-manage-users" id="btnManageUsers" style="display: none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                    <span>Manage Users</span>
-                </button>
+            <div class="page-header-actions">
+                <div class="project-toolbar" id="projectToolbar">
+                    <label class="toolbar-search" for="projectSearchInput">
+                        <span class="toolbar-search-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+                        </span>
+                        <input type="search" id="projectSearchInput" placeholder="Search projects, speakers, sources..." autocomplete="off">
+                    </label>
+                    <label class="toolbar-sort" for="projectSortSelect">
+                        <select id="projectSortSelect" aria-label="Sort projects by date">
+                            <option value="newest">Newest</option>
+                            <option value="oldest">Oldest</option>
+                        </select>
+                        <span class="toolbar-sort-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </label>
+                    <div class="view-toggle" role="group" aria-label="Project view">
+                        <button type="button" class="view-toggle-btn active" id="btnGridView" title="Grid view" aria-pressed="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>
+                        </button>
+                        <button type="button" class="view-toggle-btn" id="btnListView" title="List view" aria-pressed="false">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                        </button>
+                    </div>
+                </div>
                 <button type="button" class="btn-new-project" id="btnNewProject">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     <span>New Project</span>
@@ -71,38 +95,12 @@
                         <line x1="9" y1="15" x2="15" y2="15"></line>
                     </svg>
                 </div>
-                <h3>No projects yet</h3>
-                <p>Create your first project to start logging timecodes. Each project is linked to a Google Sheet.</p>
+                <h3 id="emptyStateTitle">No projects yet</h3>
+                <p id="emptyStateText">Create your first project to start logging timecodes. Each project is linked to a Google Sheet.</p>
                 <button type="button" class="btn-new-project btn-empty" id="btnNewProjectEmpty">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     <span>Create First Project</span>
                 </button>
-            </div>
-        </div>
-
-        <!-- User Management View (Admin Only, hidden by default) -->
-        <div class="user-management-section" id="userManagementView" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h2 style="font-size: 18px; font-weight: 600; color: var(--text-main);">User Profiles</h2>
-                <button type="button" class="btn-add-user" id="btnAddUser">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    <span>Add Profile</span>
-                </button>
-            </div>
-            
-            <div class="users-list-table-container">
-                <table class="users-table">
-                    <thead>
-                        <tr>
-                            <th>Profile Name</th>
-                            <th>PIN Lock Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersListBody">
-                        <!-- User rows rendered by JS -->
-                    </tbody>
-                </table>
             </div>
         </div>
 
@@ -132,7 +130,7 @@
                 </div>
                 <div class="modal-input-group">
                     <label for="modalSpeaker">Speaker <span class="input-optional">(Row 1 — B1)</span></label>
-                    <input type="text" id="modalSpeaker" placeholder="e.g. HOÀNG NGUYỄN — CEO | TIERRA" autocomplete="off">
+                    <input type="text" id="modalSpeaker" placeholder="e.g. JASON NGUYEN - CEO | TIERRA" autocomplete="off">
                 </div>
                 <div class="modal-input-group">
                     <label for="modalSource">Source / Link <span class="input-optional">(Row 2 — B2)</span></label>
@@ -171,42 +169,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Add User Profile Modal (Admin Only) -->
-    <div class="modal-overlay" id="addUserModal" style="display: none;">
-        <div class="modal-card modal-card-sm">
-            <div class="modal-header">
-                <h2>Add Profile</h2>
-                <button type="button" class="modal-close" id="addUserClose">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-input-group">
-                    <label for="newUsername">Profile Name</label>
-                    <input type="text" id="newUsername" placeholder="e.g. Huy, Linh..." autocomplete="off">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-modal-cancel" id="addUserCancel">Cancel</button>
-                <button type="button" class="btn-modal-create" id="addUserSave">Create Profile</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Hidden settings gear icon — bottom-right corner -->
-    <a href="setting.html" class="gear-icon" id="gearIcon" style="position: fixed; bottom: 24px; right: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(24, 24, 27, 0.2); border: 1px solid transparent; color: var(--text-dim); transition: all 0.4s; opacity: 0; z-index: 100;" title="Application Settings">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-    </a>
-
-    <!-- Add hover rules script to inject into head for the gear icon -->
-    <script>
-        const gear = document.getElementById('gearIcon');
-        document.body.addEventListener('mouseenter', () => gear.style.opacity = '0.25');
-        document.body.addEventListener('mouseleave', () => gear.style.opacity = '0');
-        gear.addEventListener('mouseenter', () => { gear.style.opacity = '1'; gear.style.transform = 'rotate(90deg)'; gear.style.color = '#10b981'; gear.style.background = 'rgba(24, 24, 27, 0.8)'; gear.style.borderColor = '#10b981'; });
-        gear.addEventListener('mouseleave', () => { gear.style.opacity = '0.25'; gear.style.transform = ''; gear.style.color = ''; gear.style.background = ''; gear.style.borderColor = ''; });
-    </script>
 
     <script src="project.js"></script>
 </body>

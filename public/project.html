@@ -74,7 +74,7 @@ body {
     max-width: 1280px;
     margin: 0 auto;
     padding: 0 32px;
-    height: 60px;
+    min-height: 72px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -82,31 +82,41 @@ body {
 
 .topbar-logo {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    align-items: flex-start;
     text-decoration: none;
     color: var(--text-main);
 }
 
-.logo-text {
-    font-size: 18px;
+.logo-badge {
+    font-size: 8px;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 3px 10px;
+    border-radius: 100px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.logo-accent {
+.logo-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text-main);
+}
+
+.logo-title span {
     color: var(--accent);
 }
 
-.logo-badge {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
+.logo-title em {
+    font-size: 12px;
+    font-weight: 500;
     color: var(--text-muted);
-    background: var(--bg-input);
-    padding: 3px 8px;
-    border-radius: 100px;
-    border: 1px solid var(--border);
+    letter-spacing: 0.08em;
+    line-height: 1;
+    font-style: normal;
 }
 
 .topbar-right {
@@ -169,6 +179,12 @@ body {
 }
 
 .topbar-btn:hover {
+    background: var(--bg-input);
+    border-color: var(--text-sub);
+    color: var(--text-main);
+}
+
+.topbar-btn-logout:hover {
     background: var(--danger-dim);
     border-color: rgba(239, 68, 68, 0.3);
     color: #fca5a5;
@@ -186,8 +202,19 @@ body {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
+    gap: 24px;
     margin-bottom: 36px;
     animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.page-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1;
+    min-width: 0;
+    gap: 12px;
+    flex-wrap: nowrap;
 }
 
 .page-header h1 {
@@ -202,6 +229,152 @@ body {
     font-size: 13px;
     color: var(--text-muted);
     margin-top: 6px;
+}
+
+.project-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
+    min-width: 0;
+    margin-left: auto;
+}
+
+.toolbar-search {
+    width: 240px;
+    min-width: 0;
+    flex: 0 1 240px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    min-height: 46px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    transition: var(--transition-base);
+}
+
+.toolbar-search:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+    background: rgba(255,255,255,0.03);
+}
+
+.toolbar-search-icon {
+    color: var(--text-dim);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.toolbar-search input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    font-size: 13px;
+}
+
+.toolbar-search input::placeholder {
+    color: var(--text-dim);
+}
+
+.toolbar-search input::-webkit-search-cancel-button {
+    appearance: none;
+}
+
+.toolbar-sort {
+    position: relative;
+    width: 138px;
+    flex: 0 0 138px;
+}
+
+.toolbar-sort select {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 38px 0 14px;
+    background: #111113;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    transition: var(--transition-base);
+    appearance: none;
+    color-scheme: dark;
+}
+
+.toolbar-sort select:hover {
+    border-color: var(--border-bright);
+    color: var(--text-main);
+}
+
+.toolbar-sort select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+    color: var(--text-main);
+}
+
+.toolbar-sort select option {
+    background: #111113;
+    color: var(--text-main);
+}
+
+.toolbar-sort-icon {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    pointer-events: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.view-toggle {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+}
+
+.view-toggle-btn {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: calc(var(--r-md) - 4px);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.view-toggle-btn:hover {
+    color: var(--text-sub);
+    background: rgba(255,255,255,0.04);
+}
+
+.view-toggle-btn.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+}
+
+.btn-manage-users,
+.btn-new-project {
+    flex-shrink: 0;
 }
 
 .btn-new-project {
@@ -237,6 +410,11 @@ body {
     gap: 20px;
 }
 
+.project-grid.is-list {
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
 /* ── Project Card ────────────────────────────────────────── */
 .project-card {
     background: var(--bg-card);
@@ -258,11 +436,31 @@ body {
     transform: translateY(-2px);
 }
 
+.project-grid.is-list .project-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.95fr) minmax(168px, auto);
+    grid-template-areas: "summary info footer";
+    column-gap: 20px;
+    row-gap: 0;
+    align-items: center;
+    padding: 22px 24px;
+    min-height: 116px;
+}
+
 .project-card-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     margin-bottom: 20px;
+}
+
+.project-grid.is-list .project-card-header {
+    grid-area: summary;
+    margin-bottom: 0;
+    width: 100%;
+    align-items: center;
+    position: relative;
+    z-index: 1;
 }
 
 .project-card-icon {
@@ -318,6 +516,15 @@ body {
     word-break: break-word;
 }
 
+.project-grid.is-list .project-card-name {
+    grid-area: summary;
+    margin-bottom: 0;
+    align-self: center;
+    padding: 0 88px 0 56px;
+    line-height: 1.35;
+    pointer-events: none;
+}
+
 /* ── Card Info Rows (Speaker / Source) ────────────────────── */
 .project-card-info {
     display: flex;
@@ -325,6 +532,20 @@ body {
     gap: 10px;
     margin-bottom: 20px;
     flex: 1;
+}
+
+.project-grid.is-list .project-card-info {
+    grid-area: info;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 0;
+    min-width: 0;
+    align-self: center;
+}
+
+.project-grid.is-list .info-row {
+    min-height: 100%;
 }
 
 .info-row {
@@ -388,6 +609,21 @@ body {
     justify-content: space-between;
     padding-top: 16px;
     border-top: 1px solid var(--border-subtle);
+}
+
+.project-grid.is-list .project-card-footer {
+    grid-area: footer;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 14px;
+    min-width: 168px;
+    height: auto;
+    padding-top: 0;
+    padding-left: 20px;
+    border-top: none;
+    border-left: 1px solid var(--border-subtle);
+    align-self: stretch;
 }
 
 .project-card-date {
@@ -747,6 +983,28 @@ body {
         gap: 16px;
     }
 
+    .page-header-actions {
+        width: 100%;
+        justify-content: stretch;
+        flex-wrap: wrap;
+    }
+
+    .project-toolbar {
+        width: 100%;
+        margin-left: 0;
+        flex-wrap: wrap;
+    }
+
+    .toolbar-search {
+        width: 100%;
+        flex-basis: 100%;
+    }
+
+    .toolbar-sort {
+        width: auto;
+        flex: 1 1 160px;
+    }
+
     .btn-new-project {
         width: 100%;
         justify-content: center;
@@ -763,6 +1021,38 @@ body {
     .project-card {
         padding: 20px;
     }
+
+    .project-grid.is-list .project-card {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "summary"
+            "info"
+            "footer";
+        row-gap: 16px;
+        min-height: 0;
+    }
+
+    .project-grid.is-list .project-card-header {
+        align-items: flex-start;
+    }
+
+    .project-grid.is-list .project-card-name {
+        padding: 52px 0 0;
+    }
+
+    .project-grid.is-list .project-card-info {
+        grid-template-columns: 1fr;
+    }
+
+    .project-grid.is-list .project-card-footer {
+        min-width: 0;
+        padding-left: 0;
+        padding-top: 16px;
+        border-left: none;
+        border-top: 1px solid var(--border-subtle);
+        flex-direction: row;
+        align-items: center;
+    }
 }
 
 @media (max-width: 480px) {
@@ -772,6 +1062,51 @@ body {
 
     .modal-card {
         border-radius: var(--r-lg);
+    }
+
+    .page-header-actions {
+        gap: 10px;
+    }
+
+    .project-toolbar {
+        gap: 10px;
+    }
+
+    .toolbar-sort {
+        flex-basis: 100%;
+        width: 100%;
+    }
+
+    .view-toggle {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .view-toggle-btn {
+        flex: 1;
+    }
+}
+
+@media (max-width: 1180px) and (min-width: 769px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .page-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .project-toolbar {
+        margin-left: 0;
+        flex-wrap: wrap;
+    }
+
+    .toolbar-search {
+        flex: 1 1 260px;
+        width: auto;
     }
 }
 
@@ -935,8 +1270,7 @@ body {
     <nav class="topbar" id="topbar">
         <div class="topbar-inner">
             <a href="project.html" class="topbar-logo">
-                <span class="logo-text">Auto<span class="logo-accent">script</span></span>
-                <span class="logo-badge">TCP</span>
+                <span class="logo-title">TCP <span>Autoscript</span> <em>v2.0</em></span>
             </a>
 
             <div class="topbar-right">
@@ -946,7 +1280,11 @@ body {
                     </div>
                     <span class="topbar-email" id="topbarEmail">User</span>
                 </div>
-                <button type="button" class="topbar-btn" id="btnLogout" title="Sign out">
+                <a href="setting.html" class="topbar-btn topbar-btn-settings" id="btnSettings" title="Settings" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Settings</span>
+                </a>
+                <button type="button" class="topbar-btn topbar-btn-logout" id="btnLogout" title="Sign out">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                     <span>Sign out</span>
                 </button>
@@ -962,11 +1300,32 @@ body {
                 <h1 id="pageTitle">Projects</h1>
                 <p class="page-subtitle" id="pageSubtitle">Manage your video logging projects</p>
             </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <button type="button" class="btn-manage-users" id="btnManageUsers" style="display: none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                    <span>Manage Users</span>
-                </button>
+            <div class="page-header-actions">
+                <div class="project-toolbar" id="projectToolbar">
+                    <label class="toolbar-search" for="projectSearchInput">
+                        <span class="toolbar-search-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+                        </span>
+                        <input type="search" id="projectSearchInput" placeholder="Search projects, speakers, sources..." autocomplete="off">
+                    </label>
+                    <label class="toolbar-sort" for="projectSortSelect">
+                        <select id="projectSortSelect" aria-label="Sort projects by date">
+                            <option value="newest">Newest</option>
+                            <option value="oldest">Oldest</option>
+                        </select>
+                        <span class="toolbar-sort-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </label>
+                    <div class="view-toggle" role="group" aria-label="Project view">
+                        <button type="button" class="view-toggle-btn active" id="btnGridView" title="Grid view" aria-pressed="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>
+                        </button>
+                        <button type="button" class="view-toggle-btn" id="btnListView" title="List view" aria-pressed="false">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                        </button>
+                    </div>
+                </div>
                 <button type="button" class="btn-new-project" id="btnNewProject">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     <span>New Project</span>
@@ -991,38 +1350,12 @@ body {
                         <line x1="9" y1="15" x2="15" y2="15"></line>
                     </svg>
                 </div>
-                <h3>No projects yet</h3>
-                <p>Create your first project to start logging timecodes. Each project is linked to a Google Sheet.</p>
+                <h3 id="emptyStateTitle">No projects yet</h3>
+                <p id="emptyStateText">Create your first project to start logging timecodes. Each project is linked to a Google Sheet.</p>
                 <button type="button" class="btn-new-project btn-empty" id="btnNewProjectEmpty">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     <span>Create First Project</span>
                 </button>
-            </div>
-        </div>
-
-        <!-- User Management View (Admin Only, hidden by default) -->
-        <div class="user-management-section" id="userManagementView" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h2 style="font-size: 18px; font-weight: 600; color: var(--text-main);">User Profiles</h2>
-                <button type="button" class="btn-add-user" id="btnAddUser">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    <span>Add Profile</span>
-                </button>
-            </div>
-            
-            <div class="users-list-table-container">
-                <table class="users-table">
-                    <thead>
-                        <tr>
-                            <th>Profile Name</th>
-                            <th>PIN Lock Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersListBody">
-                        <!-- User rows rendered by JS -->
-                    </tbody>
-                </table>
             </div>
         </div>
 
@@ -1052,7 +1385,7 @@ body {
                 </div>
                 <div class="modal-input-group">
                     <label for="modalSpeaker">Speaker <span class="input-optional">(Row 1 — B1)</span></label>
-                    <input type="text" id="modalSpeaker" placeholder="e.g. HOÀNG NGUYỄN — CEO | TIERRA" autocomplete="off">
+                    <input type="text" id="modalSpeaker" placeholder="e.g. JASON NGUYEN - CEO | TIERRA" autocomplete="off">
                 </div>
                 <div class="modal-input-group">
                     <label for="modalSource">Source / Link <span class="input-optional">(Row 2 — B2)</span></label>
@@ -1092,42 +1425,6 @@ body {
         </div>
     </div>
 
-    <!-- Add User Profile Modal (Admin Only) -->
-    <div class="modal-overlay" id="addUserModal" style="display: none;">
-        <div class="modal-card modal-card-sm">
-            <div class="modal-header">
-                <h2>Add Profile</h2>
-                <button type="button" class="modal-close" id="addUserClose">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-input-group">
-                    <label for="newUsername">Profile Name</label>
-                    <input type="text" id="newUsername" placeholder="e.g. Huy, Linh..." autocomplete="off">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-modal-cancel" id="addUserCancel">Cancel</button>
-                <button type="button" class="btn-modal-create" id="addUserSave">Create Profile</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Hidden settings gear icon — bottom-right corner -->
-    <a href="setting.html" class="gear-icon" id="gearIcon" style="position: fixed; bottom: 24px; right: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(24, 24, 27, 0.2); border: 1px solid transparent; color: var(--text-dim); transition: all 0.4s; opacity: 0; z-index: 100;" title="Application Settings">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-    </a>
-
-    <!-- Add hover rules script to inject into head for the gear icon -->
-    <script>
-        const gear = document.getElementById('gearIcon');
-        document.body.addEventListener('mouseenter', () => gear.style.opacity = '0.25');
-        document.body.addEventListener('mouseleave', () => gear.style.opacity = '0');
-        gear.addEventListener('mouseenter', () => { gear.style.opacity = '1'; gear.style.transform = 'rotate(90deg)'; gear.style.color = '#10b981'; gear.style.background = 'rgba(24, 24, 27, 0.8)'; gear.style.borderColor = '#10b981'; });
-        gear.addEventListener('mouseleave', () => { gear.style.opacity = '0.25'; gear.style.transform = ''; gear.style.color = ''; gear.style.background = ''; gear.style.borderColor = ''; });
-    </script>
-
     <script>
 // ============================================================
 //  AUTOSCRIPT TCP — Project Page Logic
@@ -1164,25 +1461,32 @@ body {
 
     // ── State ────────────────────────────────────────────────
     let projects = [];
-    let users = [];
     let editingProject = null; // { index, field } for inline edit modal
-    let isUserViewActive = false;
+    let projectSearchQuery = '';
+    let projectSortMode = localStorage.getItem('autoscript_project_sort_mode') === 'oldest' ? 'oldest' : 'newest';
+    let projectViewMode = localStorage.getItem('autoscript_project_view_mode') === 'list' ? 'list' : 'grid';
 
     // ── DOM References ───────────────────────────────────────
     // Views
     const projectsView = document.getElementById('projectsView');
-    const userManagementView = document.getElementById('userManagementView');
     const projectGrid = document.getElementById('projectGrid');
     const emptyState = document.getElementById('emptyState');
+    const emptyStateTitle = document.getElementById('emptyStateTitle');
+    const emptyStateText = document.getElementById('emptyStateText');
     const loadingState = document.getElementById('loadingState');
     const pageTitle = document.getElementById('pageTitle');
     const pageSubtitle = document.getElementById('pageSubtitle');
+    const projectToolbar = document.getElementById('projectToolbar');
+    const projectSearchInput = document.getElementById('projectSearchInput');
+    const projectSortSelect = document.getElementById('projectSortSelect');
+    const btnGridView = document.getElementById('btnGridView');
+    const btnListView = document.getElementById('btnListView');
 
     // Topbar
     const topbarEmail = document.getElementById('topbarEmail');
     const topbarAvatar = document.getElementById('topbarAvatar');
+    const btnSettings = document.getElementById('btnSettings');
     const btnLogout = document.getElementById('btnLogout');
-    const btnManageUsers = document.getElementById('btnManageUsers');
 
     // Project Actions
     const btnNewProject = document.getElementById('btnNewProject');
@@ -1207,15 +1511,6 @@ body {
     const editFieldTitle = document.getElementById('editFieldTitle');
     const editFieldLabel = document.getElementById('editFieldLabel');
 
-    // Admin Add User Modal
-    const btnAddUser = document.getElementById('btnAddUser');
-    const addUserModal = document.getElementById('addUserModal');
-    const addUserClose = document.getElementById('addUserClose');
-    const addUserCancel = document.getElementById('addUserCancel');
-    const addUserSave = document.getElementById('addUserSave');
-    const newUsernameInput = document.getElementById('newUsername');
-    const usersListBody = document.getElementById('usersListBody');
-
     // ── Helpers ──────────────────────────────────────────────
     function formatDate(isoString) {
         try {
@@ -1231,6 +1526,82 @@ body {
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function normalizeSearchValue(value) {
+        return String(value || '').trim().toLowerCase();
+    }
+
+    function getFilteredProjects() {
+        const query = normalizeSearchValue(projectSearchQuery);
+
+        if (!query) {
+            return projects;
+        }
+
+        return projects.filter((project) => {
+            const searchable = [
+                project.name,
+                project.speaker,
+                project.source
+            ].map(normalizeSearchValue);
+
+            return searchable.some((value) => value.includes(query));
+        });
+    }
+
+    function getProjectTimestamp(project) {
+        const parsed = Date.parse(project && project.createdAt ? project.createdAt : '');
+        return Number.isNaN(parsed) ? 0 : parsed;
+    }
+
+    function getVisibleProjects() {
+        const filteredProjects = getFilteredProjects();
+
+        return filteredProjects.slice().sort((projectA, projectB) => {
+            const diff = getProjectTimestamp(projectB) - getProjectTimestamp(projectA);
+            return projectSortMode === 'oldest' ? -diff : diff;
+        });
+    }
+
+    function syncProjectToolbar() {
+        if (projectToolbar) {
+            projectToolbar.style.display = 'flex';
+        }
+
+        if (projectSortSelect) {
+            projectSortSelect.value = projectSortMode;
+        }
+
+        if (projectGrid) {
+            projectGrid.classList.toggle('is-list', projectViewMode === 'list');
+        }
+
+        if (btnGridView) {
+            const isActive = projectViewMode === 'grid';
+            btnGridView.classList.toggle('active', isActive);
+            btnGridView.setAttribute('aria-pressed', String(isActive));
+        }
+
+        if (btnListView) {
+            const isActive = projectViewMode === 'list';
+            btnListView.classList.toggle('active', isActive);
+            btnListView.setAttribute('aria-pressed', String(isActive));
+        }
+    }
+
+    function setProjectViewMode(nextMode) {
+        projectViewMode = nextMode === 'list' ? 'list' : 'grid';
+        localStorage.setItem('autoscript_project_view_mode', projectViewMode);
+        syncProjectToolbar();
+        renderProjects();
+    }
+
+    function setProjectSortMode(nextMode) {
+        projectSortMode = nextMode === 'oldest' ? 'oldest' : 'newest';
+        localStorage.setItem('autoscript_project_sort_mode', projectSortMode);
+        syncProjectToolbar();
+        renderProjects();
+    }
+
     // ── Render User Info ─────────────────────────────────────
     function renderUserInfo() {
         if (topbarEmail) topbarEmail.textContent = sessionUser;
@@ -1242,9 +1613,9 @@ body {
             topbarAvatar.style.background = colors[colorIndex];
         }
 
-        // Show Manage Users button only for Admin
-        if (btnManageUsers && sessionUser.toLowerCase() === 'admin') {
-            btnManageUsers.style.display = 'inline-flex';
+        // Chỉ Admin mới thấy Setting
+        if (btnSettings && sessionUser.toLowerCase() === 'admin') {
+            btnSettings.style.display = 'inline-flex';
         }
     }
 
@@ -1271,29 +1642,43 @@ body {
             }
         } finally {
             if (loadingState) loadingState.style.display = 'none';
-            if (projectsView && !isUserViewActive) projectsView.style.display = 'block';
+            if (projectsView) projectsView.style.display = 'block';
         }
     }
 
     function renderProjects() {
         if (!projectGrid) return;
+        syncProjectToolbar();
 
-        if (projects.length === 0) {
+        const visibleProjects = getVisibleProjects();
+
+        if (projects.length === 0 || visibleProjects.length === 0) {
             projectGrid.style.display = 'none';
             if (emptyState) emptyState.style.display = 'block';
+
+            if (projects.length === 0) {
+                if (emptyStateTitle) emptyStateTitle.textContent = 'No projects yet';
+                if (emptyStateText) emptyStateText.textContent = 'Create your first project to start logging timecodes. Each project is linked to a Google Sheet.';
+                if (btnNewProjectEmpty) btnNewProjectEmpty.style.display = 'inline-flex';
+            } else {
+                if (emptyStateTitle) emptyStateTitle.textContent = 'No matching projects';
+                if (emptyStateText) emptyStateText.textContent = 'Try a different keyword for the project name, speaker, or source.';
+                if (btnNewProjectEmpty) btnNewProjectEmpty.style.display = 'none';
+            }
             return;
         }
 
         projectGrid.style.display = '';
         if (emptyState) emptyState.style.display = 'none';
+        if (btnNewProjectEmpty) btnNewProjectEmpty.style.display = 'inline-flex';
 
-        projectGrid.innerHTML = projects.map((project, index) => {
+        projectGrid.innerHTML = visibleProjects.map((project, index) => {
             const speakerDisplay = project.speaker || '';
             const sourceDisplay = project.source || '';
             const delay = Math.min(index * 0.08, 0.6);
 
             return `
-                <div class="project-card" style="animation-delay: ${delay}s" data-index="${index}">
+                <div class="project-card" style="animation-delay: ${delay}s" data-project-id="${escapeHtml(project.id)}">
                     <div class="project-card-header">
                         <div class="project-card-icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1314,14 +1699,14 @@ body {
                     <div class="project-card-name">${escapeHtml(project.name)}</div>
 
                     <div class="project-card-info">
-                        <div class="info-row" data-edit-field="speaker" data-edit-index="${index}">
+                        <div class="info-row" data-edit-field="speaker" data-edit-id="${escapeHtml(project.id)}">
                             <span class="info-label">Speaker</span>
                             <span class="info-value ${speakerDisplay ? '' : 'empty'}">${speakerDisplay ? escapeHtml(speakerDisplay) : 'Not set'}</span>
                             <span class="info-edit-icon">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                             </span>
                         </div>
-                        <div class="info-row" data-edit-field="source" data-edit-index="${index}">
+                        <div class="info-row" data-edit-field="source" data-edit-id="${escapeHtml(project.id)}">
                             <span class="info-label">Source</span>
                             <span class="info-value ${sourceDisplay ? '' : 'empty'}">${sourceDisplay ? escapeHtml(sourceDisplay) : 'Not set'}</span>
                             <span class="info-edit-icon">
@@ -1374,7 +1759,8 @@ body {
         document.querySelectorAll('[data-edit-field]').forEach(row => {
             row.addEventListener('click', () => {
                 const field = row.dataset.editField;
-                const idx = parseInt(row.dataset.editIndex, 10);
+                const projectId = row.dataset.editId;
+                const idx = projects.findIndex(project => project.id === projectId);
                 if (isNaN(idx) || idx < 0 || idx >= projects.length) return;
                 openEditFieldModal(idx, field);
             });
@@ -1433,13 +1819,13 @@ body {
             projects.unshift(data);
 
             if (data.moveStatus === 'failed') {
-                showModalStatus(`Created, but failed to move to folder: ${data.moveError} (Tạo thành công nhưng không chuyển được vào thư mục: ${data.moveError})`, 'error');
+                showModalStatus(`Created, but failed to move to folder: ${data.moveError}`, 'error');
                 setTimeout(() => {
                     closeNewProjectModal();
                     renderProjects();
                 }, 6000);
             } else if (data.moveStatus === 'outdated_script') {
-                showModalStatus('Created. Warning: Google Apps Script Web App is outdated. Please deploy a "New Version" (Tạo thành công. Cảnh báo: Google Apps Script chưa được deploy bản mới nhất)', 'error');
+                showModalStatus('Created. Warning: Google Apps Script Web App is outdated. Please deploy a "New Version".', 'error');
                 setTimeout(() => {
                     closeNewProjectModal();
                     renderProjects();
@@ -1537,231 +1923,6 @@ body {
     }
 
     // ── Admin: User Management Panel ─────────────────────────
-    async function loadUsersList() {
-        try {
-            const res = await fetch('/api/users', {
-                headers: getAuthHeaders()
-            });
-            if (!res.ok) throw new Error('Failed to retrieve user profiles');
-            users = await res.json();
-            renderUsersList();
-        } catch (err) {
-            console.error(err);
-            if (usersListBody) {
-                usersListBody.innerHTML = `<tr><td colspan="3" style="color: var(--danger); text-align: center;">Failed to load user accounts.</td></tr>`;
-            }
-        }
-    }
-
-    function renderUsersList() {
-        if (!usersListBody) return;
-        usersListBody.innerHTML = '';
-
-        if (users.length === 0) {
-            usersListBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No profiles configured.</td></tr>`;
-            return;
-        }
-
-        users.forEach(user => {
-            const isSet = user.hasPin;
-            const badgeClass = isSet ? 'set' : 'unset';
-            const badgeText = isSet ? 'Password PIN Set' : 'No PIN (Unconfigured)';
-            
-            const isSelfAdmin = user.username.toLowerCase() === 'admin';
-
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>
-                    <strong style="font-size: 14px; font-weight: 600;">${escapeHtml(user.username)}</strong>
-                </td>
-                <td>
-                    <span class="user-pin-badge ${badgeClass}">${badgeText}</span>
-                </td>
-                <td>
-                    <div class="user-actions-cell">
-                        <button type="button" class="btn-user-action reset" data-change-username="${escapeHtml(user.username)}" title="Directly set a new 4-digit PIN for this user">
-                            Change PIN
-                        </button>
-                        <button type="button" class="btn-user-action reset" data-reset-username="${escapeHtml(user.username)}" title="Require user to set a new PIN on next sign in">
-                            Reset PIN
-                        </button>
-                        ${isSelfAdmin ? '' : `
-                        <button type="button" class="btn-user-action delete" data-delete-username="${escapeHtml(user.username)}" title="Remove profile and delete projects from database">
-                            Delete Profile
-                        </button>
-                        `}
-                    </div>
-                </td>
-            `;
-
-            usersListBody.appendChild(row);
-        });
-
-        attachUserActionListeners();
-    }
-
-    function attachUserActionListeners() {
-        // Change PIN
-        document.querySelectorAll('[data-change-username]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const username = btn.dataset.changeUsername;
-                const newPin = prompt(`Enter a new 4-digit PIN for user "${username}":`);
-                if (newPin === null) return; // Cancelled
-                
-                const pinTrimmed = newPin.trim();
-                if (!/^\d{4}$/.test(pinTrimmed)) {
-                    alert('Error: PIN must be a 4-digit number (e.g. 1234)');
-                    return;
-                }
-
-                try {
-                    const res = await fetch('/api/users', {
-                        method: 'POST',
-                        headers: getAuthHeaders(),
-                        body: JSON.stringify({
-                            username,
-                            pin: pinTrimmed,
-                            action: 'changePin'
-                        })
-                    });
-                    if (!res.ok) {
-                        const data = await res.json();
-                        throw new Error(data.error || 'Failed to change PIN');
-                    }
-                    const data = await res.json();
-                    users = data.users;
-                    renderUsersList();
-                    alert(`Successfully updated PIN for user "${username}" on KV.`);
-                } catch (err) {
-                    alert(err.message);
-                }
-            });
-        });
-
-        // Reset PIN
-        document.querySelectorAll('[data-reset-username]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const username = btn.dataset.resetUsername;
-                if (confirm(`Reset the PIN for user "${username}"?\n\nThey will need to set a new PIN the next time they select this profile.`)) {
-                    try {
-                        const res = await fetch('/api/users', {
-                            method: 'POST',
-                            headers: getAuthHeaders(),
-                            body: JSON.stringify({
-                                username,
-                                action: 'reset'
-                            })
-                        });
-                        if (!res.ok) throw new Error('Failed to reset PIN');
-                        const data = await res.json();
-                        users = data.users;
-                        renderUsersList();
-                    } catch (err) {
-                        alert(err.message);
-                    }
-                }
-            });
-        });
-
-        // Delete user
-        document.querySelectorAll('[data-delete-username]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const username = btn.dataset.deleteUsername;
-                if (confirm(`DANGER: Delete profile "${username}"?\n\nThis will completely delete their profile and project logs from KV! This cannot be undone.`)) {
-                    try {
-                        const res = await fetch('/api/users', {
-                            method: 'DELETE',
-                            headers: getAuthHeaders(),
-                            body: JSON.stringify({ username })
-                        });
-                        if (!res.ok) throw new Error('Failed to delete user');
-                        const data = await res.json();
-                        users = data.users;
-                        renderUsersList();
-                    } catch (err) {
-                        alert(err.message);
-                    }
-                }
-            });
-        });
-    }
-
-    // Toggle View (Projects vs Users)
-    function toggleViewMode() {
-        if (!btnManageUsers) return;
-
-        isUserViewActive = !isUserViewActive;
-
-        if (isUserViewActive) {
-            btnManageUsers.classList.add('active');
-            btnManageUsers.querySelector('span').textContent = 'Show Projects';
-            btnManageUsers.querySelector('svg').outerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
-            
-            projectsView.style.display = 'none';
-            userManagementView.style.display = 'block';
-            if (btnNewProject) btnNewProject.style.display = 'none';
-
-            if (pageTitle) pageTitle.textContent = 'User Accounts';
-            if (pageSubtitle) pageSubtitle.textContent = 'Manage active editor profiles and lock states';
-
-            loadUsersList();
-        } else {
-            btnManageUsers.classList.remove('active');
-            btnManageUsers.querySelector('span').textContent = 'Manage Users';
-            btnManageUsers.querySelector('svg').outerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`;
-
-            userManagementView.style.display = 'none';
-            projectsView.style.display = 'block';
-            if (btnNewProject) btnNewProject.style.display = 'inline-flex';
-
-            if (pageTitle) pageTitle.textContent = 'Projects';
-            if (pageSubtitle) pageSubtitle.textContent = 'Manage your video logging projects';
-
-            loadProjects();
-        }
-    }
-
-    // Open/Close Add User Modal
-    function openAddUserModal() {
-        if (addUserModal) addUserModal.style.display = 'flex';
-        if (newUsernameInput) {
-            newUsernameInput.value = '';
-            newUsernameInput.focus();
-        }
-    }
-
-    function closeAddUserModal() {
-        if (addUserModal) addUserModal.style.display = 'none';
-    }
-
-    async function handleAddUserSave() {
-        const username = newUsernameInput ? newUsernameInput.value.trim() : '';
-        if (!username) {
-            alert('Please enter a profile name');
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/users', {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    username,
-                    action: 'create'
-                })
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to create profile');
-
-            users = data.users;
-            renderUsersList();
-            closeAddUserModal();
-        } catch (err) {
-            alert(err.message);
-        }
-    }
-
     // ── Logout ───────────────────────────────────────────────
     function handleLogout() {
         localStorage.removeItem('autoscript_session_token');
@@ -1773,11 +1934,22 @@ body {
     if (btnNewProject) btnNewProject.addEventListener('click', openNewProjectModal);
     if (btnNewProjectEmpty) btnNewProjectEmpty.addEventListener('click', openNewProjectModal);
     if (btnLogout) btnLogout.addEventListener('click', handleLogout);
+    if (projectSearchInput) {
+        projectSearchInput.value = projectSearchQuery;
+        projectSearchInput.addEventListener('input', (e) => {
+            projectSearchQuery = e.target.value || '';
+            renderProjects();
+        });
+    }
+    if (projectSortSelect) {
+        projectSortSelect.value = projectSortMode;
+        projectSortSelect.addEventListener('change', (e) => {
+            setProjectSortMode(e.target.value);
+        });
+    }
+    if (btnGridView) btnGridView.addEventListener('click', () => setProjectViewMode('grid'));
+    if (btnListView) btnListView.addEventListener('click', () => setProjectViewMode('list'));
     
-    // Admin toggles
-    if (btnManageUsers) btnManageUsers.addEventListener('click', toggleViewMode);
-    if (btnAddUser) btnAddUser.addEventListener('click', openAddUserModal);
-
     // New project modal
     if (modalClose) modalClose.addEventListener('click', closeNewProjectModal);
     if (modalCancel) modalCancel.addEventListener('click', closeNewProjectModal);
@@ -1788,13 +1960,8 @@ body {
     if (editFieldCancel) editFieldCancel.addEventListener('click', closeEditFieldModal);
     if (editFieldSave) editFieldSave.addEventListener('click', handleSaveField);
 
-    // Add user modal
-    if (addUserClose) addUserClose.addEventListener('click', closeAddUserModal);
-    if (addUserCancel) addUserCancel.addEventListener('click', closeAddUserModal);
-    if (addUserSave) addUserSave.addEventListener('click', handleAddUserSave);
-
     // Close modals on overlay click
-    [newProjectModal, editFieldModal, addUserModal].forEach(modal => {
+    [newProjectModal, editFieldModal].forEach(modal => {
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
@@ -1810,15 +1977,11 @@ body {
         if (e.key === 'Escape') {
             closeNewProjectModal();
             closeEditFieldModal();
-            closeAddUserModal();
         }
         if (e.key === 'Enter') {
             if (editFieldModal && editFieldModal.style.display === 'flex') {
                 e.preventDefault();
                 handleSaveField();
-            } else if (addUserModal && addUserModal.style.display === 'flex') {
-                e.preventDefault();
-                handleAddUserSave();
             } else if (newProjectModal && newProjectModal.style.display === 'flex') {
                 e.preventDefault();
                 handleCreateProject();
@@ -1828,6 +1991,7 @@ body {
 
     // ── Initialize ───────────────────────────────────────────
     renderUserInfo();
+    syncProjectToolbar();
     loadProjects();
 
 })();

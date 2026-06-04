@@ -2187,6 +2187,7 @@ const LEGACY_LOG_STORAGE_KEY = 'autoscript_tcp_v9';
 let logs = [];
 let projectLogsSaveTimer = null;
 let isProjectLogsLoaded = false;
+let projectLogsLoadToken = 0;
 
 // ── IN-MEMORY TAB CACHE ── Instant tab switching, no KV latency ──
 const tabLogsCache = {};
@@ -2228,15 +2229,22 @@ async function saveProjectLogsToKV(tabOverride, logsOverride) {
     localStorage.removeItem(LEGACY_LOG_STORAGE_KEY);
 }
 
-async function loadProjectLogsFromKV() {
+async function loadProjectLogsFromKV(tabOverride) {
+    const requestTab = String(tabOverride || currentSheetTab).trim();
+    const requestToken = ++projectLogsLoadToken;
+
     if (!currentSpreadsheetId) {
+        if (requestToken !== projectLogsLoadToken) return false;
         logs = getLegacyLocalLogs();
+        tabLogsCache[requestTab] = JSON.parse(JSON.stringify(logs));
         isProjectLogsLoaded = true;
-        return;
+        return true;
     }
 
+    let loadedLogs = [];
+
     try {
-        const res = await fetch(`/tcpscript/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}&tab=${encodeURIComponent(currentSheetTab)}&t=${Date.now()}`, {
+        const res = await fetch(`/tcpscript/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}&tab=${encodeURIComponent(requestTab)}&t=${Date.now()}`, {
             credentials: 'same-origin',
             headers: { 'Authorization': `Bearer ${sessionToken}` }
         });
@@ -2247,31 +2255,36 @@ async function loadProjectLogsFromKV() {
         const kvLogs = Array.isArray(data.logs) ? data.logs : [];
 
         if (kvLogs.length > 0) {
-            logs = kvLogs;
+            loadedLogs = kvLogs;
             localStorage.removeItem(LEGACY_LOG_STORAGE_KEY);
-        } else if (currentSheetTab === 'Full-show') {
+        } else if (requestTab === 'Full-show') {
             const legacyLogs = getLegacyLocalLogs();
             if (legacyLogs.length > 0) {
-                logs = legacyLogs;
-                await saveProjectLogsToKV();
+                loadedLogs = legacyLogs;
+                await saveProjectLogsToKV(requestTab, loadedLogs);
             } else {
-                logs = [];
+                loadedLogs = [];
             }
         } else {
-            logs = [];
+            loadedLogs = [];
         }
     } catch (error) {
         console.warn('[APP] loadProjectLogsFromKV error:', error);
-        if (currentSheetTab === 'Full-show') {
-            logs = getLegacyLocalLogs();
+        if (requestTab === 'Full-show') {
+            loadedLogs = getLegacyLocalLogs();
         } else {
-            logs = [];
+            loadedLogs = [];
         }
-    } finally {
-        // Always cache what we loaded
-        tabLogsCache[currentSheetTab] = JSON.parse(JSON.stringify(logs));
-        isProjectLogsLoaded = true;
     }
+
+    if (requestToken !== projectLogsLoadToken) {
+        return false;
+    }
+
+    logs = loadedLogs;
+    tabLogsCache[requestTab] = JSON.parse(JSON.stringify(loadedLogs));
+    isProjectLogsLoaded = true;
+    return true;
 }
 
 // ── 3. SHORTCUT DEFINITIONS ──────────────────────────────────
@@ -4483,7 +4496,8 @@ function switchSheetTab(tabName) {
         logs = [];
         renderTable();
         updateTimeline();
-        loadProjectLogsFromKV().then(() => {
+        loadProjectLogsFromKV(tabName).then((loaded) => {
+            if (!loaded) return;
             renderTable();
             updateTimeline();
         });
@@ -4501,15 +4515,14 @@ async function sendLogToTargetTab(targetTab, logData, chipEl) {
                 const res = await fetch(`/tcpscript/api/project-logs?id=${encodeURIComponent(currentSpreadsheetId)}&tab=${encodeURIComponent(targetTab)}&t=${Date.now()}`, {
                     headers: { 'Authorization': `Bearer ${sessionToken}` }
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    tabLogsCache[targetTab] = Array.isArray(data.logs) ? data.logs : [];
-                } else {
-                    tabLogsCache[targetTab] = [];
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
                 }
+                const data = await res.json();
+                tabLogsCache[targetTab] = Array.isArray(data.logs) ? data.logs : [];
             } catch (err) {
                 console.warn('[APP] Failed to fetch target tab logs, initializing empty array:', err);
-                tabLogsCache[targetTab] = [];
+                throw new Error(`Không thể tải dữ liệu của tab "${targetTab}" trước khi gửi.`);
             }
         }
         tabLogsCache[targetTab].push(JSON.parse(JSON.stringify(logData)));

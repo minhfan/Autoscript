@@ -15,7 +15,7 @@
         if (!sessionToken || !sessionUser) {
             localStorage.removeItem('autoscript_session_token');
             localStorage.removeItem('autoscript_session_username');
-            window.location.href = 'login.html';
+            window.location.href = 'login';
             return false;
         }
         return true;
@@ -772,7 +772,8 @@
     function handleLogout() {
         localStorage.removeItem('autoscript_session_token');
         localStorage.removeItem('autoscript_session_username');
-        window.location.href = 'login.html';
+        document.cookie = 'autoscript_session_token=; path=/; max-age=0; SameSite=Lax';
+        window.location.href = 'login';
     }
 
     // ── Event Listeners ──────────────────────────────────────

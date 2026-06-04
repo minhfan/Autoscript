@@ -56,6 +56,27 @@
         }
     }
 
+    function getSessionCookieToken() {
+        const cookieName = 'autoscript_session_token=';
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const trimmed = cookie.trim();
+            if (trimmed.startsWith(cookieName)) {
+                return trimmed.substring(cookieName.length);
+            }
+        }
+        return '';
+    }
+
+    function persistSessionCookie(token) {
+        if (!token) return;
+        document.cookie = `autoscript_session_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax; Secure`;
+    }
+
+    function clearSessionCookie() {
+        document.cookie = 'autoscript_session_token=; path=/; max-age=0; SameSite=Lax';
+    }
+
     // ── Fetch & Render Profiles ──────────────────────────────
     async function loadProfiles() {
         try {
@@ -215,6 +236,7 @@
             // Successfully unlocked profile!
             localStorage.setItem('autoscript_session_username', data.username);
             localStorage.setItem('autoscript_session_token', data.token);
+            persistSessionCookie(data.token);
 
             // Fetch and cache webAppUrl and templateId locally so other pages can retrieve them instantly
             try {
@@ -259,23 +281,15 @@
     }
 
     // ── Check Existing Session ────────────────────────────────
-    async function checkExistingSession() {
+    function syncSessionStateOnLoginPage() {
         const token = localStorage.getItem('autoscript_session_token');
         const username = localStorage.getItem('autoscript_session_username');
-        if (token && username) {
-            try {
-                const res = await fetch('/api/projects', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    window.location.href = 'project.html';
-                } else {
-                    localStorage.removeItem('autoscript_session_token');
-                    localStorage.removeItem('autoscript_session_username');
-                }
-            } catch (e) {
-                console.warn('Session verification failed:', e);
-            }
+        const cookieToken = getSessionCookieToken();
+
+        if ((token || username) && !cookieToken) {
+            localStorage.removeItem('autoscript_session_token');
+            localStorage.removeItem('autoscript_session_username');
+            clearSessionCookie();
         }
     }
 
@@ -290,8 +304,7 @@
     }
 
     // ── Initialize ───────────────────────────────────────────
-    checkExistingSession().then(() => {
-        loadProfiles();
-    });
+    syncSessionStateOnLoginPage();
+    loadProfiles();
 
 })();

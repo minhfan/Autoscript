@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+﻿import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,27 +12,14 @@ async function readRelative(relativePath) {
   return readFile(path.join(projectRoot, relativePath), "utf8");
 }
 
-// ── Build /app (main webapp — from ScriptAutomation_v2.html) ──
+// â”€â”€ Build /app (main webapp â€” from src/app.html) â”€â”€
 async function buildAppPage() {
-  const [html, css, timecodeJs, appJs] = await Promise.all([
-    readRelative("ScriptAutomation_v2.html"),
-    readRelative("src/styles.css"),
-    readRelative("src/js/timecode.js"),
-    readRelative("src/js/app.js"),
-  ]);
-
-  const builtHtml = html
-    .replace(/<link rel="stylesheet" href="src\/styles\.css(?:\?v=[^"]*)?">/, `<style>\n${css}</style>`)
-    .replace(
-      /<script src="src\/js\/timecode\.js(?:\?v=[^"]*)?"><\/script>\s*<script src="src\/js\/app\.js(?:\?v=[^"]*)?"><\/script>/,
-      `<script>\n${timecodeJs}\n${appJs}</script>`
-    );
-
-  await writeFile(path.join(publicDir, "app.html"), builtHtml, "utf8");
-  console.log("[Autoscript] ✓ Built public/app.html (main webapp)");
+  const html = await readRelative("src/app.html");
+  await writeFile(path.join(publicDir, "app.html"), html, "utf8");
+  console.log("[Autoscript] âœ“ Built public/app.html (main webapp)");
 }
 
-// ── Build /login ──
+// â”€â”€ Build /login â”€â”€
 async function buildLoginPage() {
   const [html, css, js] = await Promise.all([
     readRelative("src/login.html"),
@@ -45,10 +32,10 @@ async function buildLoginPage() {
     .replace(/<script src="login\.js"><\/script>/, `<script>\n${js}</script>`);
 
   await writeFile(path.join(publicDir, "login.html"), builtHtml, "utf8");
-  console.log("[Autoscript] ✓ Built public/login.html");
+  console.log("[Autoscript] âœ“ Built public/login.html");
 }
 
-// ── Build /project ──
+// â”€â”€ Build /project â”€â”€
 async function buildProjectPage() {
   const [html, css, js] = await Promise.all([
     readRelative("src/project.html"),
@@ -61,10 +48,10 @@ async function buildProjectPage() {
     .replace(/<script src="project\.js"><\/script>/, `<script>\n${js}</script>`);
 
   await writeFile(path.join(publicDir, "project.html"), builtHtml, "utf8");
-  console.log("[Autoscript] ✓ Built public/project.html");
+  console.log("[Autoscript] âœ“ Built public/project.html");
 }
 
-// ── Build /setting ──
+// â”€â”€ Build /setting â”€â”€
 async function buildSettingPage() {
   const [html, css, js] = await Promise.all([
     readRelative("src/setting.html"),
@@ -77,17 +64,17 @@ async function buildSettingPage() {
     .replace(/<script src="setting\.js"><\/script>/, `<script>\n${js}</script>`);
 
   await writeFile(path.join(publicDir, "setting.html"), builtHtml, "utf8");
-  console.log("[Autoscript] ✓ Built public/setting.html");
+  console.log("[Autoscript] âœ“ Built public/setting.html");
 }
 
-// ── Build / (redirect to /login) ──
+// â”€â”€ Build / (redirect to /login) â”€â”€
 async function buildRedirectIndex() {
   const redirectHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="refresh" content="0; url=login.html">
-    <title>Autoscript TCP — Redirecting...</title>
+    <title>Autoscript TCP â€” Redirecting...</title>
     <style>
         body {
             background: #09090b;
@@ -108,10 +95,10 @@ async function buildRedirectIndex() {
 </html>`;
 
   await writeFile(path.join(publicDir, "index.html"), redirectHtml, "utf8");
-  console.log("[Autoscript] ✓ Built public/index.html (redirect → login)");
+  console.log("[Autoscript] âœ“ Built public/index.html (redirect â†’ login)");
 }
 
-// ── Main Build ──
+// â”€â”€ Main Build â”€â”€
 async function buildAll() {
   await mkdir(publicDir, { recursive: true });
 
@@ -131,3 +118,4 @@ buildAll().catch((error) => {
   console.error(error);
   process.exit(1);
 });
+

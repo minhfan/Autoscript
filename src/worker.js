@@ -4,6 +4,7 @@
 // ============================================================
 
 const JWT_SECRET = 'autoscript-secret-key-xyz-789-abc-123';
+const SESSION_COOKIE_NAME = 'autoscript_session_token';
 
 export default {
     async fetch(request, env) {
@@ -24,6 +25,12 @@ export default {
 
         if (url.pathname === '/api/login' && request.method === 'POST') {
             return handleLogin(request, env);
+        }
+
+        if (url.pathname === '/' || url.pathname === '/index.html') {
+            const user = await verifyTokenAndGetUser(request);
+            const targetPath = user ? '/project' : '/login';
+            return Response.redirect(`${url.origin}${targetPath}`, 302);
         }
 
         // ── Authenticated Routes ───────────────────────────
@@ -84,10 +91,34 @@ export default {
         }
 
         // ── Clean URLs (SPA / static routes mapping) ────────
-        const cleanRoutes = ['/login', '/project', '/setting', '/app'];
-        if (cleanRoutes.includes(url.pathname)) {
+        const publicCleanRoutes = ['/login'];
+        const publicAssetRoutes = ['/login.html'];
+        const protectedCleanRoutes = ['/project', '/setting', '/app'];
+        const protectedAssetRoutes = ['/project.html', '/setting.html', '/app.html'];
+
+        if (publicAssetRoutes.includes(url.pathname)) {
+            return env.ASSETS.fetch(request);
+        }
+
+        if (publicCleanRoutes.includes(url.pathname)) {
             url.pathname += '.html';
             return env.ASSETS.fetch(new Request(url.toString(), request));
+        }
+
+        if (protectedCleanRoutes.includes(url.pathname)) {
+            const user = await verifyTokenAndGetUser(request);
+            if (!user) {
+                return Response.redirect(`${url.origin}/login`, 302);
+            }
+            url.pathname += '.html';
+            return env.ASSETS.fetch(new Request(url.toString(), request));
+        }
+
+        if (protectedAssetRoutes.includes(url.pathname)) {
+            const user = await verifyTokenAndGetUser(request);
+            if (!user) {
+                return Response.redirect(`${url.origin}/login`, 302);
+            }
         }
 
         // ── Fall through to static assets ──────────────────
@@ -163,12 +194,20 @@ async function handleLogin(request, env) {
             await env.SETTINGS_KV.put('app_users', JSON.stringify(users));
             
             const token = await signToken(user.username);
-            return jsonResponse({ success: true, firstTime: true, username: user.username, token });
+            return jsonResponse(
+                { success: true, firstTime: true, username: user.username, token },
+                200,
+                { 'Set-Cookie': buildSessionCookie(token) }
+            );
         } else {
             // Verify PIN
             if (savedPin === pin) {
                 const token = await signToken(user.username);
-                return jsonResponse({ success: true, username: user.username, token });
+                return jsonResponse(
+                    { success: true, username: user.username, token },
+                    200,
+                    { 'Set-Cookie': buildSessionCookie(token) }
+                );
             } else {
                 return jsonResponse({ error: 'Incorrect PIN' }, 401);
             }
@@ -495,8 +534,12 @@ async function signToken(username) {
 async function verifyTokenAndGetUser(request) {
     try {
         const authHeader = request.headers.get('Authorization');
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-        const token = authHeader.substring(7);
+        const cookieHeader = request.headers.get('Cookie') || '';
+        const tokenFromCookie = getCookieValue(cookieHeader, SESSION_COOKIE_NAME);
+        const token = authHeader && authHeader.startsWith('Bearer ')
+            ? authHeader.substring(7)
+            : tokenFromCookie;
+        if (!token) return null;
         const parts = token.split('.');
         if (parts.length !== 2) return null;
         
@@ -553,12 +596,28 @@ function normalizeProjectStatus(status) {
     return ['ongoing', 'not_started', 'done'].includes(status) ? status : 'done';
 }
 
-function jsonResponse(data, status = 200) {
+function getCookieValue(cookieHeader, cookieName) {
+    const cookieEntries = String(cookieHeader || '').split(';');
+    for (const cookieEntry of cookieEntries) {
+        const [name, ...rest] = cookieEntry.trim().split('=');
+        if (name === cookieName) {
+            return rest.join('=');
+        }
+    }
+    return '';
+}
+
+function buildSessionCookie(token) {
+    return `${SESSION_COOKIE_NAME}=${token}; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax; Secure`;
+}
+
+function jsonResponse(data, status = 200, extraHeaders = {}) {
     return new Response(JSON.stringify(data), {
         status,
         headers: {
             'Content-Type': 'application/json',
             ...corsHeaders(),
+            ...extraHeaders,
         },
     });
 }

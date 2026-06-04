@@ -13,7 +13,7 @@
     const sessionUser = localStorage.getItem('autoscript_session_username');
 
     if (!sessionToken || !sessionUser) {
-        window.location.href = 'login.html';
+        window.location.href = 'login';
         return;
     }
 
@@ -224,7 +224,7 @@
                 headers: getAuthHeaders()
             });
             if (res.status === 401) {
-                window.location.href = 'login.html';
+                window.location.href = 'login';
                 return;
             }
             if (!res.ok) throw new Error('HTTP ' + res.status);

@@ -5,7 +5,16 @@
   "compatibility_date": "2026-06-02",
   "assets": {
     "directory": "./public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "run_worker_first": [
+      "/",
+      "/index.html",
+      "/login*",
+      "/app*",
+      "/project*",
+      "/setting*"
+    ]
   },
   "kv_namespaces": [
     {

@@ -489,6 +489,21 @@
             color: var(--accent);
             background: var(--accent-dim);
         }
+        .video-meta-summary {
+            display: none;
+            margin-top: -2px;
+            padding: 8px 10px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--border);
+            background: rgba(16, 185, 129, 0.08);
+            color: var(--text-sub);
+            font-size: 9px;
+            line-height: 1.6;
+        }
+        .video-meta-summary strong {
+            color: #6ee7b7;
+            font-weight: 700;
+        }
 
         .video-wrapper {
             position: relative;
@@ -1526,6 +1541,7 @@
                     <input type="file" id="videoUpload" accept="video/*" style="display: none;">
                     <span id="uploadText">Click or press 'V' to upload a video file</span>
                 </label>
+                <div id="videoMetaSummary" class="video-meta-summary"></div>
                 <div class="video-wrapper">
                     <video id="videoPlayer" disablePictureInPicture></video>
                 </div>
@@ -1847,6 +1863,9 @@ let googleSheetsUrl = localStorage.getItem('autoscript_google_sheets_url') || ''
 let currentSpreadsheetId   = localStorage.getItem('autoscript_current_spreadsheet_id') || '';
 let currentSpreadsheetUrl  = localStorage.getItem('autoscript_current_spreadsheet_url') || '';
 let currentSpreadsheetName = localStorage.getItem('autoscript_current_spreadsheet_name') || '';
+const PROJECT_VIDEO_META_CACHE_KEY = 'autoscript_project_video_meta_cache_v1';
+let currentProjectVideoMeta = null;
+let pendingVideoMeta = null;
 
 function getSpreadsheetIdFromPath() {
     const segments = window.location.pathname.split('/').filter(Boolean);
@@ -1870,11 +1889,15 @@ async function resolveCurrentSpreadsheetMeta() {
         const project = await res.json();
         currentSpreadsheetUrl = project.url || currentSpreadsheetUrl || `https://docs.google.com/spreadsheets/d/${currentSpreadsheetId}/edit`;
         currentSpreadsheetName = project.name || currentSpreadsheetName || 'Google Sheet';
+        currentProjectVideoMeta = sanitizeProjectVideoMeta(project.videoMeta) || getCachedProjectVideoMeta(currentSpreadsheetId);
         localStorage.setItem('autoscript_current_spreadsheet_id', currentSpreadsheetId);
         localStorage.setItem('autoscript_current_spreadsheet_url', currentSpreadsheetUrl);
         localStorage.setItem('autoscript_current_spreadsheet_name', currentSpreadsheetName);
+        renderProjectVideoMeta();
     } catch (error) {
         console.warn('[APP] Failed to resolve project metadata:', error);
+        currentProjectVideoMeta = getCachedProjectVideoMeta(currentSpreadsheetId);
+        renderProjectVideoMeta();
     }
 }
 
@@ -1890,6 +1913,7 @@ async function resolveCurrentSpreadsheetMeta() {
         currentSpreadsheetId   = resolvedSheetId;
         currentSpreadsheetUrl  = urlSheetUrl || `https://docs.google.com/spreadsheets/d/${resolvedSheetId}/edit`;
         currentSpreadsheetName = urlSheetName || 'Google Sheet';
+        currentProjectVideoMeta = getCachedProjectVideoMeta(resolvedSheetId);
         localStorage.setItem('autoscript_current_spreadsheet_id', currentSpreadsheetId);
         localStorage.setItem('autoscript_current_spreadsheet_url', currentSpreadsheetUrl);
         localStorage.setItem('autoscript_current_spreadsheet_name', currentSpreadsheetName);
@@ -3114,13 +3138,19 @@ actionButtons.forEach(btn => btn.addEventListener('click', () => setSelectedActi
 // -- Video upload --
 upload.addEventListener('change', e => {
     if (e.target.files[0]) {
+        const selectedFile = e.target.files[0];
         if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
-        video.src = URL.createObjectURL(e.target.files[0]);
-        document.getElementById('uploadText').innerText = e.target.files[0].name;
-        if (window.db) {
-            const tx = window.db.transaction('videoStore', 'readwrite');
-            tx.objectStore('videoStore').put(e.target.files[0], 'lastVideo');
-        }
+        video.src = URL.createObjectURL(selectedFile);
+        document.getElementById('uploadText').innerText = selectedFile.name;
+        pendingVideoMeta = {
+            fileName: selectedFile.name,
+            fileSize: selectedFile.size,
+            fileType: selectedFile.type,
+            lastModified: selectedFile.lastModified,
+            durationSec: 0,
+            updatedAt: new Date().toISOString()
+        };
+        persistProjectVideoMeta(pendingVideoMeta);
     }
 });
 
@@ -3132,6 +3162,12 @@ video.addEventListener('loadedmetadata', () => {
     document.getElementById('tcEnd').innerText = formatBoundTC(video.duration);
     drawMarkers();
     renderTimelineTicks();
+    if (pendingVideoMeta) {
+        pendingVideoMeta.durationSec = video.duration || 0;
+        pendingVideoMeta.updatedAt = new Date().toISOString();
+        persistProjectVideoMeta(pendingVideoMeta);
+        pendingVideoMeta = null;
+    }
 });
 document.getElementById('tcStart').addEventListener('click', () => { video.currentTime = 0; });
 document.getElementById('tcEnd').addEventListener('click', () => { if (video.duration) video.currentTime = video.duration; });
@@ -3652,6 +3688,133 @@ async function syncToGoogleSheets() {
     }
 }
 
+function sanitizeProjectVideoMeta(meta) {
+    if (!meta || typeof meta !== 'object') return null;
+    const fileName = String(meta.fileName || '').trim();
+    if (!fileName) return null;
+    return {
+        fileName,
+        fileSize: Number.isFinite(Number(meta.fileSize)) ? Number(meta.fileSize) : 0,
+        fileType: String(meta.fileType || '').trim(),
+        lastModified: Number.isFinite(Number(meta.lastModified)) ? Number(meta.lastModified) : 0,
+        durationSec: Number.isFinite(Number(meta.durationSec)) ? Number(meta.durationSec) : 0,
+        updatedAt: meta.updatedAt ? String(meta.updatedAt) : ''
+    };
+}
+
+function getProjectVideoMetaCache() {
+    try {
+        return JSON.parse(localStorage.getItem(PROJECT_VIDEO_META_CACHE_KEY) || '{}');
+    } catch (error) {
+        return {};
+    }
+}
+
+function getCachedProjectVideoMeta(projectId) {
+    if (!projectId) return null;
+    const cache = getProjectVideoMetaCache();
+    return sanitizeProjectVideoMeta(cache[projectId]);
+}
+
+function setCachedProjectVideoMeta(projectId, meta) {
+    if (!projectId) return;
+    const cache = getProjectVideoMetaCache();
+    cache[projectId] = sanitizeProjectVideoMeta(meta);
+    localStorage.setItem(PROJECT_VIDEO_META_CACHE_KEY, JSON.stringify(cache));
+}
+
+function formatVideoMetaBytes(bytes) {
+    if (!Number.isFinite(bytes) || bytes <= 0) return '';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let value = bytes;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex += 1;
+    }
+    return `${value.toFixed(value >= 100 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function formatVideoMetaDuration(durationSec) {
+    if (!Number.isFinite(durationSec) || durationSec <= 0) return '';
+    const totalSec = Math.round(durationSec);
+    const hh = Math.floor(totalSec / 3600);
+    const mm = Math.floor((totalSec % 3600) / 60);
+    const ss = totalSec % 60;
+    if (hh > 0) {
+        return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+    }
+    return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+
+function formatVideoMetaDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function renderProjectVideoMeta() {
+    const summaryEl = document.getElementById('videoMetaSummary');
+    if (!summaryEl) return;
+
+    const hasLoadedVideo = !!(video && (video.currentSrc || video.src));
+    if (hasLoadedVideo) {
+        summaryEl.style.display = 'none';
+        summaryEl.innerHTML = '';
+        return;
+    }
+
+    const meta = sanitizeProjectVideoMeta(currentProjectVideoMeta);
+    if (!meta) {
+        summaryEl.style.display = 'none';
+        summaryEl.innerHTML = '';
+        return;
+    }
+
+    const detailParts = [];
+    const sizeText = formatVideoMetaBytes(meta.fileSize);
+    const durationText = formatVideoMetaDuration(meta.durationSec);
+    const updatedText = formatVideoMetaDate(meta.updatedAt);
+    if (sizeText) detailParts.push(sizeText);
+    if (durationText) detailParts.push(durationText);
+    if (updatedText) detailParts.push(updatedText);
+
+    summaryEl.style.display = 'block';
+    summaryEl.innerHTML = `<strong>Video gần nhất:</strong> ${escapeHtml(meta.fileName)}${detailParts.length ? `<br>${escapeHtml(detailParts.join(' · '))}` : ''}<br>Chọn lại file để tiếp tục trên máy này.`;
+}
+
+async function persistProjectVideoMeta(meta) {
+    const safeMeta = sanitizeProjectVideoMeta(meta);
+    if (!currentSpreadsheetId || !safeMeta) return;
+
+    currentProjectVideoMeta = safeMeta;
+    setCachedProjectVideoMeta(currentSpreadsheetId, safeMeta);
+    renderProjectVideoMeta();
+
+    try {
+        await fetch('/api/projects/video-meta', {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: currentSpreadsheetId,
+                videoMeta: safeMeta
+            })
+        });
+    } catch (error) {
+        console.warn('[APP] Failed to sync video metadata:', error);
+    }
+}
+
 if (btnSyncSheets) {
     btnSyncSheets.addEventListener('click', syncToGoogleSheets);
 }
@@ -4047,36 +4210,12 @@ function renderTimelineTicks() {
 
 // (Duplicate loadedmetadata removed — merged into main listener above)
 
-// IndexedDB for Video Storage
-const dbName = 'AutoscriptDB';
-window.db = null;
-const request = indexedDB.open(dbName, 1);
-request.onupgradeneeded = (e) => {
-    window.db = e.target.result;
-    if (!window.db.objectStoreNames.contains('videoStore')) {
-        window.db.createObjectStore('videoStore');
-    }
-};
-request.onsuccess = (e) => {
-    window.db = e.target.result;
-    if (window.db.objectStoreNames.contains('videoStore')) {
-        const tx = window.db.transaction('videoStore', 'readonly');
-        const req = tx.objectStore('videoStore').get('lastVideo');
-        req.onsuccess = () => {
-            if (req.result) {
-                if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
-                video.src = URL.createObjectURL(req.result);
-                const ut = document.getElementById('uploadText');
-                if (ut) ut.innerText = req.result.name;
-            }
-        };
-    }
-};
 renderSettings();
 resolveCurrentSpreadsheetMeta().finally(() => {
     loadProjectLogsFromKV().finally(() => {
         renderTable();
         updateActiveSheetUI();
+        renderProjectVideoMeta();
         updateGoogleUI();
         initGoogleOAuth();
         setTimeout(drawMarkers, 300);

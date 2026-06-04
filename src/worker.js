@@ -96,6 +96,10 @@ export default {
                 return handleGetProjectMeta(user.username, url, env);
             }
 
+            if (url.pathname === '/api/projects/video-meta' && request.method === 'PUT') {
+                return handlePutProjectVideoMeta(user.username, request, env);
+            }
+
             if (url.pathname === '/api/projects') {
                 if (request.method === 'GET') {
                     return handleGetProjects(user.username, env);
@@ -396,6 +400,50 @@ async function handlePutProjectLogs(username, request, env) {
 }
 
 // ── POST /api/projects — Create sheet via Apps Script owner credentials and save to user list ──
+async function handlePutProjectVideoMeta(username, request, env) {
+    try {
+        const body = await request.json();
+        const projectId = (body.id || '').trim();
+        const inputMeta = body.videoMeta && typeof body.videoMeta === 'object' ? body.videoMeta : null;
+
+        if (!projectId) {
+            return jsonResponse({ error: 'Project ID is required' }, 400);
+        }
+        if (!inputMeta) {
+            return jsonResponse({ error: 'Video metadata is required' }, 400);
+        }
+
+        const userProjectsKey = `user_projects:${username}`;
+        const projects = await env.SETTINGS_KV.get(userProjectsKey, { type: 'json' }) || [];
+        const projectIndex = projects.findIndex((item) => item.id === projectId);
+
+        if (projectIndex === -1) {
+            return jsonResponse({ error: 'Project not found' }, 404);
+        }
+
+        const safeMeta = {
+            fileName: String(inputMeta.fileName || '').trim(),
+            fileSize: Number.isFinite(Number(inputMeta.fileSize)) ? Number(inputMeta.fileSize) : 0,
+            fileType: String(inputMeta.fileType || '').trim(),
+            lastModified: Number.isFinite(Number(inputMeta.lastModified)) ? Number(inputMeta.lastModified) : 0,
+            durationSec: Number.isFinite(Number(inputMeta.durationSec)) ? Number(inputMeta.durationSec) : 0,
+            updatedAt: new Date().toISOString()
+        };
+
+        projects[projectIndex].videoMeta = safeMeta;
+        await env.SETTINGS_KV.put(userProjectsKey, JSON.stringify(projects));
+
+        return jsonResponse({
+            success: true,
+            message: 'Project video metadata synced successfully.',
+            videoMeta: safeMeta
+        });
+    } catch (err) {
+        console.error('[Worker] Save project video metadata error:', err);
+        return jsonResponse({ error: err.message }, 500);
+    }
+}
+
 async function handleCreateProject(username, request, env) {
     try {
         const body = await request.json();

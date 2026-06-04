@@ -35,6 +35,7 @@
     let projects = [];
     let editingProject = null; // { index, field } for inline edit modal
     let projectSearchQuery = '';
+    let projectStatusFilter = localStorage.getItem('autoscript_project_status_filter') || 'all';
     let projectSortMode = localStorage.getItem('autoscript_project_sort_mode') === 'oldest' ? 'oldest' : 'newest';
     let projectViewMode = localStorage.getItem('autoscript_project_view_mode') === 'list' ? 'list' : 'grid';
 
@@ -49,7 +50,9 @@
     const pageTitle = document.getElementById('pageTitle');
     const pageSubtitle = document.getElementById('pageSubtitle');
     const projectToolbar = document.getElementById('projectToolbar');
+    const syncNotice = document.getElementById('syncNotice');
     const projectSearchInput = document.getElementById('projectSearchInput');
+    const projectStatusFilterSelect = document.getElementById('projectStatusFilter');
     const projectSortSelect = document.getElementById('projectSortSelect');
     const btnGridView = document.getElementById('btnGridView');
     const btnListView = document.getElementById('btnListView');
@@ -85,12 +88,28 @@
     const editFieldSelect = document.getElementById('editFieldSelect');
     const editFieldTitle = document.getElementById('editFieldTitle');
     const editFieldLabel = document.getElementById('editFieldLabel');
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmModalTitle = document.getElementById('confirmModalTitle');
+    const confirmModalText = document.getElementById('confirmModalText');
+    const confirmModalNote = document.getElementById('confirmModalNote');
+    const confirmModalClose = document.getElementById('confirmModalClose');
+    const confirmModalCancel = document.getElementById('confirmModalCancel');
+    const confirmModalConfirm = document.getElementById('confirmModalConfirm');
+    let syncNoticeTimer = null;
+    let confirmModalResolver = null;
 
     // ── Helpers ──────────────────────────────────────────────
     function formatDate(isoString) {
         try {
             const d = new Date(isoString);
-            return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            return d.toLocaleString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
         } catch (e) {
             return '—';
         }
@@ -118,6 +137,39 @@
         return String(name || '').replace(/^Autoscript\s*-\s*/i, '').trim();
     }
 
+    function isLikelyExternalLink(value) {
+        const normalizedValue = String(value || '').trim();
+        if (!normalizedValue || /\s/.test(normalizedValue)) return false;
+        if (/^https?:\/\//i.test(normalizedValue)) return true;
+        if (/^www\./i.test(normalizedValue)) return true;
+        return /^(?:\d{1,3}(?:\.\d{1,3}){3}|(?:[a-z0-9-]+\.)+[a-z]{2,})(?:[/:?#].*)?$/i.test(normalizedValue);
+    }
+
+    function getExternalLinkUrl(link) {
+        const value = String(link || '').trim();
+        if (!value) return '';
+        if (!isLikelyExternalLink(value)) return '';
+        return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+    }
+
+    function getDisplayCompactText(input) {
+        const value = String(input || '').trim();
+        if (!value) return '';
+        if (!getExternalLinkUrl(value)) return value;
+
+        try {
+            const parsedUrl = new URL(getExternalLinkUrl(value));
+            const compactValue = `${parsedUrl.hostname}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+            return compactValue.length <= 42
+                ? compactValue
+                : `${compactValue.slice(0, 28)}...${compactValue.slice(-11)}`;
+        } catch (e) {
+            return value.length <= 42
+                ? value
+                : `${value.slice(0, 28)}...${value.slice(-11)}`;
+        }
+    }
+
     function normalizeSearchValue(value) {
         return String(value || '').trim().toLowerCase();
     }
@@ -125,17 +177,23 @@
     function getFilteredProjects() {
         const query = normalizeSearchValue(projectSearchQuery);
 
-        if (!query) {
-            return projects;
-        }
-
         return projects.filter((project) => {
+            const projectStatus = normalizeProjectStatus(project.status);
+            const matchesStatus = projectStatusFilter === 'all' || projectStatus === projectStatusFilter;
+            if (!matchesStatus) {
+                return false;
+            }
+
+            if (!query) {
+                return true;
+            }
+
             const searchable = [
                 getDisplayProjectName(project.name),
                 project.speaker,
                 project.source,
                 project.link,
-                getProjectStatusLabel(project.status)
+                getProjectStatusLabel(projectStatus)
             ].map(normalizeSearchValue);
 
             return searchable.some((value) => value.includes(query));
@@ -163,6 +221,10 @@
 
         if (projectSortSelect) {
             projectSortSelect.value = projectSortMode;
+        }
+
+        if (projectStatusFilterSelect) {
+            projectStatusFilterSelect.value = projectStatusFilter;
         }
 
         if (projectGrid) {
@@ -194,6 +256,78 @@
         localStorage.setItem('autoscript_project_sort_mode', projectSortMode);
         syncProjectToolbar();
         renderProjects();
+    }
+
+    function setProjectStatusFilter(nextFilter) {
+        projectStatusFilter = ['all', 'ongoing', 'not_started', 'done'].includes(nextFilter) ? nextFilter : 'all';
+        localStorage.setItem('autoscript_project_status_filter', projectStatusFilter);
+        syncProjectToolbar();
+        renderProjects();
+    }
+
+    function showSyncNotice(message) {
+        if (!syncNotice) return;
+        if (syncNoticeTimer) {
+            clearTimeout(syncNoticeTimer);
+        }
+
+        syncNotice.textContent = message || 'Changes synced successfully.';
+        syncNotice.style.display = 'flex';
+
+        syncNoticeTimer = setTimeout(() => {
+            syncNotice.style.display = 'none';
+        }, 3200);
+    }
+
+    function closeConfirmModal(result) {
+        if (confirmModal) {
+            confirmModal.style.display = 'none';
+        }
+
+        if (confirmModalResolver) {
+            const resolve = confirmModalResolver;
+            confirmModalResolver = null;
+            resolve(Boolean(result));
+        }
+    }
+
+    function openConfirmModal(config) {
+        if (!confirmModal || !confirmModalTitle || !confirmModalText || !confirmModalConfirm) {
+            return Promise.resolve(false);
+        }
+
+        confirmModalTitle.textContent = config && config.title ? config.title : 'Confirm Action';
+        confirmModalText.textContent = config && config.message ? config.message : 'Please confirm this action.';
+        confirmModalConfirm.textContent = config && config.confirmText ? config.confirmText : 'Confirm';
+        confirmModalConfirm.classList.toggle('btn-modal-danger', Boolean(config && config.isDanger));
+
+        if (confirmModalCancel) {
+            confirmModalCancel.style.display = config && config.hideCancel ? 'none' : '';
+        }
+
+        if (confirmModalNote) {
+            const note = config && config.note ? config.note : '';
+            confirmModalNote.textContent = note;
+            confirmModalNote.style.display = note ? 'block' : 'none';
+        }
+
+        confirmModal.style.display = 'flex';
+        confirmModalConfirm.focus();
+
+        return new Promise((resolve) => {
+            confirmModalResolver = resolve;
+        });
+    }
+
+    function openMessageModal(config) {
+        return openConfirmModal({
+            title: config && config.title ? config.title : 'Notice',
+            message: config && config.message ? config.message : '',
+            note: config && config.note ? config.note : '',
+            confirmText: config && config.confirmText ? config.confirmText : 'OK',
+            hideCancel: true,
+            isDanger: Boolean(config && config.isDanger)
+        });
     }
 
     // ── Render User Info ─────────────────────────────────────
@@ -256,7 +390,7 @@
                 if (btnNewProjectEmpty) btnNewProjectEmpty.style.display = 'inline-flex';
             } else {
                 if (emptyStateTitle) emptyStateTitle.textContent = 'No matching projects';
-                if (emptyStateText) emptyStateText.textContent = 'Try a different keyword for the project name, speaker, or source.';
+                if (emptyStateText) emptyStateText.textContent = 'Try a different keyword or adjust the current status filter.';
                 if (btnNewProjectEmpty) btnNewProjectEmpty.style.display = 'none';
             }
             return;
@@ -272,67 +406,77 @@
             const projectStatusLabel = getProjectStatusLabel(projectStatus);
             const speakerDisplay = project.speaker || '';
             const sourceDisplay = project.source || '';
+            const sourceTextDisplay = getDisplayCompactText(sourceDisplay);
+            const sourceUrl = getExternalLinkUrl(sourceDisplay);
             const linkDisplay = project.link || '';
+            const linkTextDisplay = getDisplayCompactText(linkDisplay);
+            const linkUrl = getExternalLinkUrl(linkDisplay);
             const delay = Math.min(index * 0.08, 0.6);
 
             return `
                 <div class="project-card status-${projectStatus}" style="animation-delay: ${delay}s" data-project-id="${escapeHtml(project.id)}">
-                    <div class="project-card-header">
-                        <div class="project-card-icon status-${projectStatus}">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                            </svg>
+                    <div class="project-card-main">
+                        <div class="project-card-header">
+                            <div class="project-card-header-main">
+                                <div class="project-card-icon status-${projectStatus}">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                    </svg>
+                                </div>
+                                <span class="project-card-date">${formatDate(project.createdAt)}</span>
+                            </div>
+                            <div class="project-card-actions">
+                                <a class="card-action-btn" href="${escapeHtml(project.url)}" target="_blank" rel="noopener" title="Open in Google Sheets">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                </a>
+                                <button class="card-action-btn danger" data-delete-id="${project.id}" title="Remove project">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                            </div>
                         </div>
-                        <div class="project-card-actions">
-                            <a class="card-action-btn" href="${escapeHtml(project.url)}" target="_blank" rel="noopener" title="Open in Google Sheets">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                            </a>
-                            <button class="card-action-btn danger" data-delete-id="${project.id}" title="Remove project">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            </button>
+                        <div class="project-card-name" data-edit-field="name" data-edit-id="${escapeHtml(project.id)}">${escapeHtml(projectNameDisplay)}</div>
+                        <div class="project-card-fields">
+                            <div class="project-text-row" data-edit-field="speaker" data-edit-id="${escapeHtml(project.id)}">
+                                <span class="info-label">Speaker</span>
+                                <span class="info-value ${speakerDisplay ? '' : 'empty'}">${speakerDisplay ? escapeHtml(speakerDisplay) : 'Not set'}</span>
+                            </div>
+                            <div class="project-text-row" data-edit-field="source" data-edit-id="${escapeHtml(project.id)}">
+                                <span class="info-label">Source</span>
+                                <span class="info-value ${sourceDisplay ? '' : 'empty'}" title="${sourceDisplay ? escapeHtml(sourceDisplay) : ''}">${sourceDisplay ? escapeHtml(sourceTextDisplay) : 'Not set'}</span>
+                                ${sourceUrl ? `
+                                    <a class="info-link-icon" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener" title="Open source link">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                    </a>
+                                ` : ''}
+                            </div>
                         </div>
                     </div>
 
-                    <div class="project-card-name" data-edit-field="name" data-edit-id="${escapeHtml(project.id)}">${escapeHtml(projectNameDisplay)}</div>
-
-                    <div class="project-card-info">
+                    <div class="project-card-fields project-card-meta">
                         <div class="info-row status-row" data-edit-field="status" data-edit-id="${escapeHtml(project.id)}">
                             <span class="info-label">Status</span>
                             <span class="info-value"><span class="status-pill status-${projectStatus}">${projectStatusLabel}</span></span>
-                            <span class="info-edit-icon">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            </span>
-                        </div>
-                        <div class="info-row" data-edit-field="speaker" data-edit-id="${escapeHtml(project.id)}">
-                            <span class="info-label">Speaker</span>
-                            <span class="info-value ${speakerDisplay ? '' : 'empty'}">${speakerDisplay ? escapeHtml(speakerDisplay) : 'Not set'}</span>
-                            <span class="info-edit-icon">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            </span>
-                        </div>
-                        <div class="info-row" data-edit-field="source" data-edit-id="${escapeHtml(project.id)}">
-                            <span class="info-label">Source</span>
-                            <span class="info-value ${sourceDisplay ? '' : 'empty'}">${sourceDisplay ? escapeHtml(sourceDisplay) : 'Not set'}</span>
-                            <span class="info-edit-icon">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            </span>
                         </div>
                         <div class="info-row" data-edit-field="link" data-edit-id="${escapeHtml(project.id)}">
                             <span class="info-label">Link</span>
-                            <span class="info-value ${linkDisplay ? '' : 'empty'}">${linkDisplay ? escapeHtml(linkDisplay) : 'Not set'}</span>
-                            <span class="info-edit-icon">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            </span>
+                            <span class="info-value info-value-inline ${linkDisplay ? '' : 'empty'}" title="${linkDisplay ? escapeHtml(linkDisplay) : ''}">${linkDisplay ? escapeHtml(linkTextDisplay) : 'Not set'}</span>
                         </div>
                     </div>
 
                     <div class="project-card-footer">
-                        <span class="project-card-date">${formatDate(project.createdAt)}</span>
-                        <a href="app.html?sheetId=${encodeURIComponent(project.id)}&sheetName=${encodeURIComponent(projectNameDisplay)}&sheetUrl=${encodeURIComponent(project.url || '')}" class="btn-open-project">
-                            Open Project
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                        </a>
+                        <div class="project-card-buttons">
+                            ${linkUrl ? `
+                                <a href="${escapeHtml(linkUrl)}" class="btn-open-link" target="_blank" rel="noopener">
+                                    Open Link
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                </a>
+                            ` : ''}
+                            <a href="app.html?sheetId=${encodeURIComponent(project.id)}&sheetName=${encodeURIComponent(projectNameDisplay)}&sheetUrl=${encodeURIComponent(project.url || '')}" class="btn-open-project">
+                                Open Project
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </a>
+                        </div>
                     </div>
                 </div>
             `;
@@ -350,19 +494,34 @@
                 const project = projects.find(p => p.id === pId);
                 if (!project) return;
 
-                if (confirm(`Remove "${project.name}" from your project list?\n\n(The Google Sheet file will NOT be deleted from Google Drive)`)) {
-                    try {
-                        const res = await fetch('/api/projects', {
-                            method: 'DELETE',
-                            headers: getAuthHeaders(),
-                            body: JSON.stringify({ id: pId })
-                        });
-                        if (!res.ok) throw new Error('Failed to delete project');
-                        projects = projects.filter(p => p.id !== pId);
-                        renderProjects();
-                    } catch (err) {
-                        alert('Could not remove project: ' + err.message);
-                    }
+                const shouldDelete = await openConfirmModal({
+                    title: 'Remove Project',
+                    message: `Remove "${getDisplayProjectName(project.name)}" from your project list?`,
+                    note: 'The Google Sheet file will not be deleted from Google Drive.',
+                    confirmText: 'Delete'
+                });
+
+                if (!shouldDelete) {
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/projects', {
+                        method: 'DELETE',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ id: pId })
+                    });
+                    if (!res.ok) throw new Error('Failed to delete project');
+                    projects = projects.filter(p => p.id !== pId);
+                    renderProjects();
+                    showSyncNotice('Project list synced successfully.');
+                } catch (err) {
+                    openMessageModal({
+                        title: 'Delete Failed',
+                        message: 'Could not remove this project.',
+                        note: err.message,
+                        isDanger: true
+                    });
                 }
             });
         });
@@ -375,6 +534,12 @@
                 const idx = projects.findIndex(project => project.id === projectId);
                 if (isNaN(idx) || idx < 0 || idx >= projects.length) return;
                 openEditFieldModal(idx, field);
+            });
+        });
+
+        document.querySelectorAll('.info-link-icon').forEach((link) => {
+            link.addEventListener('click', (e) => {
+                e.stopPropagation();
             });
         });
     }
@@ -453,6 +618,7 @@
                 setTimeout(() => {
                     closeNewProjectModal();
                     renderProjects();
+                    showSyncNotice('Project synced successfully.');
                 }, 800);
             }
 
@@ -552,7 +718,10 @@
             : (editFieldInput ? editFieldInput.value.trim() : '');
 
         if (field === 'name' && !newValue) {
-            alert('Project name is required.');
+            openMessageModal({
+                title: 'Missing Project Name',
+                message: 'Project name is required.'
+            });
             return;
         }
 
@@ -584,9 +753,15 @@
                 const data = await res.json();
                 throw new Error(data.error || 'Failed to update metadata');
             }
+            showSyncNotice('Changes synced successfully.');
         } catch (err) {
             console.error('Update metadata failed:', err);
-            alert('Warning: Could not save changes to Sheet. ' + err.message);
+            openMessageModal({
+                title: 'Sync Failed',
+                message: 'Could not save changes to KV or Sheet.',
+                note: err.message,
+                isDanger: true
+            });
             // Refresh to restore original data
             loadProjects();
         }
@@ -611,6 +786,12 @@
             renderProjects();
         });
     }
+    if (projectStatusFilterSelect) {
+        projectStatusFilterSelect.value = projectStatusFilter;
+        projectStatusFilterSelect.addEventListener('change', (e) => {
+            setProjectStatusFilter(e.target.value);
+        });
+    }
     if (projectSortSelect) {
         projectSortSelect.value = projectSortMode;
         projectSortSelect.addEventListener('change', (e) => {
@@ -629,12 +810,19 @@
     if (editFieldClose) editFieldClose.addEventListener('click', closeEditFieldModal);
     if (editFieldCancel) editFieldCancel.addEventListener('click', closeEditFieldModal);
     if (editFieldSave) editFieldSave.addEventListener('click', handleSaveField);
+    if (confirmModalClose) confirmModalClose.addEventListener('click', () => closeConfirmModal(false));
+    if (confirmModalCancel) confirmModalCancel.addEventListener('click', () => closeConfirmModal(false));
+    if (confirmModalConfirm) confirmModalConfirm.addEventListener('click', () => closeConfirmModal(true));
 
     // Close modals on overlay click
-    [newProjectModal, editFieldModal].forEach(modal => {
+    [newProjectModal, editFieldModal, confirmModal].forEach(modal => {
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
+                    if (modal === confirmModal) {
+                        closeConfirmModal(false);
+                        return;
+                    }
                     modal.style.display = 'none';
                     if (modal === editFieldModal) editingProject = null;
                 }
@@ -647,6 +835,7 @@
         if (e.key === 'Escape') {
             closeNewProjectModal();
             closeEditFieldModal();
+            closeConfirmModal(false);
         }
         if (e.key === 'Enter') {
             if (editFieldModal && editFieldModal.style.display === 'flex') {

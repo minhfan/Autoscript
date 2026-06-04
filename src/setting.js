@@ -44,13 +44,38 @@
     const formStatus = document.getElementById('formStatus');
     const usersListBody = document.getElementById('usersListBody');
     const btnAddUser = document.getElementById('btnAddUser');
+    const syncNotice = document.getElementById('syncNotice');
     const addUserModal = document.getElementById('addUserModal');
     const addUserClose = document.getElementById('addUserClose');
     const addUserCancel = document.getElementById('addUserCancel');
     const addUserSave = document.getElementById('addUserSave');
     const newUsernameInput = document.getElementById('newUsername');
+    const pinModal = document.getElementById('pinModal');
+    const pinModalTitle = document.getElementById('pinModalTitle');
+    const pinModalLabel = document.getElementById('pinModalLabel');
+    const pinModalInput = document.getElementById('pinModalInput');
+    const pinModalClose = document.getElementById('pinModalClose');
+    const pinModalCancel = document.getElementById('pinModalCancel');
+    const pinModalConfirm = document.getElementById('pinModalConfirm');
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmModalTitle = document.getElementById('confirmModalTitle');
+    const confirmModalText = document.getElementById('confirmModalText');
+    const confirmModalNote = document.getElementById('confirmModalNote');
+    const confirmModalClose = document.getElementById('confirmModalClose');
+    const confirmModalCancel = document.getElementById('confirmModalCancel');
+    const confirmModalConfirm = document.getElementById('confirmModalConfirm');
+    const messageModal = document.getElementById('messageModal');
+    const messageModalTitle = document.getElementById('messageModalTitle');
+    const messageModalText = document.getElementById('messageModalText');
+    const messageModalNote = document.getElementById('messageModalNote');
+    const messageModalClose = document.getElementById('messageModalClose');
+    const messageModalConfirm = document.getElementById('messageModalConfirm');
     const settingTabButtons = Array.from(document.querySelectorAll('[data-setting-tab]'));
     const settingPanels = Array.from(document.querySelectorAll('[data-setting-panel]'));
+    let syncNoticeTimer = null;
+    let confirmModalResolver = null;
+    let messageModalResolver = null;
+    let pinModalResolver = null;
 
     // ── Helpers ──────────────────────────────────────────────
     function showStatus(msg, type) {
@@ -66,9 +91,109 @@
         }
     }
 
+    function showSyncNotice(message) {
+        if (!syncNotice) return;
+        if (syncNoticeTimer) clearTimeout(syncNoticeTimer);
+        syncNotice.textContent = message || 'Changes synced to KV successfully.';
+        syncNotice.style.display = 'flex';
+        syncNoticeTimer = setTimeout(() => {
+            syncNotice.style.display = 'none';
+        }, 3200);
+    }
+
     function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function closeConfirmModal(result) {
+        if (confirmModal) confirmModal.style.display = 'none';
+        if (confirmModalResolver) {
+            const resolve = confirmModalResolver;
+            confirmModalResolver = null;
+            resolve(Boolean(result));
+        }
+    }
+
+    function openConfirmModal(config) {
+        if (!confirmModal || !confirmModalTitle || !confirmModalText || !confirmModalConfirm) {
+            return Promise.resolve(false);
+        }
+
+        confirmModalTitle.textContent = config && config.title ? config.title : 'Confirm Action';
+        confirmModalText.textContent = config && config.message ? config.message : 'Please confirm this action.';
+        confirmModalConfirm.textContent = config && config.confirmText ? config.confirmText : 'Confirm';
+        confirmModalConfirm.classList.toggle('btn-modal-danger', Boolean(config && config.isDanger));
+
+        if (confirmModalNote) {
+            const note = config && config.note ? config.note : '';
+            confirmModalNote.textContent = note;
+            confirmModalNote.style.display = note ? 'block' : 'none';
+        }
+
+        confirmModal.style.display = 'flex';
+        confirmModalConfirm.focus();
+
+        return new Promise((resolve) => {
+            confirmModalResolver = resolve;
+        });
+    }
+
+    function closeMessageModal() {
+        if (messageModal) messageModal.style.display = 'none';
+        if (messageModalResolver) {
+            const resolve = messageModalResolver;
+            messageModalResolver = null;
+            resolve(true);
+        }
+    }
+
+    function openMessageModal(config) {
+        if (!messageModal || !messageModalTitle || !messageModalText) {
+            return Promise.resolve(true);
+        }
+
+        messageModalTitle.textContent = config && config.title ? config.title : 'Notice';
+        messageModalText.textContent = config && config.message ? config.message : '';
+
+        if (messageModalNote) {
+            const note = config && config.note ? config.note : '';
+            messageModalNote.textContent = note;
+            messageModalNote.style.display = note ? 'block' : 'none';
+        }
+
+        messageModal.style.display = 'flex';
+        if (messageModalConfirm) messageModalConfirm.focus();
+
+        return new Promise((resolve) => {
+            messageModalResolver = resolve;
+        });
+    }
+
+    function closePinModal(result) {
+        if (pinModal) pinModal.style.display = 'none';
+        if (pinModalResolver) {
+            const resolve = pinModalResolver;
+            pinModalResolver = null;
+            resolve(result);
+        }
+    }
+
+    function openPinModal(config) {
+        if (!pinModal || !pinModalTitle || !pinModalInput) {
+            return Promise.resolve(null);
+        }
+
+        if (pinModalTitle) pinModalTitle.textContent = config && config.title ? config.title : 'Change PIN';
+        if (pinModalLabel) pinModalLabel.textContent = config && config.label ? config.label : 'New 4-digit PIN';
+        if (pinModalConfirm) pinModalConfirm.textContent = config && config.confirmText ? config.confirmText : 'Save PIN';
+        pinModalInput.value = '';
+        pinModal.style.display = 'flex';
+        pinModalInput.focus();
+
+        return new Promise((resolve) => {
+            pinModalResolver = resolve;
+        });
     }
 
     function setActiveSettingTab(tabName) {
@@ -199,10 +324,15 @@
             localStorage.setItem('autoscript_google_template_id', templateId);
             localStorage.setItem('autoscript_google_folder_id', folderId);
 
-            showStatus('Settings saved to Cloudflare KV successfully.', 'success');
+            showSyncNotice('Settings synced to KV successfully.');
         } catch (err) {
             console.error('[Setting] Save error:', err);
-            showStatus('Failed to save: ' + err.message, 'error');
+            openMessageModal({
+                title: 'Save Failed',
+                message: 'Could not save settings to KV.',
+                note: err.message,
+                isDanger: true
+            });
         } finally {
             if (btnSave) {
                 btnSave.disabled = false;
@@ -266,12 +396,21 @@
         document.querySelectorAll('[data-change-username]').forEach((btn) => {
             btn.addEventListener('click', async () => {
                 const username = btn.dataset.changeUsername;
-                const newPin = prompt(`Enter a new 4-digit PIN for user "${username}":`);
+                const newPin = await openPinModal({
+                    title: 'Change PIN',
+                    label: `New 4-digit PIN for "${username}"`,
+                    confirmText: 'Save PIN'
+                });
                 if (newPin === null) return;
 
                 const pinTrimmed = newPin.trim();
                 if (!/^\d{4}$/.test(pinTrimmed)) {
-                    alert('Error: PIN must be a 4-digit number (e.g. 1234)');
+                    openMessageModal({
+                        title: 'Invalid PIN',
+                        message: 'PIN must be a 4-digit number.',
+                        note: 'Example: 1234',
+                        isDanger: true
+                    });
                     return;
                 }
 
@@ -292,9 +431,14 @@
                     const data = await res.json();
                     users = data.users;
                     renderUsersList();
-                    alert(`Successfully updated PIN for user "${username}" on KV.`);
+                    showSyncNotice(`PIN for "${username}" synced to KV successfully.`);
                 } catch (err) {
-                    alert(err.message);
+                    openMessageModal({
+                        title: 'PIN Update Failed',
+                        message: `Could not update PIN for "${username}".`,
+                        note: err.message,
+                        isDanger: true
+                    });
                 }
             });
         });
@@ -302,7 +446,13 @@
         document.querySelectorAll('[data-reset-username]').forEach((btn) => {
             btn.addEventListener('click', async () => {
                 const username = btn.dataset.resetUsername;
-                if (!confirm(`Reset the PIN for user "${username}"?\n\nThey will need to set a new PIN the next time they select this profile.`)) {
+                const shouldReset = await openConfirmModal({
+                    title: 'Reset PIN',
+                    message: `Reset the PIN for "${username}"?`,
+                    note: 'They will need to set a new PIN the next time they select this profile.',
+                    confirmText: 'Reset PIN'
+                });
+                if (!shouldReset) {
                     return;
                 }
 
@@ -319,8 +469,14 @@
                     const data = await res.json();
                     users = data.users;
                     renderUsersList();
+                    showSyncNotice(`PIN reset for "${username}" synced to KV successfully.`);
                 } catch (err) {
-                    alert(err.message);
+                    openMessageModal({
+                        title: 'PIN Reset Failed',
+                        message: `Could not reset PIN for "${username}".`,
+                        note: err.message,
+                        isDanger: true
+                    });
                 }
             });
         });
@@ -328,7 +484,14 @@
         document.querySelectorAll('[data-delete-username]').forEach((btn) => {
             btn.addEventListener('click', async () => {
                 const username = btn.dataset.deleteUsername;
-                if (!confirm(`DANGER: Delete profile "${username}"?\n\nThis will completely delete their profile and project logs from KV! This cannot be undone.`)) {
+                const shouldDelete = await openConfirmModal({
+                    title: 'Delete Profile',
+                    message: `Delete profile "${username}"?`,
+                    note: 'This will completely delete their profile and project logs from KV. This cannot be undone.',
+                    confirmText: 'Delete Profile',
+                    isDanger: true
+                });
+                if (!shouldDelete) {
                     return;
                 }
 
@@ -342,8 +505,14 @@
                     const data = await res.json();
                     users = data.users;
                     renderUsersList();
+                    showSyncNotice(`Profile "${username}" removed from KV successfully.`);
                 } catch (err) {
-                    alert(err.message);
+                    openMessageModal({
+                        title: 'Delete Failed',
+                        message: `Could not delete profile "${username}".`,
+                        note: err.message,
+                        isDanger: true
+                    });
                 }
             });
         });
@@ -364,7 +533,10 @@
     async function handleAddUserSave() {
         const username = newUsernameInput ? newUsernameInput.value.trim() : '';
         if (!username) {
-            alert('Please enter a profile name');
+            openMessageModal({
+                title: 'Missing Profile Name',
+                message: 'Please enter a profile name.'
+            });
             return;
         }
 
@@ -384,8 +556,14 @@
             users = data.users;
             renderUsersList();
             closeAddUserModal();
+            showSyncNotice(`Profile "${username}" synced to KV successfully.`);
         } catch (err) {
-            alert(err.message);
+            openMessageModal({
+                title: 'Create Failed',
+                message: `Could not create profile "${username}".`,
+                note: err.message,
+                isDanger: true
+            });
         }
     }
 
@@ -404,6 +582,14 @@
     if (addUserClose) addUserClose.addEventListener('click', closeAddUserModal);
     if (addUserCancel) addUserCancel.addEventListener('click', closeAddUserModal);
     if (addUserSave) addUserSave.addEventListener('click', handleAddUserSave);
+    if (pinModalClose) pinModalClose.addEventListener('click', () => closePinModal(null));
+    if (pinModalCancel) pinModalCancel.addEventListener('click', () => closePinModal(null));
+    if (pinModalConfirm) pinModalConfirm.addEventListener('click', () => closePinModal(pinModalInput ? pinModalInput.value : ''));
+    if (confirmModalClose) confirmModalClose.addEventListener('click', () => closeConfirmModal(false));
+    if (confirmModalCancel) confirmModalCancel.addEventListener('click', () => closeConfirmModal(false));
+    if (confirmModalConfirm) confirmModalConfirm.addEventListener('click', () => closeConfirmModal(true));
+    if (messageModalClose) messageModalClose.addEventListener('click', closeMessageModal);
+    if (messageModalConfirm) messageModalConfirm.addEventListener('click', closeMessageModal);
 
     // Save on Enter key in inputs
     [settingWebAppUrl, settingTemplateId, settingFolderId].forEach(input => {
@@ -424,14 +610,42 @@
             }
         });
     }
+    if (pinModal) {
+        pinModal.addEventListener('click', (e) => {
+            if (e.target === pinModal) {
+                closePinModal(null);
+            }
+        });
+    }
+    if (confirmModal) {
+        confirmModal.addEventListener('click', (e) => {
+            if (e.target === confirmModal) {
+                closeConfirmModal(false);
+            }
+        });
+    }
+    if (messageModal) {
+        messageModal.addEventListener('click', (e) => {
+            if (e.target === messageModal) {
+                closeMessageModal();
+            }
+        });
+    }
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeAddUserModal();
+            closePinModal(null);
+            closeConfirmModal(false);
+            closeMessageModal();
         }
         if (e.key === 'Enter' && addUserModal && addUserModal.style.display === 'flex') {
             e.preventDefault();
             handleAddUserSave();
+        }
+        if (e.key === 'Enter' && pinModal && pinModal.style.display === 'flex') {
+            e.preventDefault();
+            closePinModal(pinModalInput ? pinModalInput.value : '');
         }
     });
 

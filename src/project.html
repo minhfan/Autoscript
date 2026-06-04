@@ -129,12 +129,24 @@
                     <input type="text" id="modalProjectName" placeholder="Enter project name..." autocomplete="off">
                 </div>
                 <div class="modal-input-group">
+                    <label for="modalProjectStatus">Status</label>
+                    <select id="modalProjectStatus" autocomplete="off">
+                        <option value="not_started">Not Started Yet</option>
+                        <option value="ongoing">Ongoing</option>
+                        <option value="done">Done</option>
+                    </select>
+                </div>
+                <div class="modal-input-group">
                     <label for="modalSpeaker">Speaker <span class="input-optional">(Row 1 — B1)</span></label>
                     <input type="text" id="modalSpeaker" placeholder="e.g. JASON NGUYEN - CEO | TIERRA" autocomplete="off">
                 </div>
                 <div class="modal-input-group">
-                    <label for="modalSource">Source / Link <span class="input-optional">(Row 2 — B2)</span></label>
+                    <label for="modalSource">Source <span class="input-optional">(Row 2 - B2)</span></label>
                     <input type="text" id="modalSource" placeholder="e.g. (26-03-2026) TCP ACL" autocomplete="off">
+                </div>
+                <div class="modal-input-group">
+                    <label for="modalLink">Link</label>
+                    <input type="url" id="modalLink" placeholder="https://..." autocomplete="off" spellcheck="false">
                 </div>
             </div>
             <div class="modal-footer">
@@ -161,6 +173,11 @@
                 <div class="modal-input-group">
                     <label for="editFieldInput" id="editFieldLabel">Value</label>
                     <input type="text" id="editFieldInput" autocomplete="off">
+                    <select id="editFieldSelect" style="display: none;">
+                        <option value="not_started">Not Started Yet</option>
+                        <option value="ongoing">Ongoing</option>
+                        <option value="done">Done</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">

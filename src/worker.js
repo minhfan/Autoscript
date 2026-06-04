@@ -281,8 +281,10 @@ async function handleCreateProject(username, request, env) {
     try {
         const body = await request.json();
         const name = (body.name || '').trim();
+        const status = normalizeProjectStatus(body.status || 'not_started');
         const speaker = (body.speaker || '').trim();
         const source = (body.source || '').trim();
+        const link = (body.link || '').trim();
 
         if (!name) {
             return jsonResponse({ error: 'Project name is required' }, 400);
@@ -298,15 +300,17 @@ async function handleCreateProject(username, request, env) {
         // Call Google Apps Script Web App
         const gasUrl = new URL(gasUrlStr);
         gasUrl.searchParams.set('action', 'createProject');
-        gasUrl.searchParams.set('name', 'Autoscript - ' + name);
+        gasUrl.searchParams.set('name', name);
         if (settings.googleTemplateId) {
             gasUrl.searchParams.set('templateId', settings.googleTemplateId);
         }
         if (settings.googleDriveFolderId) {
             gasUrl.searchParams.set('folderId', settings.googleDriveFolderId);
         }
+        gasUrl.searchParams.set('status', status);
         if (speaker) gasUrl.searchParams.set('speaker', speaker);
         if (source) gasUrl.searchParams.set('source', source);
+        if (link) gasUrl.searchParams.set('link', link);
 
         const gasRes = await fetch(gasUrl.toString(), { redirect: 'follow' });
         if (!gasRes.ok) {
@@ -323,8 +327,10 @@ async function handleCreateProject(username, request, env) {
             id: gasData.spreadsheetId,
             name: gasData.spreadsheetName,
             url: gasData.spreadsheetUrl,
+            status: status,
             speaker: speaker,
             source: source,
+            link: link,
             createdAt: new Date().toISOString(),
             moveStatus: gasData.moveStatus || 'outdated_script',
             moveError: gasData.moveError || null
@@ -348,11 +354,17 @@ async function handleUpdateProject(username, request, env) {
     try {
         const body = await request.json();
         const id = (body.id || '').trim();
+        const name = (body.name || '').trim();
+        const status = normalizeProjectStatus(body.status || 'done');
         const speaker = (body.speaker || '').trim();
         const source = (body.source || '').trim();
+        const link = (body.link || '').trim();
 
         if (!id) {
             return jsonResponse({ error: 'Project ID is required' }, 400);
+        }
+        if (!name) {
+            return jsonResponse({ error: 'Project name is required' }, 400);
         }
 
         const userProjectsKey = `user_projects:${username}`;
@@ -364,8 +376,11 @@ async function handleUpdateProject(username, request, env) {
         }
 
         const project = projects[projectIndex];
+        project.name = name;
+        project.status = status;
         project.speaker = speaker;
         project.source = source;
+        project.link = link;
 
         // Sync with Google Sheets in background via Apps Script Web App
         const settings = await env.SETTINGS_KV.get('app_settings', { type: 'json' }) || DEFAULT_SETTINGS;
@@ -376,12 +391,15 @@ async function handleUpdateProject(username, request, env) {
                 const gasUrl = new URL(gasUrlStr);
                 gasUrl.searchParams.set('action', 'updateInfo');
                 gasUrl.searchParams.set('spreadsheetId', id);
+                gasUrl.searchParams.set('name', name);
+                gasUrl.searchParams.set('status', status);
                 gasUrl.searchParams.set('speaker', speaker);
                 gasUrl.searchParams.set('source', source);
-                // Call Google Sheets Web App (async redirect follow)
-                fetch(gasUrl.toString(), { redirect: 'follow' }).catch(err => {
-                    console.warn('[Worker] Background update to GAS failed:', err);
-                });
+                gasUrl.searchParams.set('link', link);
+                const gasRes = await fetch(gasUrl.toString(), { redirect: 'follow' });
+                if (!gasRes.ok) {
+                    console.warn('[Worker] Apps Script metadata sync failed:', gasRes.status);
+                }
             } catch (err) {
                 console.warn('[Worker] Invalid Apps Script URL on update:', err);
             }
@@ -529,6 +547,10 @@ function corsHeaders() {
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     };
+}
+
+function normalizeProjectStatus(status) {
+    return ['ongoing', 'not_started', 'done'].includes(status) ? status : 'done';
 }
 
 function jsonResponse(data, status = 200) {

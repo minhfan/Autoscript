@@ -24,6 +24,10 @@
     --accent: #10b981;
     --accent-dim: rgba(16, 185, 129, 0.12);
     --accent-glow: rgba(16, 185, 129, 0.2);
+    --status-ongoing: #f59e0b;
+    --status-ongoing-dim: rgba(245, 158, 11, 0.14);
+    --status-not-started: #71717a;
+    --status-not-started-dim: rgba(113, 113, 122, 0.16);
     --danger: #ef4444;
     --danger-dim: rgba(239, 68, 68, 0.1);
     --r-sm: 8px;
@@ -465,6 +469,24 @@ body {
     flex-shrink: 0;
 }
 
+.project-card-icon.status-ongoing {
+    background: var(--status-ongoing-dim);
+    border-color: rgba(245, 158, 11, 0.22);
+    color: var(--status-ongoing);
+}
+
+.project-card-icon.status-not_started {
+    background: var(--status-not-started-dim);
+    border-color: rgba(113, 113, 122, 0.24);
+    color: var(--status-not-started);
+}
+
+.project-card-icon.status-done {
+    background: var(--accent-dim);
+    border-color: rgba(16, 185, 129, 0.15);
+    color: var(--accent);
+}
+
 .project-card-actions {
     display: flex;
     gap: 4px;
@@ -503,6 +525,12 @@ body {
     margin-bottom: 16px;
     line-height: 1.3;
     word-break: break-word;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.project-card-name:hover {
+    color: var(--accent);
 }
 
 .project-grid.is-list .project-card-name {
@@ -511,7 +539,6 @@ body {
     align-self: center;
     padding: 0 88px 0 56px;
     line-height: 1.35;
-    pointer-events: none;
 }
 
 /* ── Card Info Rows (Speaker / Source) ────────────────────── */
@@ -589,6 +616,36 @@ body {
     transition: opacity 0.2s;
     flex-shrink: 0;
     margin-top: 1px;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.status-pill.status-ongoing {
+    color: var(--status-ongoing);
+    background: var(--status-ongoing-dim);
+    border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+.status-pill.status-not_started {
+    color: var(--text-sub);
+    background: var(--status-not-started-dim);
+    border: 1px solid rgba(113, 113, 122, 0.24);
+}
+
+.status-pill.status-done {
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 /* ── Card Footer ─────────────────────────────────────────── */
@@ -809,7 +866,8 @@ body {
     font-size: 10px;
 }
 
-.modal-input-group input {
+.modal-input-group input,
+.modal-input-group select {
     width: 100%;
     padding: 11px 14px;
     background: var(--bg-input);
@@ -820,16 +878,23 @@ body {
     font-size: 13px;
     outline: none;
     transition: var(--transition-base);
+    color-scheme: dark;
 }
 
 .modal-input-group input::placeholder {
     color: var(--text-dim);
 }
 
-.modal-input-group input:focus {
+.modal-input-group input:focus,
+.modal-input-group select:focus {
     border-color: var(--accent);
     background: var(--bg-input-focus);
     box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.modal-input-group select option {
+    background: #111113;
+    color: var(--text-main);
 }
 
 .modal-footer {

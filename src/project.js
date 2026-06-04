@@ -70,8 +70,10 @@
     const modalCancel = document.getElementById('modalCancel');
     const modalCreate = document.getElementById('modalCreate');
     const modalProjectName = document.getElementById('modalProjectName');
+    const modalProjectStatus = document.getElementById('modalProjectStatus');
     const modalSpeaker = document.getElementById('modalSpeaker');
     const modalSource = document.getElementById('modalSource');
+    const modalLink = document.getElementById('modalLink');
     const modalStatus = document.getElementById('modalStatus');
 
     // Edit field modal
@@ -80,6 +82,7 @@
     const editFieldCancel = document.getElementById('editFieldCancel');
     const editFieldSave = document.getElementById('editFieldSave');
     const editFieldInput = document.getElementById('editFieldInput');
+    const editFieldSelect = document.getElementById('editFieldSelect');
     const editFieldTitle = document.getElementById('editFieldTitle');
     const editFieldLabel = document.getElementById('editFieldLabel');
 
@@ -98,6 +101,23 @@
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function normalizeProjectStatus(status) {
+        return ['ongoing', 'not_started', 'done'].includes(status) ? status : 'done';
+    }
+
+    function getProjectStatusLabel(status) {
+        const labels = {
+            ongoing: 'Ongoing',
+            not_started: 'Not Started Yet',
+            done: 'Done'
+        };
+        return labels[normalizeProjectStatus(status)];
+    }
+
+    function getDisplayProjectName(name) {
+        return String(name || '').replace(/^Autoscript\s*-\s*/i, '').trim();
+    }
+
     function normalizeSearchValue(value) {
         return String(value || '').trim().toLowerCase();
     }
@@ -111,9 +131,11 @@
 
         return projects.filter((project) => {
             const searchable = [
-                project.name,
+                getDisplayProjectName(project.name),
                 project.speaker,
-                project.source
+                project.source,
+                project.link,
+                getProjectStatusLabel(project.status)
             ].map(normalizeSearchValue);
 
             return searchable.some((value) => value.includes(query));
@@ -245,14 +267,18 @@
         if (btnNewProjectEmpty) btnNewProjectEmpty.style.display = 'inline-flex';
 
         projectGrid.innerHTML = visibleProjects.map((project, index) => {
+            const projectNameDisplay = getDisplayProjectName(project.name);
+            const projectStatus = normalizeProjectStatus(project.status);
+            const projectStatusLabel = getProjectStatusLabel(projectStatus);
             const speakerDisplay = project.speaker || '';
             const sourceDisplay = project.source || '';
+            const linkDisplay = project.link || '';
             const delay = Math.min(index * 0.08, 0.6);
 
             return `
-                <div class="project-card" style="animation-delay: ${delay}s" data-project-id="${escapeHtml(project.id)}">
+                <div class="project-card status-${projectStatus}" style="animation-delay: ${delay}s" data-project-id="${escapeHtml(project.id)}">
                     <div class="project-card-header">
-                        <div class="project-card-icon">
+                        <div class="project-card-icon status-${projectStatus}">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
                                 <polyline points="14 2 14 8 20 8"></polyline>
@@ -268,9 +294,16 @@
                         </div>
                     </div>
 
-                    <div class="project-card-name">${escapeHtml(project.name)}</div>
+                    <div class="project-card-name" data-edit-field="name" data-edit-id="${escapeHtml(project.id)}">${escapeHtml(projectNameDisplay)}</div>
 
                     <div class="project-card-info">
+                        <div class="info-row status-row" data-edit-field="status" data-edit-id="${escapeHtml(project.id)}">
+                            <span class="info-label">Status</span>
+                            <span class="info-value"><span class="status-pill status-${projectStatus}">${projectStatusLabel}</span></span>
+                            <span class="info-edit-icon">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </span>
+                        </div>
                         <div class="info-row" data-edit-field="speaker" data-edit-id="${escapeHtml(project.id)}">
                             <span class="info-label">Speaker</span>
                             <span class="info-value ${speakerDisplay ? '' : 'empty'}">${speakerDisplay ? escapeHtml(speakerDisplay) : 'Not set'}</span>
@@ -285,11 +318,18 @@
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                             </span>
                         </div>
+                        <div class="info-row" data-edit-field="link" data-edit-id="${escapeHtml(project.id)}">
+                            <span class="info-label">Link</span>
+                            <span class="info-value ${linkDisplay ? '' : 'empty'}">${linkDisplay ? escapeHtml(linkDisplay) : 'Not set'}</span>
+                            <span class="info-edit-icon">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </span>
+                        </div>
                     </div>
 
                     <div class="project-card-footer">
                         <span class="project-card-date">${formatDate(project.createdAt)}</span>
-                        <a href="app.html?sheetId=${encodeURIComponent(project.id)}&sheetName=${encodeURIComponent(project.name)}&sheetUrl=${encodeURIComponent(project.url || '')}" class="btn-open-project">
+                        <a href="app.html?sheetId=${encodeURIComponent(project.id)}&sheetName=${encodeURIComponent(projectNameDisplay)}&sheetUrl=${encodeURIComponent(project.url || '')}" class="btn-open-project">
                             Open Project
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                         </a>
@@ -344,8 +384,10 @@
         if (!newProjectModal) return;
         const today = new Date().toISOString().slice(0, 10);
         if (modalProjectName) modalProjectName.value = 'Project_' + today;
+        if (modalProjectStatus) modalProjectStatus.value = 'not_started';
         if (modalSpeaker) modalSpeaker.value = '';
         if (modalSource) modalSource.value = '';
+        if (modalLink) modalLink.value = '';
         if (modalStatus) { modalStatus.style.display = 'none'; modalStatus.textContent = ''; }
         if (modalCreate) modalCreate.disabled = false;
 
@@ -359,8 +401,10 @@
 
     async function handleCreateProject() {
         const projectName = modalProjectName ? modalProjectName.value.trim() : '';
+        const status = modalProjectStatus ? normalizeProjectStatus(modalProjectStatus.value) : 'not_started';
         const speaker = modalSpeaker ? modalSpeaker.value.trim() : '';
         const source = modalSource ? modalSource.value.trim() : '';
+        const link = modalLink ? modalLink.value.trim() : '';
 
         if (!projectName) {
             showModalStatus('Please enter a project name.', 'error');
@@ -376,8 +420,10 @@
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
                     name: projectName,
+                    status,
                     speaker,
-                    source
+                    source,
+                    link
                 })
             });
 
@@ -435,15 +481,60 @@
         editingProject = { index, field };
 
         const project = projects[index];
-        const isSource = field === 'source';
-        const currentValue = isSource ? (project.source || '') : (project.speaker || '');
+        const fieldConfig = {
+            name: {
+                title: 'Edit Project Name',
+                label: 'Project Name',
+                value: getDisplayProjectName(project.name),
+                inputType: 'text'
+            },
+            status: {
+                title: 'Edit Status',
+                label: 'Status',
+                value: normalizeProjectStatus(project.status),
+                inputType: 'select'
+            },
+            speaker: {
+                title: 'Edit Speaker',
+                label: 'Speaker (B1)',
+                value: project.speaker || '',
+                inputType: 'text'
+            },
+            source: {
+                title: 'Edit Source',
+                label: 'Source (B2)',
+                value: project.source || '',
+                inputType: 'text'
+            },
+            link: {
+                title: 'Edit Link',
+                label: 'Link',
+                value: project.link || '',
+                inputType: 'url'
+            }
+        };
 
-        if (editFieldTitle) editFieldTitle.textContent = isSource ? 'Edit Source / Link' : 'Edit Speaker';
-        if (editFieldLabel) editFieldLabel.textContent = isSource ? 'Source / Link (B2)' : 'Speaker (B1)';
-        if (editFieldInput) editFieldInput.value = currentValue;
+        const config = fieldConfig[field] || fieldConfig.speaker;
+        const isSelect = config.inputType === 'select';
+
+        if (editFieldTitle) editFieldTitle.textContent = config.title;
+        if (editFieldLabel) editFieldLabel.textContent = config.label;
+        if (editFieldInput) {
+            editFieldInput.type = config.inputType === 'url' ? 'url' : 'text';
+            editFieldInput.value = isSelect ? '' : config.value;
+            editFieldInput.style.display = isSelect ? 'none' : '';
+        }
+        if (editFieldSelect) {
+            editFieldSelect.value = isSelect ? config.value : 'not_started';
+            editFieldSelect.style.display = isSelect ? '' : 'none';
+        }
 
         editFieldModal.style.display = 'flex';
-        if (editFieldInput) editFieldInput.focus();
+        if (isSelect && editFieldSelect) {
+            editFieldSelect.focus();
+        } else if (editFieldInput) {
+            editFieldInput.focus();
+        }
     }
 
     function closeEditFieldModal() {
@@ -456,22 +547,29 @@
 
         const { index, field } = editingProject;
         const project = projects[index];
-        const newValue = editFieldInput ? editFieldInput.value.trim() : '';
-        const isSource = field === 'source';
+        const newValue = field === 'status'
+            ? (editFieldSelect ? normalizeProjectStatus(editFieldSelect.value) : 'done')
+            : (editFieldInput ? editFieldInput.value.trim() : '');
 
-        // Prepare body
+        if (field === 'name' && !newValue) {
+            alert('Project name is required.');
+            return;
+        }
+
         const updateBody = {
             id: project.id,
-            speaker: isSource ? project.speaker : newValue,
-            source: isSource ? newValue : project.source
+            name: field === 'name' ? newValue : getDisplayProjectName(project.name),
+            status: field === 'status' ? newValue : normalizeProjectStatus(project.status),
+            speaker: field === 'speaker' ? newValue : (project.speaker || ''),
+            source: field === 'source' ? newValue : (project.source || ''),
+            link: field === 'link' ? newValue : (project.link || '')
         };
 
-        // Optimistically update frontend UI
-        if (isSource) {
-            project.source = newValue;
-        } else {
-            project.speaker = newValue;
-        }
+        project.name = updateBody.name;
+        project.status = updateBody.status;
+        project.speaker = updateBody.speaker;
+        project.source = updateBody.source;
+        project.link = updateBody.link;
         renderProjects();
         closeEditFieldModal();
 

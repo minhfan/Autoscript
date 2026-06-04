@@ -2614,10 +2614,14 @@ function renderTable() {
 // ── 10. DRAW TIMELINE MARKERS ────────────────────────────────
 function drawMarkers() {
     Array.from(timelineWrapper.querySelectorAll('.marker-range')).forEach(el => el.remove());
-    if (!video.duration || !logs.length) return;
+    
+    const masterLogs = tabLogsCache['Full-show'] || logs;
+    if (!video.duration || !masterLogs.length) return;
+    
+    const timelineWidthPx = timelineWrapper.clientWidth || 1;
 
     // Sort by duration descending so longer items render first (behind shorter ones)
-    const sortedLogs = logs.map((log, origIndex) => ({ log, origIndex })).sort((a, b) => {
+    const sortedLogs = masterLogs.map((log, origIndex) => ({ log, origIndex })).sort((a, b) => {
         const durA = (a.log.outSec && a.log.outSec > a.log.inSec) ? (a.log.outSec - a.log.inSec) : 0;
         const durB = (b.log.outSec && b.log.outSec > b.log.inSec) ? (b.log.outSec - b.log.inSec) : 0;
         return durB - durA;
@@ -2687,7 +2691,7 @@ function drawMarkers() {
         marker.addEventListener('mousedown', ev => { 
             if (ev.target.closest('.action-pill')) {
                 ev.stopPropagation();
-                window.jumpToTC(origIndex, 'tcin');
+                window.jumpToTC(origIndex, 'tcin', true);
             }
         });
         
@@ -3130,8 +3134,11 @@ function clearAutoSelectedTC() {
     tcAutoSelected = false;
 }
 
-window.jumpToTC = function(index, field) {
-    const log = logs[index];
+window.jumpToTC = function(index, field, useMaster = false) {
+    const logArray = useMaster ? (tabLogsCache['Full-show'] || logs) : logs;
+    const log = logArray[index];
+    if (!log) return;
+    
     tcAutoSelected = true;
     tcJumpWait = true;
     
@@ -4358,7 +4365,7 @@ if (btnZoomDrag) {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
             if (!isZoomDragging) {
-                zoomMenu.style.display = zoomMenu.style.display === 'block' ? 'none' : 'block';
+                applyZoom(1);
             }
         }
         document.addEventListener('mousemove', onMouseMove);

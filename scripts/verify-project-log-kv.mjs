@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { APP_JS_MODULES } from "./lib/build-app-page.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -8,7 +9,10 @@ const projectRoot = path.resolve(__dirname, "..");
 
 async function main() {
   const worker = await readFile(path.join(projectRoot, "src/worker.js"), "utf8");
-  const app = await readFile(path.join(projectRoot, "src/app.html"), "utf8");
+  const jsModules = await Promise.all(
+    APP_JS_MODULES.map((relativePath) => readFile(path.join(projectRoot, relativePath), "utf8"))
+  );
+  const appJs = jsModules.join("\n");
 
   const checks = [
     {
@@ -21,12 +25,12 @@ async function main() {
     {
       label: "app has KV-backed project log helpers",
       ok:
-        app.includes("loadProjectLogsFromKV") &&
-        app.includes("saveProjectLogsToKV"),
+        appJs.includes("loadProjectLogsFromKV") &&
+        appJs.includes("saveProjectLogsToKV"),
     },
     {
       label: "app no longer persists main log list to autoscript_tcp_v9",
-      ok: !app.includes("localStorage.setItem('autoscript_tcp_v9'"),
+      ok: !appJs.includes("localStorage.setItem('autoscript_tcp_v9'"),
     },
   ];
 

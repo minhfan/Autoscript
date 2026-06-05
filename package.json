@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "sync:app-source": "node scripts/build-app-source.js",
     "verify:refactor": "node scripts/verify-refactor.js",
     "sync:public": "node scripts/build-public.js",
     "deploy": "npm run sync:public && wrangler deploy",

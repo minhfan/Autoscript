@@ -1,6 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  APP_PUBLIC_ASSET_DIR,
+  APP_PUBLIC_PATH,
+  syncAppRuntimeAssets,
+  writeBuiltAppPage,
+} from "./lib/build-app-page.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,78 +18,20 @@ async function readRelative(relativePath) {
   return readFile(path.join(projectRoot, relativePath), "utf8");
 }
 
-// ── Build /app (main webapp) ─────────────────────────────────
-// Strategy:
-//   1. If src/app/template.html exists → modular build (inject CSS + JS modules)
-//   2. Otherwise → copy monolith src/app.html as-is (legacy fallback)
 async function buildAppPage() {
-  const templatePath = path.join(projectRoot, "src/app/template.html");
+  const result = await writeBuiltAppPage(APP_PUBLIC_PATH);
+  await syncAppRuntimeAssets(APP_PUBLIC_ASSET_DIR);
 
-  let useModular = false;
-  try {
-    await readFile(templatePath, "utf8");
-    useModular = true;
-  } catch (_) {
-    // template not yet created → fallback to monolith
-  }
-
-  if (useModular) {
-    await buildAppPageModular(templatePath);
+  if (result.mode === "modular") {
+    console.log(
+      `[Autoscript] ✓ Built public/app.html (modular: ${result.cssModuleCount} CSS + ${result.jsModuleCount} JS modules)`
+    );
+    console.log(`[Autoscript] ✓ Synced public assets to ${APP_PUBLIC_ASSET_DIR}`);
   } else {
-    const html = await readRelative("src/app.html");
-    await writeFile(path.join(publicDir, "app.html"), html, "utf8");
     console.log("[Autoscript] ✓ Built public/app.html (monolith)");
   }
 }
 
-// CSS modules in dependency order (design-system must be first)
-const CSS_MODULES = [
-  "src/app/styles/design-system.css",
-  "src/app/styles/layout.css",
-  "src/app/styles/timeline.css",
-  "src/app/styles/table.css",
-  "src/app/styles/modals.css",
-];
-
-// JS modules in dependency order (constants → state → ... → init last)
-const JS_MODULES = [
-  "src/app/js/constants.js",
-  "src/app/js/timecode.js",
-  "src/app/js/state.js",
-  "src/app/js/shortcuts.js",
-  "src/app/js/modals.js",
-  "src/app/js/api.js",
-  "src/app/js/storage.js",
-  "src/app/js/renderer.js",
-  "src/app/js/playback.js",
-  "src/app/js/timeline.js",
-  "src/app/js/tabs.js",
-  "src/app/js/toolbar.js",
-  "src/app/js/init.js",
-];
-
-async function buildAppPageModular(templatePath) {
-  const [template, ...moduleContents] = await Promise.all([
-    readFile(templatePath, "utf8"),
-    ...CSS_MODULES.map(p => readRelative(p)),
-    ...JS_MODULES.map(p => readRelative(p)),
-  ]);
-
-  const cssContents = moduleContents.slice(0, CSS_MODULES.length);
-  const jsContents  = moduleContents.slice(CSS_MODULES.length);
-
-  const combinedCSS = cssContents.join("\n\n");
-  const combinedJS  = jsContents.join("\n\n");
-
-  let html = template
-    .replace("<!-- INJECT_STYLES -->", `<style>\n${combinedCSS}\n</style>`)
-    .replace("<!-- INJECT_SCRIPTS -->", `<script>\n${combinedJS}\n</script>`);
-
-  await writeFile(path.join(publicDir, "app.html"), html, "utf8");
-  console.log("[Autoscript] ✓ Built public/app.html (modular: " + CSS_MODULES.length + " CSS + " + JS_MODULES.length + " JS modules)");
-}
-
-// ── Build /login ──────────────────────────────────────────────
 async function buildLoginPage() {
   const [html, css, js] = await Promise.all([
     readRelative("src/login.html"),
@@ -99,7 +47,6 @@ async function buildLoginPage() {
   console.log("[Autoscript] ✓ Built public/login.html");
 }
 
-// ── Build /project ────────────────────────────────────────────
 async function buildProjectPage() {
   const [html, css, js] = await Promise.all([
     readRelative("src/project.html"),
@@ -115,7 +62,6 @@ async function buildProjectPage() {
   console.log("[Autoscript] ✓ Built public/project.html");
 }
 
-// ── Build /setting ────────────────────────────────────────────
 async function buildSettingPage() {
   const [html, css, js] = await Promise.all([
     readRelative("src/setting.html"),
@@ -131,7 +77,6 @@ async function buildSettingPage() {
   console.log("[Autoscript] ✓ Built public/setting.html");
 }
 
-// ── Build / (redirect → /login) ───────────────────────────────
 async function buildRedirectIndex() {
   const redirectHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -162,7 +107,6 @@ async function buildRedirectIndex() {
   console.log("[Autoscript] ✓ Built public/index.html (redirect → login)");
 }
 
-// ── Main Build ────────────────────────────────────────────────
 async function buildAll() {
   await mkdir(publicDir, { recursive: true });
 

@@ -124,15 +124,21 @@ function getSpreadsheetIdFromPath() {
 }
 
 async function resolveCurrentSpreadsheetMeta() {
-    if (!currentSpreadsheetId) return;
+    let slugOrId = getSpreadsheetIdFromPath();
+    if (!slugOrId) return;
 
     try {
-        const res = await fetch(`/tcpscript/api/projects/meta?id=${encodeURIComponent(currentSpreadsheetId)}`, {
+        const res = await fetch(`/tcpscript/api/projects/meta?id=${encodeURIComponent(slugOrId)}`, {
             credentials: 'same-origin'
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+            currentSpreadsheetId = slugOrId;
+            return;
+        }
 
         const project = await res.json();
+        currentSpreadsheetId = project.id || slugOrId;
+        
         currentSpreadsheetUrl  = project.url  || currentSpreadsheetUrl  || `https://docs.google.com/spreadsheets/d/${currentSpreadsheetId}/edit`;
         currentSpreadsheetName = project.name || currentSpreadsheetName || 'Google Sheet';
         currentProjectVideoMeta = sanitizeProjectVideoMeta(project.videoMeta) || getCachedProjectVideoMeta(currentSpreadsheetId);
@@ -142,6 +148,7 @@ async function resolveCurrentSpreadsheetMeta() {
         renderProjectVideoMeta();
     } catch (error) {
         console.warn('[API] Failed to resolve project metadata:', error);
+        currentSpreadsheetId = slugOrId;
         currentProjectVideoMeta = getCachedProjectVideoMeta(currentSpreadsheetId);
         renderProjectVideoMeta();
     }

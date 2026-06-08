@@ -147,7 +147,7 @@
     }
 
     function buildProjectAppUrl(project) {
-        return `/tcpscript/app/${encodeURIComponent(project.id)}`;
+        return `/tcpscript/app/${encodeURIComponent(project.slug || project.id)}`;
     }
 
     function isLikelyExternalLink(value) {

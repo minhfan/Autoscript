@@ -53,7 +53,7 @@ export default {
                 return new Response('Project not found', { status: 404 });
             }
             const userProjects = await env.SETTINGS_KV.get(`user_projects:${user.username}`, { type: 'json' }) || [];
-            const matchedProject = userProjects.find((item) => item.id === requestedProjectId);
+            const matchedProject = userProjects.find((item) => item.slug === requestedProjectId || item.id === requestedProjectId);
             if (!matchedProject) {
                 return new Response('Project not found', { status: 404 });
             }
@@ -367,13 +367,13 @@ async function handleGetProjects(username, env) {
 }
 
 async function handleGetProjectMeta(username, url, env) {
-    const projectId = (url.searchParams.get('id') || '').trim();
-    if (!projectId) {
+    const requestedId = (url.searchParams.get('id') || '').trim();
+    if (!requestedId) {
         return jsonResponse({ error: 'Project ID is required' }, 400);
     }
 
     const projects = await env.SETTINGS_KV.get(`user_projects:${username}`, { type: 'json' }) || [];
-    const project = projects.find((item) => item.id === projectId);
+    const project = projects.find(p => p.slug === requestedId || p.id === requestedId);
 
     if (!project) {
         return jsonResponse({ error: 'Project not found' }, 404);
@@ -524,6 +524,7 @@ async function handleCreateProject(username, request, env) {
         const newProject = {
             id: gasData.spreadsheetId,
             name: gasData.spreadsheetName,
+            slug: generateProjectSlug(gasData.spreadsheetName, gasData.spreadsheetId),
             url: gasData.spreadsheetUrl,
             status: status,
             speaker: speaker,
@@ -575,6 +576,7 @@ async function handleUpdateProject(username, request, env) {
 
         const project = projects[projectIndex];
         project.name = name;
+        project.slug = generateProjectSlug(name, project.id);
         project.status = status;
         project.speaker = speaker;
         project.source = source;
@@ -791,6 +793,17 @@ function jsonResponse(data, status = 200, extraHeaders = {}) {
             ...extraHeaders,
         },
     });
+}
+
+function generateProjectSlug(name, id) {
+    const slug = String(name || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    const shortId = String(id || '').substring(0, 4).toLowerCase();
+    return slug ? `${slug}-${shortId}` : `project-${shortId}`;
 }
 
 // ── Google Sheets Proxy Endpoint ──────────────────────────────────

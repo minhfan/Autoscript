@@ -66,8 +66,28 @@ function handleGoogleAuthClick() {}
         }
         if (isResizingH2) {
             const rect = leftCol.getBoundingClientRect();
-            const formH = rect.bottom - e.clientY;
-            if (formH > 100 && formH < rect.height - 250) { formSection.style.height = formH + 'px'; formSection.style.flex = 'none'; }
+            let formH = rect.bottom - e.clientY;
+            
+            const video = document.getElementById('videoPlayer');
+            if (video && video.videoWidth && video.videoHeight) {
+                const videoRatio = video.videoHeight / video.videoWidth;
+                const videoWrapper = document.querySelector('.video-wrapper');
+                if (videoWrapper) {
+                    const maxVideoH = videoWrapper.clientWidth * videoRatio;
+                    const extrasH = Math.max(0, videoSection.offsetHeight - videoWrapper.offsetHeight);
+                    const maxVideoSectionH = maxVideoH + extrasH;
+                    
+                    const newVideoSectionH = rect.height - formH - 8;
+                    if (newVideoSectionH > maxVideoSectionH) {
+                        formH = rect.height - maxVideoSectionH - 8;
+                    }
+                }
+            }
+            
+            if (formH > 100 && formH < rect.height - 250) { 
+                formSection.style.height = formH + 'px'; 
+                formSection.style.flex = 'none'; 
+            }
         }
         if (isDraggingFloat && floatPanel) {
             floatPanel.style.left = (e.clientX - floatOffsetX) + 'px';
@@ -154,23 +174,35 @@ document.querySelectorAll('#actionButtonGroup .action-button').forEach(btn =>
 );
 
 // ── Video Upload ──────────────────────────────────────────────
-const upload = document.getElementById('videoUpload');
-if (upload) {
-    upload.addEventListener('change', e => {
-        if (!e.target.files[0]) return;
-        const selectedFile = e.target.files[0];
-        const video = document.getElementById('videoPlayer');
-        if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
-        video.src = URL.createObjectURL(selectedFile);
-        document.getElementById('uploadText').innerText = selectedFile.name;
-        pendingVideoMeta = {
-            fileName: selectedFile.name, fileSize: selectedFile.size,
-            fileType: selectedFile.type, lastModified: selectedFile.lastModified,
-            durationSec: 0, updatedAt: new Date().toISOString()
-        };
-        persistProjectVideoMeta(pendingVideoMeta);
-    });
+function handleVideoUpload(e) {
+    if (!e.target.files[0]) return;
+    const selectedFile = e.target.files[0];
+    const video = document.getElementById('videoPlayer');
+    if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
+    video.src = URL.createObjectURL(selectedFile);
+    
+    const uploadText = document.getElementById('uploadText');
+    if (uploadText) uploadText.innerText = selectedFile.name;
+    
+    const uploadLabel = document.getElementById('uploadLabel');
+    if (uploadLabel) uploadLabel.classList.remove('empty');
+    
+    const emptyState = document.getElementById('videoEmptyState');
+    if (emptyState) emptyState.style.display = 'none';
+    
+    pendingVideoMeta = {
+        fileName: selectedFile.name, fileSize: selectedFile.size,
+        fileType: selectedFile.type, lastModified: selectedFile.lastModified,
+        durationSec: 0, updatedAt: new Date().toISOString()
+    };
+    persistProjectVideoMeta(pendingVideoMeta);
 }
+
+const upload = document.getElementById('videoUpload');
+if (upload) upload.addEventListener('change', handleVideoUpload);
+
+const uploadCenter = document.getElementById('videoUploadCenter');
+if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
 
 // ── Video Events ──────────────────────────────────────────────
 (function bindVideoEvents() {
@@ -180,6 +212,8 @@ if (upload) {
     video.addEventListener('loadedmetadata', () => {
         document.getElementById('tcStart').innerText = '00:00';
         document.getElementById('tcEnd').innerText   = formatBoundTC(video.duration);
+        const uploadLabel = document.getElementById('uploadLabel');
+        if (uploadLabel) uploadLabel.classList.remove('empty');
         drawMarkers(); renderTimelineTicks();
         if (pendingVideoMeta) {
             pendingVideoMeta.durationSec = video.duration || 0;

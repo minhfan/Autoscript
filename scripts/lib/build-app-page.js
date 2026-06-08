@@ -41,11 +41,11 @@ export const APP_JS_MODULES = [
 export const APP_HTML_COMPONENTS = {
   "<!-- INJECT_COMPONENT:HEADER -->": "src/app/components/header.html",
   "<!-- INJECT_COMPONENT:WORKSPACE -->": "src/app/components/workspace.html",
-  "<!-- INJECT_COMPONENT:SHEET_TABS -->": "src/app/components/sheet-tabs.html",
   "<!-- INJECT_COMPONENT:VIDEO_PANEL -->": "src/app/components/video-panel.html",
   "<!-- INJECT_COMPONENT:TIMELINE_PANEL -->": "src/app/components/timeline-panel.html",
   "<!-- INJECT_COMPONENT:FORM_PANEL -->": "src/app/components/form-panel.html",
   "<!-- INJECT_COMPONENT:TABLE_PANEL -->": "src/app/components/table-panel.html",
+  "<!-- INJECT_COMPONENT:SHEET_TABS -->": "src/app/components/sheet-tabs.html",
   "<!-- INJECT_COMPONENT:MODALS -->": "src/app/components/modals.html",
   "<!-- INJECT_COMPONENT:HELP_PANEL -->": "src/app/components/help-panel.html",
   "<!-- INJECT_COMPONENT:SETTINGS_MODAL -->": "src/app/components/settings-modal.html",
@@ -75,12 +75,12 @@ async function hasAppTemplate() {
   }
 }
 
-function getCssAssetUrl(modulePath) {
-  return `${APP_ASSET_URL_PREFIX}/styles/${path.basename(modulePath)}`;
+function getCssAssetUrl(modulePath, timestamp) {
+  return `${APP_ASSET_URL_PREFIX}/styles/${path.basename(modulePath)}?v=${timestamp}`;
 }
 
-function getJsAssetUrl(modulePath) {
-  return `${APP_ASSET_URL_PREFIX}/js/${path.basename(modulePath)}`;
+function getJsAssetUrl(modulePath, timestamp) {
+  return `${APP_ASSET_URL_PREFIX}/js/${path.basename(modulePath)}?v=${timestamp}`;
 }
 
 export async function buildAppPageHtml() {
@@ -101,12 +101,14 @@ export async function buildAppPageHtml() {
     })
   );
 
+  const timestamp = Date.now();
+  
   const styleTags = APP_CSS_MODULES
-    .map((modulePath) => `    <link rel="stylesheet" href="${getCssAssetUrl(modulePath)}">`)
+    .map((modulePath) => `    <link rel="stylesheet" href="${getCssAssetUrl(modulePath, timestamp)}">`)
     .join("\n");
 
   const scriptTags = APP_JS_MODULES
-    .map((modulePath) => `    <script src="${getJsAssetUrl(modulePath)}"></script>`)
+    .map((modulePath) => `    <script src="${getJsAssetUrl(modulePath, timestamp)}"></script>`)
     .join("\n");
 
   const htmlWithComponents = componentEntries.reduce(

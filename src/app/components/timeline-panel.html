@@ -1,16 +1,4 @@
-            <div class="timeline-section" id="timelineSection" style="position: relative;">
-                <div class="timeline-zoom-controls" style="position: absolute; top: 12px; right: 12px; z-index: 10;">
-                    <div style="position: relative; display: inline-block;">
-                        <div class="control-group" style="margin: 0; display: flex; align-items: center; gap: 8px;">
-                            <span class="control-label" style="margin: 0; font-size: 8.33px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Zoom (Z)</span>
-                            <div id="btnZoomDrag" class="speed-control" style="cursor: ew-resize; user-select: none; width: 64px; text-align: center; margin: 0; padding: 4px 12px; height: auto;" title="Drag L/R or Click">
-                                <span id="zoomText">1.00x</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="timeline-full-container">
+                <div class="timeline-full-container" style="margin-top: 10px;">
                     <div id="tcJumpOverlay" class="tc-jump-overlay">
                         <input type="text" id="tcJumpInput" class="tc-jump-input" placeholder="00:00:00:00" />
                         <div class="tc-jump-actions">
@@ -42,4 +30,3 @@
                     </div>
                     <span class="tc-bound" id="tcEnd" title="Jump to End" style="margin-left: 10px;">00:00:00:00</span>
                 </div>
-            </div>

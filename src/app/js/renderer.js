@@ -210,6 +210,11 @@ function drawMarkers() {
             timelineWrapper.appendChild(swapMarker);
         }
     });
+
+    const maxLevel = placed.reduce((max, p) => Math.max(max, p.level), 0);
+    const requiredTopSpace = 40 + (maxLevel * 22);
+    const wrapper = document.querySelector('.custom-timeline-wrapper');
+    if (wrapper) wrapper.style.paddingTop = requiredTopSpace + 'px';
 }
 
 // ── Render Timeline Tick Labels ───────────────────────────────
@@ -293,15 +298,25 @@ function formatVideoMetaDate(value) {
 }
 
 function renderProjectVideoMeta() {
-    const summaryEl = document.getElementById('videoMetaSummary');
-    const video     = document.getElementById('videoPlayer');
-    if (!summaryEl) return;
+    const emptyState = document.getElementById('videoEmptyState');
+    const summaryCenter = document.getElementById('videoMetaSummaryCenter');
+    const video = document.getElementById('videoPlayer');
+    if (!emptyState || !summaryCenter) return;
 
     const hasLoadedVideo = !!(video && (video.currentSrc || video.src));
-    if (hasLoadedVideo) { summaryEl.style.display = 'none'; summaryEl.innerHTML = ''; return; }
+    if (hasLoadedVideo) { 
+        emptyState.style.display = 'none'; 
+        return; 
+    }
+    
+    emptyState.style.display = 'flex';
 
     const meta = sanitizeProjectVideoMeta(currentProjectVideoMeta);
-    if (!meta) { summaryEl.style.display = 'none'; summaryEl.innerHTML = ''; return; }
+    if (!meta) { 
+        summaryCenter.style.display = 'none'; 
+        summaryCenter.innerHTML = ''; 
+        return; 
+    }
 
     const detailParts = [];
     const sizeText     = formatVideoMetaBytes(meta.fileSize);
@@ -311,8 +326,8 @@ function renderProjectVideoMeta() {
     if (durationText) detailParts.push(durationText);
     if (updatedText)  detailParts.push(updatedText);
 
-    summaryEl.style.display = 'block';
-    summaryEl.innerHTML = `<strong>Video gần nhất:</strong> ${escapeHtml(meta.fileName)}${detailParts.length ? `<br>${escapeHtml(detailParts.join(' · '))}` : ''}<br>Chọn lại file để tiếp tục trên máy này.`;
+    summaryCenter.style.display = 'block';
+    summaryCenter.innerHTML = `<strong>Video gần nhất:</strong> ${escapeHtml(meta.fileName)}${detailParts.length ? `<br>${escapeHtml(detailParts.join(' · '))}` : ''}<br>Chọn lại file để tiếp tục trên máy này.`;
 }
 
 // ── Update Active Sheet Link in header ───────────────────────
@@ -420,7 +435,6 @@ function renderSettings() {
     if (lAction) lAction.innerText = `ACTION (${formatShortcutDisplay(shortcuts.action)}):`;
     if (lScript) lScript.innerText = `SCRIPT (${formatShortcutDisplay(shortcuts.script)}):`;
     if (lNote)   lNote.innerText   = `NOTE (${formatShortcutDisplay(shortcuts.note)}):`;
-    if (uText)   uText.innerText   = `Click or press '${formatShortcutDisplay(shortcuts.video)}' to upload a video file`;
 
     // Google Sheets URL input
     const sheetsUrlInput = document.getElementById('sheetsUrlInput');

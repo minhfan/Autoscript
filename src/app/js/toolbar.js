@@ -155,7 +155,7 @@ window.jumpToTC = function(index, field, useMaster = false) {
         if (pts.length >= 2) {
             const minSec = Math.min(...pts), maxSec = Math.max(...pts);
             const validDur = maxSec - minSec;
-            if (validDur > 0) {
+            if (validDur > 0 && video && video.duration && !isNaN(video.duration)) {
                 targetZoom = Math.max(1, Math.min(50, video.duration / (validDur * 3)));
                 centerSec  = minSec + validDur / 2;
             }

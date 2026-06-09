@@ -11,11 +11,11 @@
         <link
             href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
             rel="stylesheet">
-            <link rel="stylesheet" href="/tcpscript/assets/app/styles/design-system.css?v=1781030875387">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/layout.css?v=1781030875387">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/timeline.css?v=1781030875387">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/table.css?v=1781030875387">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/modals.css?v=1781030875387">
+            <link rel="stylesheet" href="/tcpscript/assets/app/styles/design-system.css?v=1781032270926">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/layout.css?v=1781032270926">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/timeline.css?v=1781032270926">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/table.css?v=1781032270926">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/modals.css?v=1781032270926">
         <style>
             .context-menu {
                 position: absolute;
@@ -450,41 +450,38 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center; height: 28px;">
                                     <label id="labelScript" style="margin-bottom: 0;">SCRIPT (S):</label>
                                     <div style="display: flex; gap: 4px;">
-                                        <button type="button" class="tool-btn" onclick="formatText('inputScript', 'bold')" style="padding: 2px 8px; font-size: 11px;" title="Bold"><b>B</b></button>
-                                        <button type="button" class="tool-btn" onclick="formatText('inputScript', 'italic')" style="padding: 2px 8px; font-size: 11px;" title="Italic"><i>I</i></button>
-                                        <button type="button" class="tool-btn" onclick="formatText('inputScript', 'strikeThrough')" style="padding: 2px 8px; font-size: 11px;" title="Strikethrough"><s>S</s></button>
+                                        <button type="button" id="btnScriptBold" class="tool-btn" onmousedown="event.preventDefault()" onclick="formatText('inputScript', 'bold')" style="padding: 2px 8px; font-size: 11px;" title="Bold"><b>B</b></button>
+                                        <button type="button" id="btnScriptItalic" class="tool-btn" onmousedown="event.preventDefault()" onclick="formatText('inputScript', 'italic')" style="padding: 2px 8px; font-size: 11px;" title="Italic"><i>I</i></button>
+                                        <button type="button" id="btnScriptStrike" class="tool-btn" onmousedown="event.preventDefault()" onclick="formatText('inputScript', 'strikeThrough')" style="padding: 2px 8px; font-size: 11px;" title="Strikethrough"><s>S</s></button>
                                     </div>
                                 </div>
                                 <div id="inputScript" class="rich-textarea" contenteditable="true"
                                     style="flex: 1; overflow-y: auto; background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); padding: 8px; color: var(--text-main); font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif; outline: none; white-space: pre-wrap; word-wrap: break-word;"></div>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0;">
-                                <label id="labelNote" style="margin-bottom: 0; line-height: 28px; height: 28px;">NOTE (N):</label>
+                                <div style="display: flex; justify-content: space-between; align-items: center; height: 28px;">
+                                    <label id="labelNote" style="margin-bottom: 0;">NOTE (N):</label>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button type="button" id="btnNoteBold" class="tool-btn" onmousedown="event.preventDefault()" onclick="formatText('inputNote', 'bold')" style="padding: 2px 8px; font-size: 11px;" title="Bold"><b>B</b></button>
+                                        <button type="button" id="btnNoteItalic" class="tool-btn" onmousedown="event.preventDefault()" onclick="formatText('inputNote', 'italic')" style="padding: 2px 8px; font-size: 11px;" title="Italic"><i>I</i></button>
+                                        <button type="button" id="btnNoteStrike" class="tool-btn" onmousedown="event.preventDefault()" onclick="formatText('inputNote', 'strikeThrough')" style="padding: 2px 8px; font-size: 11px;" title="Strikethrough"><s>S</s></button>
+                                    </div>
+                                </div>
                                 <div id="inputNote" class="rich-textarea" contenteditable="true" style="flex: 1; overflow-y: auto; background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); padding: 8px; color: var(--text-main); font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif; outline: none; white-space: pre-wrap; word-wrap: break-word;"></div>
                             </div>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 10px; width: 180px;">
+                        <div style="width: 180px; position: relative; min-height: 0;">
                             <style>
                                 #btnToolbarImport:hover, #btnToolbarImportShort:hover { background: rgba(255,255,255,0.05) !important; }
+                                #btnToolbarImport.full-import-scale { bottom: 0 !important; border-radius: var(--r-sm) !important; }
                             </style>
-                            <!-- Top Wrapper (Matches SCRIPT) -->
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0;">
-                                <div style="height: 28px;"></div>
-                                <div style="flex: 1; position: relative;">
-                                    <button type="button" id="btnToolbarImport" title="Import action (Shift+Enter)"
-                                        style="position: absolute; top: 0; bottom: -42px; left: 0; right: 0; z-index: 2; border: 1px solid var(--border-bright); border-bottom: 1px solid var(--border-bright); background: var(--bg-raised); color: var(--danger); font-size: 24px; cursor: pointer; transition: all 0.2s; border-radius: var(--r-sm) var(--r-sm) 0 0; display: flex; align-items: center; justify-content: center;">&#10140;</button>
-                                </div>
-                            </div>
-                            <!-- Bottom Wrapper (Matches NOTE) -->
-                            <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0;">
-                                <div style="height: 28px;"></div>
-                                <div style="flex: 1; position: relative;">
-                                    <div class="import-short-wrapper" style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; display: flex; background: var(--bg-raised); border: 1px solid var(--border-bright); border-top: none; border-radius: 0 0 var(--r-sm) var(--r-sm);">
-                                        <button type="button" id="btnToolbarImportShort" title="Import to specific Short tab"
-                                            style="flex: 1; border: none; background: transparent; color: var(--danger); font-size: 16px; cursor: pointer; transition: all 0.2s; border-radius: 0 0 var(--r-sm) var(--r-sm); display: flex; align-items: center; justify-content: center;">&#10140;<sub style="font-size: 9px; margin-left: 2px; font-weight: bold; position: relative; bottom: -2px;">S</sub></button>
-                                        <div class="floating-tab-menu" id="importShortFloatingMenu"></div>
-                                    </div>
-                                </div>
+                            <button type="button" id="btnToolbarImport" title="Import action (Shift+Enter)"
+                                style="position: absolute; top: 32px; bottom: calc(50% - 37px); left: 0; right: 0; z-index: 1; border: 1px solid var(--border-bright); border-bottom: 1px solid var(--border-bright); background: var(--bg-raised); color: var(--danger); font-size: 24px; cursor: pointer; transition: all 0.2s; border-radius: var(--r-sm) var(--r-sm) 0 0; display: flex; align-items: center; justify-content: center;">&#10140;</button>
+
+                            <div class="import-short-wrapper" style="position: absolute; top: calc(50% + 37px); bottom: 0; left: 0; right: 0; z-index: 2; display: flex; background: var(--bg-raised); border: 1px solid var(--border-bright); border-top: none; border-radius: 0 0 var(--r-sm) var(--r-sm);">
+                                <button type="button" id="btnToolbarImportShort" title="Import to specific Short tab"
+                                    style="flex: 1; border: none; background: transparent; color: var(--danger); font-size: 16px; cursor: pointer; transition: all 0.2s; border-radius: 0 0 var(--r-sm) var(--r-sm); display: flex; align-items: center; justify-content: center;">&#10140;<sub style="font-size: 9px; margin-left: 2px; font-weight: bold; position: relative; bottom: -2px;">S</sub></button>
+                                <div class="floating-tab-menu" id="importShortFloatingMenu"></div>
                             </div>
                         </div>
                     </div>
@@ -773,20 +770,20 @@
             </div>
 
             </div>
-                <script src="/tcpscript/assets/app/js/constants.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/timecode.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/state.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/shortcuts.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/modals.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/api.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/storage.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/srt_parser.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/renderer.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/playback.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/timeline.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/tabs.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/toolbar.js?v=1781030875387"></script>
-    <script src="/tcpscript/assets/app/js/init.js?v=1781030875387"></script>
+                <script src="/tcpscript/assets/app/js/constants.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/timecode.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/state.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/shortcuts.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/modals.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/api.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/storage.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/srt_parser.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/renderer.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/playback.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/timeline.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/tabs.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/toolbar.js?v=1781032270926"></script>
+    <script src="/tcpscript/assets/app/js/init.js?v=1781032270926"></script>
     </body>
 
     </html>

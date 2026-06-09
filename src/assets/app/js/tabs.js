@@ -202,7 +202,14 @@ function buildImportShortMenu() {
 // ── Show/hide "Import Short" button ──────────────────────────
 function updateImportShortVisibility() {
     const wrapper = document.querySelector('.import-short-wrapper');
+    const topBtn = document.getElementById('btnToolbarImport');
     if (wrapper) {
-        wrapper.style.display = (currentSheetTab === 'Full-show') ? 'flex' : 'none';
+        if (currentSheetTab === 'Full-show') {
+            wrapper.style.display = 'flex';
+            if (topBtn) topBtn.classList.remove('full-import-scale');
+        } else {
+            wrapper.style.display = 'none';
+            if (topBtn) topBtn.classList.add('full-import-scale');
+        }
     }
 }

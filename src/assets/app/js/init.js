@@ -12,12 +12,15 @@ window.onerror = function(msg, src, line) {
 };
 
 // ── Read URL Params → Project Identity ───────────────────────
-window.formatText = function(inputId, command) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    input.focus();
+window.formatText = function(elementId, command) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.focus();
     document.execCommand(command, false, null);
-    input.dispatchEvent(new Event('input'));
+    if (typeof updateFormatButtonsState === 'function') {
+        updateFormatButtonsState();
+    }
+    el.dispatchEvent(new Event('input'));
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -418,6 +421,33 @@ const mMessage = document.getElementById('messageModal');
 if (mMessage) mMessage.addEventListener('click', e => { if (e.target === mMessage) closeMessageModal(); });
 
 // ── Global Mousedown (context menu + edit exit) ───────────────
+
+function updateFormatButtonsState() {
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.id === 'inputScript' || activeEl.id === 'inputNote')) {
+        const isBold = document.queryCommandState('bold');
+        const isItalic = document.queryCommandState('italic');
+        const isStrike = document.queryCommandState('strikeThrough');
+        
+        const prefix = activeEl.id === 'inputScript' ? 'btnScript' : 'btnNote';
+        
+        ['btnScriptBold', 'btnScriptItalic', 'btnScriptStrike', 'btnNoteBold', 'btnNoteItalic', 'btnNoteStrike'].forEach(id => {
+            const btn = document.getElementById(id);
+            if(btn) btn.classList.remove('active');
+        });
+
+        const btnBold = document.getElementById(prefix + 'Bold');
+        const btnItalic = document.getElementById(prefix + 'Italic');
+        const btnStrike = document.getElementById(prefix + 'Strike');
+
+        if(btnBold && isBold) btnBold.classList.add('active');
+        if(btnItalic && isItalic) btnItalic.classList.add('active');
+        if(btnStrike && isStrike) btnStrike.classList.add('active');
+    }
+}
+
+document.addEventListener('selectionchange', updateFormatButtonsState);
+
 document.addEventListener('mousedown', (e) => {
     if (e.target.closest('.tc-jump-overlay')) return;
     if (!e.target.closest('.context-menu')) {

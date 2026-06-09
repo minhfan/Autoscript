@@ -249,7 +249,12 @@ function doPost(e) {
       // Ghi dữ liệu mới nếu có
       if (values && values.length > 0) {
         values = cleanValues(sheet, values);
-        sheet.getRange(5, 1, values.length, values[0].length).setValues(values);
+        var richTextValues = values.map(function(row) {
+          return row.map(function(cellVal) {
+             return buildRichTextFromHtml(String(cellVal || ""));
+          });
+        });
+        sheet.getRange(5, 1, values.length, values[0].length).setRichTextValues(richTextValues);
       }
 
       return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
@@ -272,7 +277,12 @@ function doPost(e) {
 
       if (values && values.length > 0) {
         values = cleanValues(sheet, values);
-        sheet.getRange(targetRow, 1, values.length, values[0].length).setValues(values);
+        var richTextValues = values.map(function(row) {
+          return row.map(function(cellVal) {
+             return buildRichTextFromHtml(String(cellVal || ""));
+          });
+        });
+        sheet.getRange(targetRow, 1, values.length, values[0].length).setRichTextValues(richTextValues);
       }
 
       return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
@@ -289,6 +299,69 @@ function doPost(e) {
       message: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+/**
+ * Chuyển đổi chuỗi chứa thẻ HTML cơ bản (<b>, <i>, <strike>, <s>, <br>, <div>) 
+ * thành đối tượng RichTextValue của Google Sheets.
+ */
+function buildRichTextFromHtml(htmlStr) {
+  var text = htmlStr || "";
+  // Tạm xử lý <br> và <div> thành xuống dòng để dễ regex
+  text = text.replace(/<br\s*\/?>/gi, "\n");
+  text = text.replace(/<\/div>/gi, "\n").replace(/<div>/gi, "");
+  
+  if (text.indexOf("<") === -1) {
+    return SpreadsheetApp.newRichTextValue().setText(text).build();
+  }
+  
+  var regex = /(<[^>]+>)/g;
+  var parts = text.split(regex);
+  var plainText = "";
+  var formats = [];
+  
+  var isBold = false;
+  var isItalic = false;
+  var isStrikethrough = false;
+  
+  for (var i = 0; i < parts.length; i++) {
+    var part = parts[i];
+    if (!part) continue;
+    
+    if (part.charAt(0) === "<" && part.charAt(part.length - 1) === ">") {
+      var tag = part.toLowerCase();
+      if (tag === "<b>" || tag === "<strong>") isBold = true;
+      else if (tag === "</b>" || tag === "</strong>") isBold = false;
+      else if (tag === "<i>" || tag === "<em>") isItalic = true;
+      else if (tag === "</i>" || tag === "</em>") isItalic = false;
+      else if (tag === "<strike>" || tag === "<s>") isStrikethrough = true;
+      else if (tag === "</strike>" || tag === "</s>") isStrikethrough = false;
+      else {
+        var decodedPart = part.replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+        var start = plainText.length;
+        plainText += decodedPart;
+        formats.push({start: start, end: plainText.length, b: isBold, i: isItalic, s: isStrikethrough});
+      }
+    } else {
+      var decodedPart = part.replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+      var start = plainText.length;
+      plainText += decodedPart;
+      formats.push({start: start, end: plainText.length, b: isBold, i: isItalic, s: isStrikethrough});
+    }
+  }
+  
+  var builder = SpreadsheetApp.newRichTextValue().setText(plainText);
+  for (var j = 0; j < formats.length; j++) {
+    var fmt = formats[j];
+    if (fmt.start < fmt.end) {
+      var styleBuilder = SpreadsheetApp.newTextStyle()
+        .setBold(fmt.b)
+        .setItalic(fmt.i)
+        .setStrikethrough(fmt.s);
+      builder.setTextStyle(fmt.start, fmt.end, styleBuilder.build());
+    }
+  }
+  return builder.build();
 }
 
 /**

@@ -11,6 +11,7 @@ let customCenterTime = null;
 
 // ── Core Zoom API ─────────────────────────────────────────────
 function applyZoom(newZoom, immediate = false, centerSec = null) {
+    if (isNaN(newZoom) || typeof newZoom !== 'number') newZoom = 1;
     if (newZoom < 1)  newZoom = 1;
     if (newZoom > 50) newZoom = 50;
 

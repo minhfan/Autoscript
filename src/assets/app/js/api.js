@@ -272,3 +272,49 @@ async function persistProjectVideoMeta(meta) {
         console.warn('[API] Failed to sync video metadata:', error);
     }
 }
+
+// ── Custom Actions API ───────────────────────────────────────
+async function fetchCustomActions() {
+    try {
+        const pId = projectId || (new URLSearchParams(window.location.search)).get('projectId');
+        const fetchUrl = pId ? `/tcpscript/api/actions/${pId}` : '/tcpscript/api/actions';
+        const res = await fetch(fetchUrl, {
+            credentials: 'same-origin',
+            headers: { 'Authorization': `Bearer ${sessionToken}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                customActions = data;
+            } else if (data && Array.isArray(data.actions)) {
+                customActions = data.actions;
+            } else {
+                throw new Error("Invalid custom actions format");
+            }
+        } else {
+            customActions = ['DELETE', 'POP-UP', 'SWAP', 'QUESTION', 'QUOTE', 'NOTE', 'OTHERS'];
+        }
+    } catch (error) {
+        console.error('[API] Failed to fetch custom actions:', error);
+        customActions = ['DELETE', 'POP-UP', 'SWAP', 'QUESTION', 'QUOTE', 'NOTE', 'OTHERS'];
+    }
+}
+
+async function saveCustomActions(actionsArray) {
+    try {
+        const res = await fetch('/tcpscript/api/actions', {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionToken}`
+            },
+            body: JSON.stringify(actionsArray)
+        });
+        if (!res.ok) {
+            console.error('[API] Failed to save custom actions');
+        }
+    } catch (error) {
+        console.error('[API] Error saving custom actions:', error);
+    }
+}

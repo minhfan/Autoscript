@@ -12,6 +12,37 @@ window.onerror = function(msg, src, line) {
 };
 
 // ── Read URL Params → Project Identity ───────────────────────
+window.formatText = function(inputId, command) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.focus();
+    document.execCommand(command, false, null);
+    input.dispatchEvent(new Event('input'));
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    ['inputScript', 'inputNote'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            Object.defineProperty(el, 'value', {
+                get: function() { 
+                    let html = this.innerHTML;
+                    html = html.replace(/<div><br><\/div>/gi, '\n');
+                    html = html.replace(/<div>/gi, '\n');
+                    html = html.replace(/<\/div>/gi, '');
+                    html = html.replace(/<p>/gi, '\n');
+                    html = html.replace(/<\/p>/gi, '');
+                    html = html.replace(/<br>/gi, '\n');
+                    return html;
+                },
+                set: function(val) { 
+                    this.innerHTML = String(val).replace(/\n/g, '<br>'); 
+                }
+            });
+        }
+    });
+});
+
 (function applyUrlParams() {
     const urlParams  = new URLSearchParams(window.location.search);
     const urlSheetId   = urlParams.get('sheetId');
@@ -50,7 +81,6 @@ function handleGoogleAuthClick() {}
     const floatHeader   = document.getElementById('floatHelpHeader');
 
     if (resizerV)  resizerV.addEventListener('mousedown',  e => { isResizingV  = true; document.body.style.cursor = 'col-resize'; e.preventDefault(); });
-    if (resizerH1) resizerH1.addEventListener('mousedown', e => { isResizingH1 = true; document.body.style.cursor = 'row-resize'; e.preventDefault(); });
     if (resizerH2) resizerH2.addEventListener('mousedown', e => { isResizingH2 = true; document.body.style.cursor = 'row-resize'; e.preventDefault(); });
 
     window.addEventListener('mousemove', e => {
@@ -59,11 +89,7 @@ function handleGoogleAuthClick() {}
             const pct  = ((e.clientX - rect.left) / rect.width) * 100;
             if (pct > 20 && pct < 80) { leftCol.style.width = pct + '%'; rightCol.style.width = (100 - pct) + '%'; }
         }
-        if (isResizingH1) {
-            const rect = leftCol.getBoundingClientRect();
-            const topH = e.clientY - rect.top;
-            if (topH > 100 && topH < rect.height - 250) { videoSection.style.height = topH + 'px'; videoSection.style.flex = 'none'; }
-        }
+
         if (isResizingH2) {
             const rect = leftCol.getBoundingClientRect();
             let formH = rect.bottom - e.clientY;
@@ -394,8 +420,9 @@ if (mMessage) mMessage.addEventListener('click', e => { if (e.target === mMessag
 // ── Global Mousedown (context menu + edit exit) ───────────────
 document.addEventListener('mousedown', (e) => {
     if (e.target.closest('.tc-jump-overlay')) return;
-    const menu = document.getElementById('rowContextMenu');
-    if (menu && !e.target.closest('#rowContextMenu')) menu.style.display = 'none';
+    if (!e.target.closest('.context-menu')) {
+        document.querySelectorAll('.context-menu').forEach(menu => menu.style.display = 'none');
+    }
 
     if (editingRowIndex !== null) {
         const row = document.getElementById(`row-${editingRowIndex}`);
@@ -414,7 +441,9 @@ document.addEventListener('mousedown', (e) => {
 });
 
 document.addEventListener('contextmenu', e => {
-    if (!e.target.closest('.log-row') && !e.target.closest('.context-menu')) hideContextMenu();
+    if (!e.target.closest('.log-row') && !e.target.closest('.transcript-row') && !e.target.closest('.context-menu') && !e.target.closest('.action-button')) {
+        document.querySelectorAll('.context-menu').forEach(menu => menu.style.display = 'none');
+    }
 });
 
 // ── Script/Note sync while in edit mode ───────────────────────
@@ -432,6 +461,40 @@ document.getElementById('inputNote').addEventListener('input', function(e) {
         if (row) { const cells = row.querySelectorAll('td'); if (cells[7]) cells[7].innerText = e.target.value; }
     }
 });
+
+// Setup text size sliders independently
+const savedLogFontSize = localStorage.getItem('autoscript_log_font_size');
+const savedTranscriptFontSize = localStorage.getItem('autoscript_transcript_font_size');
+
+if (savedLogFontSize) {
+    document.documentElement.style.setProperty('--log-font-size', savedLogFontSize + 'px');
+    const logSlider = document.getElementById('actionLogSizeSlider');
+    if (logSlider) logSlider.value = savedLogFontSize;
+}
+if (savedTranscriptFontSize) {
+    document.documentElement.style.setProperty('--transcript-font-size', savedTranscriptFontSize + 'px');
+    const transcriptSlider = document.getElementById('transcriptSizeSlider');
+    if (transcriptSlider) transcriptSlider.value = savedTranscriptFontSize;
+}
+
+const logSlider = document.getElementById('actionLogSizeSlider');
+if (logSlider) {
+    logSlider.addEventListener('input', (e) => {
+        const val = e.target.value;
+        document.documentElement.style.setProperty('--log-font-size', val + 'px');
+        localStorage.setItem('autoscript_log_font_size', val);
+    });
+}
+
+const transcriptSlider = document.getElementById('transcriptSizeSlider');
+if (transcriptSlider) {
+    transcriptSlider.addEventListener('input', (e) => {
+        const val = e.target.value;
+        document.documentElement.style.setProperty('--transcript-font-size', val + 'px');
+        localStorage.setItem('autoscript_transcript_font_size', val);
+    });
+}
+
 
 // ── Table Filters ─────────────────────────────────────────────
 const searchInput = document.getElementById('searchInput');
@@ -536,7 +599,7 @@ document.addEventListener('keydown', e => {
     else if (matchShortcut(e, 'previewCut')){ e.preventDefault(); togglePreviewCut(); }
     else if (matchShortcut(e, 'script'))     { e.preventDefault(); document.getElementById('inputScript').focus(); }
     else if (matchShortcut(e, 'note'))       { e.preventDefault(); document.getElementById('inputNote').focus(); }
-    else if (matchShortcut(e, 'action'))     { e.preventDefault(); let idx = actionList.indexOf(selectedAction); idx = (Math.max(0, idx) + 1) % actionList.length; setSelectedAction(actionList[idx]); }
+    else if (matchShortcut(e, 'action'))     { e.preventDefault(); const list = customActions.length > 0 ? customActions.map(a => typeof a === 'string' ? a : a.name) : actionList; let idx = list.indexOf(selectedAction); idx = (Math.max(0, idx) + 1) % list.length; setSelectedAction(list[idx]); }
     else if (matchShortcut(e, 'video'))      { e.preventDefault(); const u = document.getElementById('videoUpload'); if (u) u.click(); }
     else if (e.code === 'ArrowRight')        { e.preventDefault(); skipTime(5); }
     else if (e.code === 'ArrowLeft')         { e.preventDefault(); skipTime(-5); }
@@ -570,7 +633,11 @@ window.updateGoogleUI = function() {
 // ── Bootstrap Sequence ────────────────────────────────────────
 renderSettings();
 resolveCurrentSpreadsheetMeta().finally(() => {
-    loadProjectLogsFromKV().finally(() => {
+    Promise.all([
+        loadProjectLogsFromKV(),
+        fetchCustomActions()
+    ]).finally(() => {
+        renderActionButtons();
         renderTable();
         updateActiveSheetUI();
         renderProjectVideoMeta();
@@ -580,3 +647,290 @@ resolveCurrentSpreadsheetMeta().finally(() => {
         console.log('[AUTOSCRIPT] ✓ Initialized successfully');
     });
 });
+
+
+// ── Transcript & Tabs Event Listeners ────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const importSrtBtn = document.getElementById('importSrt');
+    if (importSrtBtn) {
+        importSrtBtn.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const text = evt.target.result;
+                if (typeof parseSRT === 'function') {
+                    transcriptData = parseSRT(text);
+                    if (typeof renderTranscriptList === 'function') {
+                        renderTranscriptList();
+                    }
+                } else {
+                    console.error('parseSRT is not defined');
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    const searchInput = document.getElementById('searchTranscript');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            if (typeof renderTranscriptList === 'function') {
+                renderTranscriptList();
+            }
+        });
+    }
+
+    const btnExportSrt = document.getElementById('btnExportSrt');
+    if (btnExportSrt) {
+        btnExportSrt.addEventListener('click', () => {
+            if (!transcriptData || transcriptData.length === 0) {
+                alert('No subtitles to export. Please generate or import subtitles first.');
+                return;
+            }
+            let srt = '';
+            const pad = (num, size) => ('000' + num).slice(-size);
+            const formatSrtTime = (seconds) => {
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = Math.floor(seconds % 60);
+                const ms = Math.floor((seconds % 1) * 1000);
+                return `${pad(h, 2)}:${pad(m, 2)}:${pad(s, 2)},${pad(ms, 3)}`;
+            };
+            transcriptData.forEach((sub, i) => {
+                srt += (i + 1) + '\n';
+                srt += formatSrtTime(sub.start) + ' --> ' + formatSrtTime(sub.end) + '\n';
+                srt += sub.text + '\n\n';
+            });
+            const blob = new Blob([srt], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'subtitles.srt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Add a small delay so the browser can start the download before alerting
+            setTimeout(() => {
+                alert('SRT file exported successfully!');
+            }, 500);
+        });
+    }
+
+
+
+    const tabLogs = document.getElementById('tabLogs');
+    const tabTranscript = document.getElementById('tabTranscript');
+    const logsContainer = document.getElementById('logsContainer');
+    const transcriptContainer = document.getElementById('transcriptContainer');
+    
+    if (tabLogs && tabTranscript && logsContainer && transcriptContainer) {
+        tabLogs.addEventListener('click', () => {
+            tabLogs.classList.add('active');
+            tabTranscript.classList.remove('active');
+            logsContainer.style.display = 'flex';
+            transcriptContainer.style.display = 'none';
+        });
+        
+        tabTranscript.addEventListener('click', () => {
+            tabTranscript.classList.add('active');
+            tabLogs.classList.remove('active');
+            transcriptContainer.style.display = 'flex';
+            logsContainer.style.display = 'none';
+        });
+    }
+});
+
+// ── Custom Actions Settings Modal ────────────────────────────
+const btnActionSettings = document.getElementById('btnActionSettings');
+if (btnActionSettings) {
+    btnActionSettings.addEventListener('click', () => {
+        const modal = document.getElementById('actionSettingsModal');
+        if (modal) {
+            document.getElementById('newActionInput').value = '';
+            modal.style.display = 'flex';
+        }
+    });
+}
+
+const btnActionAdd = document.getElementById('btnActionAdd');
+if (btnActionAdd) {
+    btnActionAdd.addEventListener('click', async () => {
+        const input = document.getElementById('newActionInput');
+        if (input) {
+            const newName = input.value.trim().toUpperCase();
+            if (newName) {
+                // Check if exists
+                const exists = customActions.find(a => (typeof a === 'string' ? a : a.name) === newName);
+                if (!exists) {
+                    customActions.push(newName);
+                    await saveCustomActions(customActions);
+                    if (typeof renderActionButtons === 'function') renderActionButtons();
+                }
+                document.getElementById('actionSettingsModal').style.display = 'none';
+            }
+        }
+    });
+}
+
+// ── Context Menu for Action Buttons ─────────────────────────
+let currentContextAction = null;
+const actionContextMenu = document.getElementById('actionContextMenu');
+
+document.addEventListener('contextmenu', (e) => {
+    if (e.target.classList.contains('action-button')) {
+        e.preventDefault();
+        currentContextAction = e.target.dataset.action;
+        
+        if (actionContextMenu) {
+            actionContextMenu.style.display = 'block';
+            actionContextMenu.style.left = `${e.pageX}px`;
+            actionContextMenu.style.top = `${e.pageY}px`;
+            
+            // Set current color in picker
+            const customObj = customActions.find(a => typeof a === 'object' && a.name === currentContextAction);
+            const colorPicker = document.getElementById('cmenuColorPicker');
+            if (colorPicker) {
+                colorPicker.value = customObj ? customObj.color : (actionColors[currentContextAction] ? actionColors[currentContextAction].bg : '#1e293b');
+            }
+        }
+    } else {
+        if (actionContextMenu) actionContextMenu.style.display = 'none';
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (actionContextMenu && !actionContextMenu.contains(e.target)) {
+        actionContextMenu.style.display = 'none';
+    }
+});
+
+document.getElementById('cmenuRename')?.addEventListener('click', async () => {
+    if (!currentContextAction) return;
+    const newName = prompt('Rename action to:', currentContextAction);
+    if (newName && newName.trim()) {
+        const uppercaseName = newName.trim().toUpperCase();
+        // Rename in customActions
+        for (let i = 0; i < customActions.length; i++) {
+            if (typeof customActions[i] === 'string' && customActions[i] === currentContextAction) {
+                customActions[i] = uppercaseName;
+            } else if (typeof customActions[i] === 'object' && customActions[i].name === currentContextAction) {
+                customActions[i].name = uppercaseName;
+            }
+        }
+        await saveCustomActions(customActions);
+        if (typeof renderActionButtons === 'function') renderActionButtons();
+        actionContextMenu.style.display = 'none';
+    }
+});
+
+document.getElementById('cmenuColorPicker')?.addEventListener('change', async (e) => {
+    if (!currentContextAction) return;
+    const newColor = e.target.value;
+    
+    let found = false;
+    for (let i = 0; i < customActions.length; i++) {
+        if (typeof customActions[i] === 'string' && customActions[i] === currentContextAction) {
+            customActions[i] = { name: currentContextAction, color: newColor };
+            found = true;
+        } else if (typeof customActions[i] === 'object' && customActions[i].name === currentContextAction) {
+            customActions[i].color = newColor;
+            found = true;
+        }
+    }
+    if (!found) {
+        customActions.push({ name: currentContextAction, color: newColor });
+    }
+    
+    await saveCustomActions(customActions);
+    if (typeof updateActionButtons === 'function') updateActionButtons();
+    actionContextMenu.style.display = 'none';
+});
+
+document.getElementById('cmenuDelete')?.addEventListener('click', async () => {
+    if (!currentContextAction) return;
+    if (confirm(`Delete action ${currentContextAction}?`)) {
+        customActions = customActions.filter(a => (typeof a === 'string' ? a : a.name) !== currentContextAction);
+        await saveCustomActions(customActions);
+        if (typeof renderActionButtons === 'function') renderActionButtons();
+        actionContextMenu.style.display = 'none';
+    }
+});
+
+// ── Subtitle Settings ─────────────────────────────────────────
+const btnSubSettings = document.getElementById('btnSubSettings');
+const subSettingsModal = document.getElementById('subSettingsModal');
+const subOverlay = document.getElementById('subOverlay');
+
+if (btnSubSettings && subSettingsModal) {
+    btnSubSettings.addEventListener('click', () => {
+        subSettingsModal.style.display = 'flex';
+    });
+}
+
+function updateSubStyles() {
+    if (!subOverlay) return;
+    
+    const size = document.getElementById('subSizeRange')?.value || 24;
+    const opacity = document.getElementById('subOpacityRange')?.value || 50;
+    const bgColor = document.getElementById('subBgColorPicker')?.value || '#000000';
+    const shadow = document.getElementById('subShadowCheck')?.checked;
+    const isVisible = document.getElementById('subVisibilityCheck')?.checked !== false;
+    
+    // Convert hex to rgb
+    let r = 0, g = 0, b = 0;
+    if (bgColor.length === 7) {
+        r = parseInt(bgColor.slice(1,3), 16);
+        g = parseInt(bgColor.slice(3,5), 16);
+        b = parseInt(bgColor.slice(5,7), 16);
+    }
+    
+    // Safely parse opacity to prevent NaN
+    const parsedOpacity = Number(opacity);
+    const opacityNum = isNaN(parsedOpacity) ? 50 : parsedOpacity;
+    const bgRgba = `rgba(${r},${g},${b},${opacityNum / 100})`;
+    
+    subOverlay.style.fontSize = `${size}px`;
+    subOverlay.style.backgroundColor = bgRgba;
+    subOverlay.style.textShadow = shadow ? '1px 1px 2px black, 0 0 4px black' : 'none';
+    subOverlay.style.padding = '4px 12px';
+    subOverlay.style.borderRadius = '4px';
+    
+    // Force overlay visibility logic
+    subOverlay.style.display = (subOverlay.textContent && isVisible) ? 'inline-block' : 'none';
+    
+    // Update labels
+    const sizeVal = document.getElementById('subSizeVal');
+    if (sizeVal) sizeVal.innerText = size;
+    const opacityVal = document.getElementById('subOpacityVal');
+    if (opacityVal) opacityVal.innerText = opacity;
+    
+    // Save to local storage
+    localStorage.setItem('autoscript_sub_settings', JSON.stringify({ size, opacity, bgColor, shadow, isVisible }));
+}
+
+['subSizeRange', 'subOpacityRange', 'subBgColorPicker', 'subShadowCheck', 'subVisibilityCheck'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('input', updateSubStyles);
+        el.addEventListener('change', updateSubStyles);
+    }
+});
+
+// Load Subtitle settings on init
+try {
+    const saved = localStorage.getItem('autoscript_sub_settings');
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        if (document.getElementById('subSizeRange')) document.getElementById('subSizeRange').value = parsed.size;
+        if (document.getElementById('subOpacityRange')) document.getElementById('subOpacityRange').value = parsed.opacity;
+        if (document.getElementById('subBgColorPicker')) document.getElementById('subBgColorPicker').value = parsed.bgColor;
+        if (document.getElementById('subShadowCheck')) document.getElementById('subShadowCheck').checked = parsed.shadow;
+        if (document.getElementById('subVisibilityCheck') && parsed.isVisible !== undefined) document.getElementById('subVisibilityCheck').checked = parsed.isVisible;
+        updateSubStyles();
+    } else {
+        updateSubStyles(); // apply defaults
+    }
+} catch(e) {}

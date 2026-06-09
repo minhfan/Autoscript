@@ -26,7 +26,8 @@ async function logAction(actionName) {
         updateActionButtons();
         const boxSwap = document.getElementById('boxSwap');
         if (boxSwap) boxSwap.style.display = actionName === 'SWAP' ? 'block' : 'none';
-        renderTable(); drawMarkers(); return;
+        saveEdit(); 
+        return;
     }
 
     if (activeInSec === null) return;
@@ -101,6 +102,7 @@ async function logAction(actionName) {
     if (boxIn)  boxIn.classList.remove('active');
     if (boxOut) boxOut.classList.remove('active');
     if (boxSwap) boxSwap.classList.remove('active');
+    saveSession();
     renderTable(); drawMarkers();
 }
 
@@ -139,9 +141,6 @@ window.jumpToTC = function(index, field, useMaster = false) {
         if (boxSwap) boxSwap.classList.add('active');
     }
 
-    document.getElementById('inputScript').value = log.script || '';
-    document.getElementById('inputNote').value   = log.note   || '';
-    if (log.action) { selectedAction = log.action; updateActionButtons(); }
     updateActiveRange();
 
     const sec = parseTC(log[field]);
@@ -171,7 +170,8 @@ window.deleteLog = function(index) {
     logs.splice(index, 1);
     if (editingRowIndex === index) editingRowIndex = null;
     else if (editingRowIndex > index) editingRowIndex--;
-    renderTable(); drawMarkers(); saveSession();
+    saveSession();
+    renderTable(); drawMarkers();
 };
 
 // ── Save/Exit Edit Mode ───────────────────────────────────────
@@ -213,10 +213,10 @@ function saveEdit() {
 window.inlineUpdate = function(index, field, element) {
     saveState();
     logs[index][field] = element.value || element.innerText.trim();
+    saveSession();
     if (field === 'tcswap') { logs[index].swapSec = parseTC(logs[index].tcswap); drawMarkers(); }
     if (field === 'tcin')   { logs[index].inSec   = parseTC(logs[index].tcin);   drawMarkers(); }
     if (field === 'tcout')  { logs[index].outSec  = parseTC(logs[index].tcout);  drawMarkers(); }
-    saveSession();
 };
 
 // ── CSV / Excel Import ────────────────────────────────────────

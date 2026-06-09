@@ -7,10 +7,18 @@
 
 // ── Utility ──────────────────────────────────────────────────
 function escapeHtml(value) {
-    return String(value ?? '')
+    let escaped = String(value ?? '')
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
         .replace(/'/g,'&#39;');
+    
+    // Restore basic formatting tags for script display
+    escaped = escaped.replace(/&lt;b&gt;/g, '<b>').replace(/&lt;\/b&gt;/g, '</b>');
+    escaped = escaped.replace(/&lt;i&gt;/g, '<i>').replace(/&lt;\/i&gt;/g, '</i>');
+    escaped = escaped.replace(/&lt;s&gt;/gi, '<s>').replace(/&lt;\/s&gt;/gi, '</s>');
+    escaped = escaped.replace(/&lt;strike&gt;/gi, '<strike>').replace(/&lt;\/strike&gt;/gi, '</strike>');
+    escaped = escaped.replace(/&lt;u&gt;/gi, '<u>').replace(/&lt;\/u&gt;/gi, '</u>');
+    return escaped;
 }
 
 // ── Row Action (called from inline HTML) ─────────────────────
@@ -54,7 +62,7 @@ function renderTable() {
             const opts = actionList.map(a =>
                 `<option value="${a}" ${a === log.action ? 'selected' : ''}>${escapeHtml(a)}</option>`
             ).join('');
-            actionCell = `<select onchange="window.updateRowAction(${index}, this.value)" style="width:auto; padding:3px 8px; font-size:7.92px; font-weight:700; background:${bg}; color:${txt}; border:1px solid rgba(255,255,255,0.2); border-radius:var(--r-sm); outline:none; text-align:center; cursor:pointer; font-family:'Outfit',sans-serif; min-width:68px; letter-spacing:0.05em;">${opts}</select>`;
+            actionCell = `<select onchange="window.updateRowAction(${index}, this.value)" style="width:auto; padding:3px 8px; font-size:7.92px; font-weight:700; background:${bg}; color:${txt}; border:1px solid rgba(255,255,255,0.2); border-radius:var(--r-sm); outline:none; text-align:center; cursor:pointer; font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif; min-width:68px; letter-spacing:0.05em;">${opts}</select>`;
         } else {
             actionCell = `<span class="action-tag" style="background:${bg};color:${txt}">${escapeHtml(log.action)}</span>`;
         }
@@ -461,4 +469,373 @@ function renderSettings() {
             });
         }
     }
+}
+
+
+// ── Render Action Buttons ─────────────────────────────────────
+function renderActionButtons() {
+    const container = document.getElementById('actionButtonGroup');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    if (!customActions || customActions.length === 0) {
+        customActions = actionList; // fallback
+    }
+
+    customActions.forEach(action => {
+        const actionName = typeof action === 'string' ? action : action.name;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'action-button';
+        btn.dataset.action = actionName;
+        btn.setAttribute('role', 'radio');
+        btn.innerText = actionName;
+        btn.draggable = true;
+        
+        if (typeof action === 'object' && action.color) {
+            btn.style.backgroundColor = action.color;
+        }
+        
+        btn.addEventListener('click', () => {
+            if (typeof setSelectedAction === 'function') {
+                setSelectedAction(actionName);
+            }
+        });
+        
+        btn.addEventListener('dragstart', (e) => {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', actionName);
+            setTimeout(() => { btn.style.opacity = '0.5'; }, 0);
+        });
+
+        btn.addEventListener('dragend', () => {
+            btn.style.opacity = '1';
+            container.querySelectorAll('.action-button').forEach(b => {
+                b.style.borderLeft = '';
+                b.style.borderRight = '';
+            });
+        });
+
+        btn.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const rect = btn.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            if (x < rect.width / 2) {
+                btn.style.borderLeft = '2px solid var(--accent)';
+                btn.style.borderRight = '';
+            } else {
+                btn.style.borderRight = '2px solid var(--accent)';
+                btn.style.borderLeft = '';
+            }
+        });
+
+        btn.addEventListener('dragleave', () => {
+            btn.style.borderLeft = '';
+            btn.style.borderRight = '';
+        });
+
+        btn.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            btn.style.borderLeft = '';
+            btn.style.borderRight = '';
+            const draggedActionName = e.dataTransfer.getData('text/plain');
+            if (draggedActionName && draggedActionName !== actionName) {
+                const fromIndex = customActions.findIndex(a => (typeof a === 'string' ? a : a.name) === draggedActionName);
+                let toIndex = customActions.findIndex(a => (typeof a === 'string' ? a : a.name) === actionName);
+                if (fromIndex > -1 && toIndex > -1) {
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    if (x >= rect.width / 2) toIndex++;
+                    const [draggedItem] = customActions.splice(fromIndex, 1);
+                    if (fromIndex < toIndex) toIndex--;
+                    customActions.splice(toIndex, 0, draggedItem);
+                    if (typeof saveCustomActions === 'function') await saveCustomActions(customActions);
+                    renderActionButtons();
+                }
+            }
+        });
+        
+        container.appendChild(btn);
+    });
+    
+    if (typeof updateActionButtons === 'function') {
+        updateActionButtons();
+    }
+}
+
+// ── Render Transcript List ────────────────────────────────────
+function formatTranscriptTime(seconds) {
+    const hh = Math.floor(seconds / 3600);
+    const mm = Math.floor((seconds % 3600) / 60);
+    const ss = Math.floor(seconds % 60);
+    if (hh > 0) {
+        return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+    }
+    return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+
+function renderTranscriptList(data = transcriptData) {
+    const container = document.getElementById('transcriptList');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    // Toggle pulse animation on Import SRT button
+    const importSrtLabel = document.getElementById('importSrtLabel');
+    if (importSrtLabel) {
+        if (!data || data.length === 0) {
+            importSrtLabel.classList.add('empty');
+        } else {
+            importSrtLabel.classList.remove('empty');
+        }
+    }
+    
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">No transcript data</div>';
+        return;
+    }
+    
+    const query = (document.getElementById('searchTranscript')?.value || '').toLowerCase();
+    
+    const selectAllSubs = document.getElementById('selectAllSubs');
+    const btnImportSelectedSubs = document.getElementById('btnImportSelectedSubs');
+
+    function updateBtnImportSelectedSubsVisibility() {
+        const checked = container.querySelectorAll('.sub-checkbox:checked');
+        if (btnImportSelectedSubs) {
+            btnImportSelectedSubs.style.display = checked.length > 0 ? 'inline-block' : 'none';
+            if (checked.length > 1) {
+                btnImportSelectedSubs.classList.add('pulse-green');
+            } else {
+                btnImportSelectedSubs.classList.remove('pulse-green');
+            }
+        }
+        if (selectAllSubs) {
+            const all = container.querySelectorAll('.sub-checkbox');
+            selectAllSubs.checked = (all.length > 0 && all.length === checked.length);
+        }
+    }
+
+    if (selectAllSubs) {
+        selectAllSubs.checked = false;
+        selectAllSubs.onchange = (e) => {
+            const checkboxes = container.querySelectorAll('.sub-checkbox');
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+            updateBtnImportSelectedSubsVisibility();
+        };
+    }
+
+    if (btnImportSelectedSubs) {
+        btnImportSelectedSubs.style.display = 'none';
+        btnImportSelectedSubs.onclick = () => {
+            const checked = container.querySelectorAll('.sub-checkbox:checked');
+            if (checked.length === 0) return;
+            
+            let combinedText = '';
+            let startTC = null;
+            let endTC = null;
+            
+            checked.forEach((cb, index) => {
+                const itemIndex = parseInt(cb.value, 10);
+                const item = data[itemIndex];
+                if (index === 0) startTC = item.start;
+                endTC = item.end;
+                combinedText += item.text + ' ';
+            });
+            
+            const valTcIn = document.getElementById('valTcIn');
+            const valTcOut = document.getElementById('valTcOut');
+            const inputScript = document.getElementById('inputScript');
+            
+            if (valTcIn) valTcIn.innerText = formatTC(startTC);
+            if (valTcOut) valTcOut.innerText = formatTC(endTC);
+            if (inputScript) {
+                inputScript.value = combinedText.trim();
+                inputScript.focus();
+                inputScript.style.transition = 'box-shadow 0.2s';
+                inputScript.style.boxShadow = '0 0 0 2px var(--accent)';
+                setTimeout(() => inputScript.style.boxShadow = 'none', 500);
+            }
+            
+            activeInSec = startTC;
+            activeOutSec = endTC;
+            if (typeof updateActiveRange === 'function') updateActiveRange();
+            
+            const video = document.getElementById('videoPlayer');
+            if (video) video.currentTime = startTC;
+            
+            if (selectAllSubs) selectAllSubs.checked = false;
+            container.querySelectorAll('.sub-checkbox').forEach(cb => cb.checked = false);
+            updateBtnImportSelectedSubsVisibility();
+        };
+    }
+    
+    data.forEach((item, originalIndex) => {
+        if (query && !item.text.toLowerCase().includes(query)) return;
+        
+        const div = document.createElement('div');
+        div.className = 'transcript-row';
+        div.style.cssText = `padding: 8px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s; display: flex; align-items: flex-start; gap: 8px; position: relative;`;
+        
+        const timeText = formatTranscriptTime(item.start);
+        
+        div.innerHTML = `
+            <div style="display: flex; align-items: center; margin-top: calc(var(--transcript-font-size, 14px) * 0.25 + 2px);">
+                <input type="checkbox" class="sub-checkbox" value="${originalIndex}" style="cursor: pointer; width: calc(var(--transcript-font-size, 14px) * 0.85); height: calc(var(--transcript-font-size, 14px) * 0.85); margin: 0;">
+            </div>
+            <div style="flex: 1; display: flex; align-items: flex-start; gap: 8px;">
+                <span class="sub-tc-span" contenteditable="false" spellcheck="false" style="color: var(--accent); font-weight: bold; font-family: monospace; font-size: 12px; outline: none; border-radius: 4px; padding: 2px 4px; flex-shrink: 0; margin-top: 2px; word-wrap: break-word; word-break: break-word;">[${timeText}]</span>
+                <span class="sub-text-span" contenteditable="false" spellcheck="false" style="font-size: 14px; color: var(--text-main); white-space: pre-wrap; outline: none; border-radius: 4px; padding: 2px 4px; flex: 1; word-wrap: break-word; word-break: break-word;">${escapeHtml(item.text)}</span>
+            </div>
+            <div class="row-sub-actions">
+                <button class="btn-action btn-import-sub" style="padding: 4px 8px; font-size: 10px; font-weight: bold;">Import</button>
+                <button class="btn-delete btn-delete-sub" style="padding: 4px 6px; font-size: 10px; font-weight: bold;" title="Delete Subtitle">X</button>
+            </div>
+        `;
+        
+        const cb = div.querySelector('.sub-checkbox');
+        if (cb) {
+            cb.addEventListener('click', (e) => e.stopPropagation());
+            cb.addEventListener('change', (e) => {
+                e.stopPropagation();
+                updateBtnImportSelectedSubsVisibility();
+            });
+        }
+
+        const importBtn = div.querySelector('.btn-import-sub');
+        if (importBtn) {
+            importBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Set global active state
+                activeInSec = item.start;
+                activeOutSec = item.end;
+                
+                // Update DOM elements
+                const valTcIn = document.getElementById('valTcIn');
+                const valTcOut = document.getElementById('valTcOut');
+                const inputScript = document.getElementById('inputScript');
+                
+                if (valTcIn) valTcIn.innerText = formatTC(activeInSec);
+                if (valTcOut) valTcOut.innerText = formatTC(activeOutSec);
+                if (inputScript) inputScript.value = item.text;
+                
+                // Update markers on timeline
+                if (typeof updateActiveRange === 'function') updateActiveRange();
+                
+                // Optional: jump playhead to the start of the subtitle
+                const video = document.getElementById('videoPlayer');
+                if (video) video.currentTime = item.start;
+                
+                // Highlight the Script input briefly to draw attention
+                if (inputScript) {
+                    inputScript.focus();
+                    inputScript.style.transition = 'box-shadow 0.2s';
+                    inputScript.style.boxShadow = '0 0 0 2px var(--accent)';
+                    setTimeout(() => inputScript.style.boxShadow = 'none', 500);
+                }
+            });
+        }
+        
+        div.addEventListener('click', () => {
+            const video = document.getElementById('videoPlayer');
+            if (video) video.currentTime = item.start;
+        });
+        
+
+        
+        const deleteBtn = div.querySelector('.btn-delete-sub');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const confirmed = await openConfirmModal('Xóa Subtitle', 'Bạn có chắc muốn xóa subtitle này không?');
+                if (confirmed) {
+                    const idx = transcriptData.indexOf(item);
+                    if (idx > -1) { saveState(); transcriptData.splice(idx, 1); renderTranscriptList(); }
+                }
+            });
+        }
+        
+        div.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const menu = document.getElementById('subContextMenu');
+            if (menu) {
+                menu.style.display = 'flex';
+                menu.style.left = e.pageX + 'px';
+                menu.style.top = e.pageY + 'px';
+                
+                const editBtn = document.getElementById('menuSubEdit');
+                const delBtn = document.getElementById('menuSubDelete');
+                
+                if (editBtn) {
+                    editBtn.onclick = () => {
+                        menu.style.display = 'none';
+                        const textSpan = div.querySelector('.sub-text-span');
+                        const tcSpan = div.querySelector('.sub-tc-span');
+                        if (textSpan) {
+                            textSpan.contentEditable = "true";
+                            textSpan.style.background = 'var(--bg-input)';
+                            textSpan.focus();
+                            const blurHandler = () => {
+                                textSpan.contentEditable = "false";
+                                textSpan.style.background = 'transparent';
+                                let html = textSpan.innerHTML;
+                                html = html.replace(/<div><br><\/div>/gi, '\n').replace(/<div>/gi, '\n').replace(/<\/div>/gi, '').replace(/<p>/gi, '\n').replace(/<\/p>/gi, '').replace(/<br>/gi, '\n');
+                                if (item.text !== html) {
+                                    saveState();
+                                    item.text = html;
+                                }
+                                textSpan.removeEventListener('blur', blurHandler);
+                            };
+                            textSpan.addEventListener('blur', blurHandler);
+                        }
+                        if (tcSpan) {
+                            tcSpan.contentEditable = "true";
+                            tcSpan.style.background = 'var(--bg-input)';
+                            const tcBlurHandler = () => {
+                                tcSpan.contentEditable = "false";
+                                tcSpan.style.background = 'transparent';
+                                let txt = tcSpan.innerText.replace(/\[|\]/g, '').trim();
+                                const parts = txt.split(':').reverse();
+                                let sec = 0;
+                                for (let i = 0; i < parts.length; i++) sec += parseFloat(parts[i]) * Math.pow(60, i);
+                                if (!isNaN(sec)) {
+                                    if (item.start !== sec) {
+                                        saveState();
+                                        item.start = sec;
+                                    }
+                                    tcSpan.innerText = '[' + formatTranscriptTime(item.start) + ']';
+                                } else {
+                                    tcSpan.innerText = '[' + timeText + ']';
+                                }
+                                tcSpan.removeEventListener('blur', tcBlurHandler);
+                            };
+                            tcSpan.addEventListener('blur', tcBlurHandler);
+                        }
+                    };
+                }
+                
+                if (delBtn) {
+                    delBtn.onclick = async () => {
+                        menu.style.display = 'none';
+                        const confirmed = await openConfirmModal('Xóa Subtitle', 'Bạn có chắc muốn xóa subtitle này không?');
+                        if (confirmed) {
+                            const idx = transcriptData.indexOf(item);
+                            if (idx > -1) { saveState(); transcriptData.splice(idx, 1); renderTranscriptList(); }
+                        }
+                    };
+                }
+            }
+        });
+        
+        const tcSpan = div.querySelector('.sub-tc-span');
+        if (tcSpan) {
+            tcSpan.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); tcSpan.blur(); }
+            });
+        }
+        
+        container.appendChild(div);
+    });
 }

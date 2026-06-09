@@ -139,6 +139,16 @@ export default {
             if (url.pathname === '/api/google-sheets') {
                 return handleGoogleSheetsProxy(user.username, request, env, url);
             }
+
+            if (url.pathname === '/api/actions') {
+                if (request.method === 'GET') {
+                    return handleGetActions(user.username, env);
+                }
+                if (request.method === 'PUT') {
+                    return handlePutActions(user.username, request, env);
+                }
+                return jsonResponse({ error: 'Method not allowed' }, 405);
+            }
         }
 
         // ── Clean URLs (SPA / static routes mapping) ────────
@@ -662,6 +672,33 @@ async function handlePostSettings(request, env) {
     } catch (err) {
         console.error('[Worker] KV write error:', err);
         return jsonResponse({ error: 'Failed to save settings: ' + err.message }, 500);
+    }
+}
+
+// ── GET /api/actions — Get user custom actions ──
+async function handleGetActions(username, env) {
+    try {
+        const actions = await env.SETTINGS_KV.get(`user_actions:${username}`, { type: 'json' });
+        if (!actions || !Array.isArray(actions)) {
+            return jsonResponse(['DELETE', 'POP-UP', 'SWAP', 'QUESTION', 'QUOTE', 'NOTE', 'OTHERS']);
+        }
+        return jsonResponse(actions);
+    } catch (err) {
+        return jsonResponse({ error: err.message }, 500);
+    }
+}
+
+// ── PUT /api/actions — Save user custom actions ──
+async function handlePutActions(username, request, env) {
+    try {
+        const body = await request.json();
+        if (!Array.isArray(body)) {
+            return jsonResponse({ error: 'Body must be an array of actions' }, 400);
+        }
+        await env.SETTINGS_KV.put(`user_actions:${username}`, JSON.stringify(body));
+        return jsonResponse({ success: true, actions: body });
+    } catch (err) {
+        return jsonResponse({ error: err.message }, 500);
     }
 }
 

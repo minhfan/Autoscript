@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SRC_DIR = path.join(__dirname, 'src');
+const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -119,7 +120,12 @@ const server = http.createServer((req, res) => {
   }
 
   // Serve static files
-  let filePath = path.join(SRC_DIR, internalPath);
+  let filePath;
+  if (internalPath.endsWith('.html')) {
+    filePath = path.join(PUBLIC_DIR, internalPath);
+  } else {
+    filePath = path.join(SRC_DIR, internalPath);
+  }
   
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {

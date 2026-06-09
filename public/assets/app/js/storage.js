@@ -6,24 +6,43 @@
 
 // ── Undo / Redo ──────────────────────────────────────────────
 function saveState(clearRedo = true) {
-    logHistory.push(JSON.parse(JSON.stringify(logs)));
+    logHistory.push({
+        logs: JSON.parse(JSON.stringify(logs)),
+        transcriptData: JSON.parse(JSON.stringify(transcriptData))
+    });
     if (logHistory.length > 50) logHistory.shift();
     if (clearRedo) redoHistory = [];
 }
 
 function undo() {
     if (logHistory.length > 0) {
-        redoHistory.push(JSON.parse(JSON.stringify(logs)));
-        logs = logHistory.pop();
-        renderTable(); drawMarkers(); saveSession();
+        redoHistory.push({
+            logs: JSON.parse(JSON.stringify(logs)),
+            transcriptData: JSON.parse(JSON.stringify(transcriptData))
+        });
+        const state = logHistory.pop();
+        logs = state.logs;
+        transcriptData = state.transcriptData;
+        saveSession();
+        renderTable(); 
+        drawMarkers(); 
+        if (typeof renderTranscriptList === 'function') renderTranscriptList();
     }
 }
 
 function redo() {
     if (redoHistory.length > 0) {
-        logHistory.push(JSON.parse(JSON.stringify(logs)));
-        logs = redoHistory.pop();
-        renderTable(); drawMarkers(); saveSession();
+        logHistory.push({
+            logs: JSON.parse(JSON.stringify(logs)),
+            transcriptData: JSON.parse(JSON.stringify(transcriptData))
+        });
+        const state = redoHistory.pop();
+        logs = state.logs;
+        transcriptData = state.transcriptData;
+        saveSession();
+        renderTable(); 
+        drawMarkers(); 
+        if (typeof renderTranscriptList === 'function') renderTranscriptList();
     }
 }
 

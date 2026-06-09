@@ -172,16 +172,34 @@ function initTimelineScrub() {
         if (isScrubbing) { isScrubbing = false; updateScrub(e); }
     });
 
+    function formatTooltipTC(seconds) {
+        if (!seconds || isNaN(seconds)) return "00:00";
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        if (h > 0) {
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        } else {
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+    }
+
     // Hover tooltip
     timeline.addEventListener('mousemove', e => {
         const video   = document.getElementById('videoPlayer');
         const tooltip = document.getElementById('hoverTooltip');
         if (!video || !video.duration || !tooltip) { if (tooltip) tooltip.style.display = 'none'; return; }
-        const rect = wrapper.getBoundingClientRect();
+        
+        const rect = timeline.getBoundingClientRect();
         const xPos = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+        
         tooltip.style.display = 'block';
-        tooltip.style.left    = xPos + 'px';
-        tooltip.innerText     = formatTC((xPos / rect.width) * video.duration);
+        tooltip.style.left    = e.clientX + 'px';
+        
+        const wrapperRect = wrapper.getBoundingClientRect();
+        tooltip.style.top     = (wrapperRect.top - 28) + 'px'; // Show above timeline
+        
+        tooltip.innerText     = formatTooltipTC((xPos / rect.width) * video.duration);
     });
     timeline.addEventListener('mouseleave', () => {
         const tooltip = document.getElementById('hoverTooltip');

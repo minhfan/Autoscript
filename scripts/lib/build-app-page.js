@@ -30,6 +30,7 @@ export const APP_JS_MODULES = [
   "src/app/js/modals.js",
   "src/app/js/api.js",
   "src/app/js/storage.js",
+  "src/app/js/srt_parser.js",
   "src/app/js/renderer.js",
   "src/app/js/playback.js",
   "src/app/js/timeline.js",
@@ -38,21 +39,7 @@ export const APP_JS_MODULES = [
   "src/app/js/init.js",
 ];
 
-export const APP_HTML_COMPONENTS = {
-  "<!-- INJECT_COMPONENT:HEADER -->": "src/app/components/header.html",
-  "<!-- INJECT_COMPONENT:WORKSPACE -->": "src/app/components/workspace.html",
-  "<!-- INJECT_COMPONENT:VIDEO_PANEL -->": "src/app/components/video-panel.html",
-  "<!-- INJECT_COMPONENT:TIMELINE_PANEL -->": "src/app/components/timeline-panel.html",
-  "<!-- INJECT_COMPONENT:FORM_PANEL -->": "src/app/components/form-panel.html",
-  "<!-- INJECT_COMPONENT:TABLE_PANEL -->": "src/app/components/table-panel.html",
-  "<!-- INJECT_COMPONENT:SHEET_TABS -->": "src/app/components/sheet-tabs.html",
-  "<!-- INJECT_COMPONENT:MODALS -->": "src/app/components/modals.html",
-  "<!-- INJECT_COMPONENT:HELP_PANEL -->": "src/app/components/help-panel.html",
-  "<!-- INJECT_COMPONENT:SETTINGS_MODAL -->": "src/app/components/settings-modal.html",
-  "<!-- INJECT_COMPONENT:MESSAGE_MODAL -->": "src/app/components/message-modal.html",
-  "<!-- INJECT_COMPONENT:CONFIRM_MODAL -->": "src/app/components/confirm-modal.html",
-  "<!-- INJECT_COMPONENT:CONTEXT_MENU -->": "src/app/components/context-menu.html",
-};
+
 
 function resolveProjectPath(relativePath) {
   return path.join(projectRoot, relativePath);
@@ -94,13 +81,6 @@ export async function buildAppPageHtml() {
   }
 
   const template = await readProjectFile(APP_TEMPLATE_PATH);
-  const componentEntries = await Promise.all(
-    Object.entries(APP_HTML_COMPONENTS).map(async ([placeholder, relativePath]) => {
-      const content = await readProjectFile(relativePath);
-      return [placeholder, content];
-    })
-  );
-
   const timestamp = Date.now();
   
   const styleTags = APP_CSS_MODULES
@@ -111,12 +91,7 @@ export async function buildAppPageHtml() {
     .map((modulePath) => `    <script src="${getJsAssetUrl(modulePath, timestamp)}"></script>`)
     .join("\n");
 
-  const htmlWithComponents = componentEntries.reduce(
-    (currentHtml, [placeholder, content]) => currentHtml.replace(placeholder, content),
-    template
-  );
-
-  const html = htmlWithComponents
+  const html = template
     .replace("<!-- INJECT_STYLES -->", styleTags)
     .replace("<!-- INJECT_SCRIPTS -->", scriptTags);
 

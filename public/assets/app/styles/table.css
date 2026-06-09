@@ -47,22 +47,26 @@ table {
     width: 100%;
     min-width: 560px;
     border-collapse: collapse;
-    table-layout: fixed;
+    table-layout: auto;
     text-align: left;
-    font-size: 9.58px;
+    font-size: 13px;
 }
 
-#logTable .col-stt    { width: 36px; }
-#logTable .col-play   { width: 36px; }
-#logTable .col-action { width: 90px; }
-#logTable .col-tc     { width: 110px; }
-#logTable .col-delete { width: 76px; }
+#logTable col.col-text {
+    width: 50%;
+}
+
+#logTable .col-stt    { width: 4ch; min-width: 36px; }
+#logTable .col-play   { width: 4ch; min-width: 36px; }
+#logTable .col-action { width: 10ch; min-width: 90px; }
+#logTable .col-tc     { width: 14ch; min-width: 110px; }
+#logTable .col-delete { width: 6ch; min-width: 76px; }
 
 th {
     background: var(--bg-input);
     color: var(--text-sub);
     font-weight: 700;
-    font-size: 8.33px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.07em;
     position: sticky;
@@ -102,7 +106,7 @@ td[contenteditable="true"]:focus {
 .td-tc {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
-    font-size: 9.17px;
+    font-size: 12px;
     cursor: pointer !important;
     color: var(--accent);
     text-align: left;
@@ -111,7 +115,12 @@ td[contenteditable="true"]:focus {
 }
 .td-tc:hover { text-decoration: underline; }
 .td-action { cursor: pointer; text-align: center; white-space: nowrap; }
-.td-text { max-width: 0; }
+.td-text { 
+    max-width: 100px; /* needed for ellipsis in auto layout */
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    white-space: nowrap; 
+}
 .td-delete { text-align: center; white-space: nowrap; }
 .td-stt {
     text-align: center;
@@ -144,8 +153,8 @@ tr.selected-row { background: var(--bg-hover); box-shadow: inset 3px 0 0 var(--a
     padding: 3px 8px;
     border-radius: var(--r-sm);
     font-weight: 700;
-    font-size: 7.92px;
-    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     display: inline-block;
     min-width: 68px;
     text-align: center;
@@ -161,8 +170,8 @@ tr.selected-row { background: var(--bg-hover); box-shadow: inset 3px 0 0 var(--a
     border-radius: var(--r-sm);
     cursor: pointer;
     font-weight: 700;
-    font-size: 8.33px;
-    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     transition: all var(--t-fast);
     display: inline-block;
 }
@@ -176,8 +185,8 @@ tr.selected-row { background: var(--bg-hover); box-shadow: inset 3px 0 0 var(--a
     border-radius: var(--r-sm);
     cursor: pointer;
     font-weight: 700;
-    font-size: 8.33px;
-    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     transition: all var(--t-fast);
     display: inline-block;
 }

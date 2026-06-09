@@ -1,336 +1,792 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCP Autoscript</title>
-    <meta name="description" content="Professional video timecode logging and script automation tool for editors.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="/tcpscript/assets/app/styles/design-system.css?v=1780908153780">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/layout.css?v=1780908153780">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/timeline.css?v=1780908153780">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/table.css?v=1780908153780">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/modals.css?v=1780908153780">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-</head>
-<body>
+    <html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Autoscript TCP Pro — Video Logging Tool</title>
+        <meta name="description" content="Professional video timecode logging and script automation tool for editors.">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+            rel="stylesheet">
+            <link rel="stylesheet" href="/tcpscript/assets/app/styles/design-system.css?v=1781030875387">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/layout.css?v=1781030875387">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/timeline.css?v=1781030875387">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/table.css?v=1781030875387">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/modals.css?v=1781030875387">
+        <style>
+            .context-menu {
+                position: absolute;
+                background: var(--bg-panel, #1e293b);
+                border: 1px solid var(--border, #334155);
+                border-radius: var(--r-md, 8px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+                min-width: 120px;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .context-menu .menu-item {
+                padding: 8px 12px;
+                cursor: pointer;
+                font-size: 10.83px;
+                color: var(--text-main, #f8fafc);
+                transition: background 0.2s;
+            }
+
+            .context-menu .menu-item:hover {
+                background: var(--bg-hover, #334155);
+            }
+
+            .context-menu .menu-item-danger {
+                color: var(--danger, #ef4444);
+            }
+
+            .context-menu .menu-item-danger:hover {
+                background: var(--danger, #ef4444);
+                color: white;
+            }
+
+            .row-editing {
+                outline: 2px solid #FFC107;
+                background: rgba(255, 193, 7, 0.1) !important;
+            }
+
+            .menu-animated {
+                animation: fadeInMenu 0.15s ease-out forwards;
+                transform-origin: top center;
+            }
+
+            @keyframes fadeInMenu {
+                from {
+                    opacity: 0;
+                    transform: scale(0.95);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+
+            .highlight-new {
+                animation: flashNew 2s ease-out forwards;
+            }
+
+            @keyframes flashNew {
+                0% {
+                    background-color: rgba(255, 193, 7, 0.5) !important;
+                }
+
+                100% {
+                    background-color: transparent;
+                }
+            }
+
+            .btn-send {
+                color: #3b82f6;
+                background: transparent;
+                border: 1px solid transparent;
+                border-radius: var(--r-sm);
+                cursor: pointer;
+                font-size: 10px;
+                padding: 2px 6px;
+                transition: all 0.2s;
+            }
+
+            .btn-send:hover {
+                background: #3b82f6;
+                color: #fff;
+            }
+
+            /* ── Floating Tab Menu (shared by SEND row + Import Short) ── */
+            .send-tab-wrapper {
+                position: relative;
+                display: inline-block;
+            }
+
+            /* Row SEND menus use position:fixed (set via JS) to escape overflow:auto */
+            .floating-tab-menu {
+                z-index: 9999;
+                flex-direction: row;
+                gap: 3px;
+                padding: 4px 5px;
+                background: rgba(15, 23, 42, 0.97);
+                backdrop-filter: blur(12px);
+                border: 1px solid var(--border-bright);
+                border-radius: var(--r-md);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+                white-space: nowrap;
+                animation: floatMenuIn 0.12s ease;
+            }
+
+            .floating-tab-menu .tab-chip {
+                padding: 3px 8px;
+                font-size: 9px;
+                font-weight: 600;
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+                color: var(--text-sub);
+                background: var(--bg-hover);
+                border: 1px solid var(--border);
+                border-radius: var(--r-sm);
+                cursor: pointer;
+                transition: all 0.15s;
+                white-space: nowrap;
+            }
+
+            .floating-tab-menu .tab-chip:hover {
+                background: var(--accent);
+                color: #fff;
+                border-color: var(--accent);
+                transform: translateY(-1px);
+            }
+
+            .floating-tab-menu .tab-chip.sending {
+                opacity: 0.5;
+                pointer-events: none;
+            }
+
+            .floating-tab-menu .tab-chip.sent {
+                background: var(--accent) !important;
+                color: #fff !important;
+                border-color: var(--accent) !important;
+            }
+
+            @keyframes floatMenuIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(4px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Import Short button floating menu — no gap, padding bridge */
+            .import-short-wrapper {
+                position: relative;
+                display: flex;
+                flex: 1;
+            }
+
+            .import-short-wrapper .floating-tab-menu {
+                display: none;
+                position: absolute;
+                bottom: 100%;
+                right: 0;
+                padding-bottom: 6px;
+                /* bridge gap so hover doesn't break */
+            }
+
+            .import-short-wrapper .floating-tab-menu-inner {
+                display: flex;
+                flex-direction: row;
+                gap: 3px;
+                padding: 4px 5px;
+                background: rgba(15, 23, 42, 0.97);
+                backdrop-filter: blur(12px);
+                border: 1px solid var(--border-bright);
+                border-radius: var(--r-md);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+                white-space: nowrap;
+            }
+
+            .import-short-wrapper:hover .floating-tab-menu {
+                display: block;
+            }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    </head>
+
+    <body>
+        <style>
+            :root {
+                --log-font-size: 13px;
+            }
+            #logTable td, #logTable th {
+                font-size: var(--log-font-size) !important;
+            }
+            .sub-text-span, .sub-tc-span {
+                font-size: var(--transcript-font-size, var(--log-font-size)) !important;
+            }
+            .text-size-slider {
+                -webkit-appearance: none;
+                height: 4px;
+                background: var(--bg-input);
+                border-radius: 2px;
+                outline: none;
+            }
+            .text-size-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: var(--accent);
+                cursor: pointer;
+            }
+        </style>
+
         <header>
-        <div class="header-logo">
-            <a href="/tcpscript/project" title="Back to Projects" style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 10px; font-weight: 500; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border, #334155); margin-right: 10px; transition: all 0.2s;" onmouseover="this.style.color='var(--accent, #10b981)';this.style.borderColor='var(--accent, #10b981)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border, #334155)'">&larr; Projects</a>
-            <a href="/tcpscript/project" class="app-topbar-logo" aria-label="Back to project list">
-                <span class="logo-title">TCP <span>Autoscript</span> <em>v2.0</em></span>
-            </a>
-        </div>
-        <div class="header-controls">
-            <span id="saveStatus">Saved</span>
-            <select id="fpsSelect" class="btn-header" style="width: auto;">
-                <option value="23.976">23.976 fps</option>
-                <option value="24">24 fps</option>
-                <option value="25">25 fps</option>
-                <option value="29.97" selected>29.97 fps</option>
-                <option value="30">30 fps</option>
-                <option value="50">50 fps</option>
-                <option value="59.94">59.94 fps</option>
-                <option value="60">60 fps</option>
-            </select>
-            <select id="themeSelect" class="btn-header" style="width: auto;">
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-                <option value="blue">Blue</option>
-            </select>
-            <button class="btn-header" id="btnShortcuts">Settings</button>
-            <button class="btn-header" id="btnHelp">Shortcuts</button>
-        </div>
-    </header>
+            <div class="header-logo">
+                <a href="/tcpscript/project" title="Back to Projects"
+                    style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 10px; font-weight: 500; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border, #334155); margin-right: 10px; transition: all 0.2s;"
+                    onmouseover="this.style.color='var(--accent, #10b981)';this.style.borderColor='var(--accent, #10b981)'"
+                    onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border, #334155)'">&larr;
+                    Projects</a>
+                <a href="/tcpscript/project" class="app-topbar-logo" aria-label="Back to project list">
+                    <span class="logo-title">TCP <span>Autoscript</span> <em>v3.0</em></span>
+                </a>
+            </div>
+            <div class="header-controls">
+                <span id="saveStatus">Saved</span>
+                <select id="fpsSelect" class="btn-header" style="width: auto;">
+                    <option value="23.976">23.976 fps</option>
+                    <option value="24">24 fps</option>
+                    <option value="25">25 fps</option>
+                    <option value="29.97" selected>29.97 fps</option>
+                    <option value="30">30 fps</option>
+                    <option value="50">50 fps</option>
+                    <option value="59.94">59.94 fps</option>
+                    <option value="60">60 fps</option>
+                </select>
+                <select id="themeSelect" class="btn-header" style="width: auto;">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="blue">Blue</option>
+                </select>
+                <button class="btn-header" id="btnShortcuts">Settings</button>
+                <button class="btn-header" id="btnHelp">Shortcuts</button>
+            </div>
+        </header>
 
-    
 
-    <div class="layout-container" id="mainContainer">
-        <div class="left-col" id="leftCol">
-            <div class="video-section" id="videoSection">
-                                <div class="video-wrapper">
-                    <div id="videoEmptyState" class="video-empty-state" style="display: flex;">
-                        <div class="empty-state-content">
-                            <div id="videoMetaSummaryCenter" class="video-meta-summary-center"></div>
-                            <label class="btn-import-center pulse" id="uploadLabelCenter" title="Click or press 'V' to upload video">
-                                <input type="file" id="videoUploadCenter" accept="video/*" style="display: none;">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                <span>Import Video</span>
-                            </label>
+        <div class="layout-container" id="mainContainer">
+            <div class="left-col" id="leftCol">
+                <div class="video-section" id="videoSection">
+                    <div class="video-wrapper" style="position: relative;">
+                        <div id="videoEmptyState" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: var(--bg-panel); border-radius: var(--r-md); z-index: 5;">
+                            <div style="background: rgba(255,255,255,0.03); padding: 30px 40px; border-radius: var(--r-lg); text-align: center; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; align-items: center; gap: 20px;">
+                                <style>
+                                    #videoMetaSummaryCenter strong { color: #60a5fa; font-size: 16px; display: block; margin-bottom: 8px; }
+                                    #videoMetaSummaryCenter { color: var(--text-sub); font-size: 13px; line-height: 1.6; }
+                                </style>
+                                <div id="videoMetaSummaryCenter"></div>
+                                <button type="button" class="tool-btn danger" onclick="document.getElementById('videoUpload').click()" style="padding: 10px 24px; font-size: 13px; font-weight: bold; letter-spacing: 1px; border-radius: 20px; box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                    IMPORT VIDEO
+                                </button>
+                            </div>
+                        </div>
+                        <video id="videoPlayer" disablePictureInPicture></video>
+                        <div id="subOverlayWrapper" style="position: absolute; bottom: 10%; width: 100%; text-align: center; pointer-events: none; z-index: 10;">
+                            <span id="subOverlay" class="sub-overlay" style="display: none; color: white; text-shadow: 1px 1px 2px black; font-size: 24px; white-space: pre-wrap;"></span>
                         </div>
                     </div>
-                    <video id="videoPlayer" disablePictureInPicture></video>
-                </div>
 
-                <div class="video-controls">
-                    <div style="display: flex; gap: 15px; align-items: center;">
-                        <div class="control-group" style="margin: 0;">
+                    <div class="video-controls"
+                        style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <div class="control-group" style="display: flex; align-items: center; gap: 10px;">
                             <span class="control-label">Speed</span>
                             <div class="speed-control" id="speedDisplay" title="Drag L/R or Click">1.00x</div>
+                            <label class="btn-upload-video empty" id="uploadLabel" style="margin: 0;">
+                                <input type="file" id="videoUpload" accept="video/*" style="display: none;">
+                                <span id="uploadText">Import Video</span>
+                            </label>
                         </div>
 
-                        <label class="btn-upload-video empty" id="uploadLabel" title="Click or press 'V' to upload video">
-                            <input type="file" id="videoUpload" accept="video/*" style="display: none;">
-                            <span id="uploadText" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Import Video</span>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <button type="button" class="tool-btn icon primary" id="btnPlayVideo" title="Phát video"
+                                aria-label="Phát video"
+                                style="font-size: 20px; min-width: 48px; height: 32px; display: flex; justify-content: center; align-items: center; padding: 0;">&#9658;</button>
+                            <div class="big-timecode" id="bigTimecode" title="Click to Copy"
+                                style="margin: 0; padding: 0;">
+                                00:00:00:00</div>
+                        </div>
+
+                        <div class="control-group" style="display: flex; gap: 15px;">
+                            <div class="control-group" style="margin: 0;">
+                                <span class="control-label">Vol</span>
+                                <input type="range" id="volumeSlider" class="vol-slider" min="0" max="1" step="0.05"
+                                    value="1">
+                            </div>
+                            <button type="button" class="preview-cut-btn" id="btnPreviewCut"
+                                title="Preview Cut: OFF (P)" aria-label="Toggle Preview Cut"></button>
+                            <button type="button" class="tool-btn icon" id="btnSubSettings" title="Subtitles Settings" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-sub); display: flex; align-items: center; justify-content: center;">⚙️</button>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <div class="timeline-section" id="timelineSection" style="position: relative; display: flex; flex-direction: column;">
+                    <div class="timeline-zoom-controls" style="display: flex; justify-content: flex-end; padding: 4px 12px 0 0; z-index: 10;">
+                        <div style="position: relative; display: inline-block;">
+                            <div class="control-group" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <span class="control-label"
+                                    style="margin: 0; font-size: 8.33px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Zoom
+                                    (Z)</span>
+                                <div id="btnZoomDrag" class="speed-control"
+                                    style="cursor: ew-resize; user-select: none; width: 64px; text-align: center; margin: 0; padding: 4px 12px; height: auto;"
+                                    title="Drag L/R or Click">
+                                    <span id="zoomText">1.00x</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="timeline-full-container" style="flex: 1; margin-top: 15px;">
+                        <div id="tcJumpOverlay" class="tc-jump-overlay">
+                            <input type="text" id="tcJumpInput" class="tc-jump-input" placeholder="00:00:00:00" />
+                            <div class="tc-jump-actions">
+                                <button id="tcJumpGo" class="btn-fs" style="padding: 2px 8px;">GO</button>
+                                <button id="tcJumpClose" class="btn-delete" style="padding: 2px 8px;">X</button>
+                            </div>
+                        </div>
+                        <span class="tc-bound" id="tcStart" title="Jump to Start"
+                            style="margin-right: 10px;">00:00:00:00</span>
+                        <style>
+                            .zoom-item {
+                                padding: 6px 12px;
+                                font-size: 9.17px;
+                                cursor: pointer;
+                                color: white;
+                                transition: background 0.2s;
+                            }
+
+                            .zoom-item:hover {
+                                background: var(--accent);
+                            }
+                        </style>
+                        <div class="custom-timeline-wrapper" style="overflow-x: auto;">
+                            <div class="custom-timeline" id="customTimeline" style="width: 100%; min-width: 100%;">
+                                <div id="draftMarker" class="timeline-marker" style="display: none; z-index: 15;"></div>
+                                <div id="timelineTicks"
+                                    style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+                                </div>
+                                <div class="timeline-progress" id="timelineProgress"></div>
+                                <div class="timeline-active-range" id="activeRange"></div>
+                                <div id="activeSwapIndicator"
+                                    style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: 14px; z-index: 25; pointer-events: auto; cursor: pointer;"
+                                    onmousedown="if(activeSwapSec !== null) { video.currentTime = activeSwapSec; } event.stopPropagation();">
+                                    <div
+                                        style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #ea580c;">
+                                    </div>
+                                </div>
+                                <div id="activeInIndicator"
+                                    style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: 14px; z-index: 25; pointer-events: auto; cursor: pointer;"
+                                    onmousedown="if(activeInSec !== null) { video.currentTime = activeInSec; } event.stopPropagation();">
+                                    <div
+                                        style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #3b82f6;">
+                                    </div>
+                                </div>
+                                <div id="activeOutIndicator"
+                                    style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: 14px; z-index: 25; pointer-events: auto; cursor: pointer;"
+                                    onmousedown="if(activeOutSec !== null) { video.currentTime = activeOutSec; } event.stopPropagation();">
+                                    <div
+                                        style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #ef4444;">
+                                    </div>
+                                </div>
+                                <div id="playheadIndicator"
+                                    style="position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text-main); z-index: 20; pointer-events: none; left: 0%;">
+                                    <div
+                                        style="position: absolute; top: -6px; left: -4px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--text-main);">
+                                    </div>
+                                </div>
+                                <div class="hover-tooltip" id="hoverTooltip"></div>
+                            </div>
+                        </div>
+                        <span class="tc-bound" id="tcEnd" title="Jump to End"
+                            style="margin-left: 10px;">00:00:00:00</span>
+                    </div>
+                </div>
+
+                <div class="resizer-h" id="resizerH2"></div>
+
+                <div class="form-section" id="formSection">
+                    <div class="tc-row">
+                        <div class="tc-box" id="boxIn" title="Seek to IN (Q) / Mark if empty">
+                            <span>TC IN</span>
+                            <div class="time" id="valTcIn">00:00:00:00</div>
+                        </div>
+                        <div class="tc-box" id="boxOut" title="Seek to OUT (W) / Mark if empty">
+                            <span>TC OUT</span>
+                            <div class="time" id="valTcOut">00:00:00:00</div>
+                        </div>
+                        <div class="tc-box" id="boxSwap" title="Seek to SWAP (E) / Mark if empty"
+                            style="display: none;">
+                            <span>TC SWAP (E)</span>
+                            <div class="time" id="valTcSwap">00:00:00:00</div>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label id="labelAction" style="margin-bottom: 0;">ACTION (A):</label>
+                                <button id="btnActionSettings" class="tool-btn icon" title="Edit Actions"
+                                    style="background: none; border: none; font-size: 14px; cursor: pointer;">⚙️</button>
+                            </div>
+                        </div>
+                        <div class="action-button-group" id="actionButtonGroup" role="radiogroup">
+                            <button type="button" class="action-button" data-action="DELETE" role="radio">DELETE</button>
+                            <button type="button" class="action-button" data-action="POP-UP" role="radio">POP-UP</button>
+                            <button type="button" class="action-button" data-action="SWAP" role="radio">SWAP</button>
+                            <button type="button" class="action-button" data-action="QUESTION" role="radio">QUESTION</button>
+                            <button type="button" class="action-button" data-action="QUOTE" role="radio">QUOTE</button>
+                            <button type="button" class="action-button" data-action="NOTE" role="radio">NOTE</button>
+                            <button type="button" class="action-button" data-action="OTHERS" role="radio">OTHERS</button>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; flex: 1; min-height: 0;">
+                        <div style="display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0;">
+                            <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; height: 28px;">
+                                    <label id="labelScript" style="margin-bottom: 0;">SCRIPT (S):</label>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button type="button" class="tool-btn" onclick="formatText('inputScript', 'bold')" style="padding: 2px 8px; font-size: 11px;" title="Bold"><b>B</b></button>
+                                        <button type="button" class="tool-btn" onclick="formatText('inputScript', 'italic')" style="padding: 2px 8px; font-size: 11px;" title="Italic"><i>I</i></button>
+                                        <button type="button" class="tool-btn" onclick="formatText('inputScript', 'strikeThrough')" style="padding: 2px 8px; font-size: 11px;" title="Strikethrough"><s>S</s></button>
+                                    </div>
+                                </div>
+                                <div id="inputScript" class="rich-textarea" contenteditable="true"
+                                    style="flex: 1; overflow-y: auto; background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); padding: 8px; color: var(--text-main); font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif; outline: none; white-space: pre-wrap; word-wrap: break-word;"></div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0;">
+                                <label id="labelNote" style="margin-bottom: 0; line-height: 28px; height: 28px;">NOTE (N):</label>
+                                <div id="inputNote" class="rich-textarea" contenteditable="true" style="flex: 1; overflow-y: auto; background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); padding: 8px; color: var(--text-main); font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif; outline: none; white-space: pre-wrap; word-wrap: break-word;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px; width: 180px;">
+                            <style>
+                                #btnToolbarImport:hover, #btnToolbarImportShort:hover { background: rgba(255,255,255,0.05) !important; }
+                            </style>
+                            <!-- Top Wrapper (Matches SCRIPT) -->
+                            <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0;">
+                                <div style="height: 28px;"></div>
+                                <div style="flex: 1; position: relative;">
+                                    <button type="button" id="btnToolbarImport" title="Import action (Shift+Enter)"
+                                        style="position: absolute; top: 0; bottom: -42px; left: 0; right: 0; z-index: 2; border: 1px solid var(--border-bright); border-bottom: 1px solid var(--border-bright); background: var(--bg-raised); color: var(--danger); font-size: 24px; cursor: pointer; transition: all 0.2s; border-radius: var(--r-sm) var(--r-sm) 0 0; display: flex; align-items: center; justify-content: center;">&#10140;</button>
+                                </div>
+                            </div>
+                            <!-- Bottom Wrapper (Matches NOTE) -->
+                            <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0;">
+                                <div style="height: 28px;"></div>
+                                <div style="flex: 1; position: relative;">
+                                    <div class="import-short-wrapper" style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; display: flex; background: var(--bg-raised); border: 1px solid var(--border-bright); border-top: none; border-radius: 0 0 var(--r-sm) var(--r-sm);">
+                                        <button type="button" id="btnToolbarImportShort" title="Import to specific Short tab"
+                                            style="flex: 1; border: none; background: transparent; color: var(--danger); font-size: 16px; cursor: pointer; transition: all 0.2s; border-radius: 0 0 var(--r-sm) var(--r-sm); display: flex; align-items: center; justify-content: center;">&#10140;<sub style="font-size: 9px; margin-left: 2px; font-weight: bold; position: relative; bottom: -2px;">S</sub></button>
+                                        <div class="floating-tab-menu" id="importShortFloatingMenu"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="resizer-v" id="resizerV"></div>
+
+            <div class="right-col" id="tablePanel">
+                <div class="table-header" style="align-items: center;">
+                    <h2 class="section-title"
+                        style="display: flex; align-items: center; gap: 12px; margin: 0; font-size: 24px;">
+                        <span id="defaultScriptTitle" style="font-weight: 700;">Script</span>
+                        <a id="activeSheetLink" href="#" target="_blank"
+                            style="display: none; color: var(--text-main); text-decoration: none; align-items: center; gap: 8px; font-weight: 700; transition: color var(--t-fast);">
+                            <span id="activeSheetName">Sheet</span>
+                        </a>
+                        <span class="log-count-badge" id="logCount" style="margin-left: 8px; font-size: 14px;">0</span>
+                    </h2>
+                </div>
+                <div class="panel-tabs-container">
+                    <button id="tabLogs" class="panel-tab active">Action Logs</button>
+                    <button id="tabTranscript" class="panel-tab">Transcript</button>
+                </div>
+
+                <div id="logsContainer" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                    <div class="action-btns"
+                        style="display: flex; align-items: center; width: 100%; margin-bottom: 12px; gap: 10px;">
+                        <div style="position: relative;">
+                            <span
+                                style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; align-items: center;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                </svg>
+                            </span>
+                            <select id="filterAction"
+                                style="background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); color: var(--text-main); font-size: 9.17px; padding: 6px 24px 6px 26px; outline: none; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif; cursor: pointer; appearance: none; width: auto;">
+                                <option value="ALL">All actions</option>
+                                <option value="DELETE">DELETE</option>
+                                <option value="SWAP">SWAP</option>
+                                <option value="POP-UP">POP-UP</option>
+                                <option value="QUESTION">QUESTION</option>
+                                <option value="QUOTE">QUOTE</option>
+                                <option value="NOTE">NOTE</option>
+                                <option value="OTHERS">OTHERS</option>
+                            </select>
+                            <span
+                                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; font-size: 7.5px;">▼</span>
+                        </div>
+                        <div style="position: relative;">
+                            <span
+                                style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; align-items: center;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </span>
+                            <input type="text" id="searchInput" placeholder="Search script, timecode..."
+                                style="background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); color: var(--text-main); font-size: 9.17px; padding: 6px 10px 6px 26px; width: 220px; outline: none; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;">
+                        </div>
+                        <div style="display: flex; gap: 5px; margin-left: auto; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 6px; margin-right: 15px; background: rgba(255,255,255,0.03); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border);">
+                                <span style="font-size: 10px; color: var(--text-muted);">Aa</span>
+                                <input type="range" id="actionLogSizeSlider" class="text-size-slider" min="10" max="24" value="13" style="width: 70px;">
+                                <span style="font-size: 14px; color: var(--text-muted);">Aa</span>
+                            </div>
+                            <label class="btn-action btn-import" id="lblImport" style="cursor: pointer; margin: 0;">
+                                <input type="file" id="csvImport" accept=".csv, .xlsx, .xls" style="display: none;">
+                                Import
+                            </label>
+                            <button type="button" class="btn-action btn-sync-brand" id="btnSyncSheets"
+                                title="Sync current sheet">Sync Sheet</button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table id="logTable">
+                            <colgroup>
+                                <col class="col-stt">
+                                <col class="col-play" style="width: 44px;">
+                                <col class="col-action">
+                                <col class="col-tc">
+                                <col class="col-tc">
+                                <col class="col-tc">
+                                <col class="col-text">
+                                <col class="col-text">
+                                <col class="col-delete">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th></th>
+                                    <th>ACTION</th>
+                                    <th>TC IN</th>
+                                    <th>TC OUT</th>
+                                    <th>TC SWAP</th>
+                                    <th>SCRIPT</th>
+                                    <th>NOTE</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="logBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="transcriptContainer"
+                    style="display: none; flex-direction: column; flex: 1; overflow: hidden; padding: 0 12px; min-height: 0;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;">
+                        <input type="checkbox" id="selectAllSubs" title="Select All" style="cursor: pointer; width: 16px; height: 16px;">
+                        <button type="button" class="btn-action" id="btnImportSelectedSubs" style="display: none; font-weight: bold; height: 32px; box-sizing: border-box;">Import Selected</button>
+                        <div style="width: 1px; height: 20px; background: var(--border); margin: 0 5px;"></div>
+                        <label class="btn-action btn-import" id="importSrtLabel" style="cursor: pointer; margin: 0; display: inline-flex; align-items: center; justify-content: center; height: 32px; box-sizing: border-box;">
+                            <input type="file" id="importSrt" accept=".srt" style="display: none;">
+                            Import SRT
                         </label>
-                    </div>
-
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <button type="button" class="tool-btn icon primary" id="btnPlayVideo" title="Phát video" aria-label="Phát video" style="font-size: 20px; min-width: 48px; height: 32px; display: flex; justify-content: center; align-items: center; padding: 0;">&#9658;</button>
-                        <div class="big-timecode" id="bigTimecode" title="Click to Copy" style="margin: 0; padding: 0;">00:00:00:00</div>
-                    </div>
-
-                    <div class="control-group" style="display: flex; gap: 15px; align-items: center;">
-                        <div class="control-group" style="margin: 0;">
-                            <span class="control-label">Vol</span>
-                            <input type="range" id="volumeSlider" class="vol-slider" min="0" max="1" step="0.05" value="1">
+                        <button type="button" class="btn-action btn-sync-brand" id="btnExportSrt" style="display: inline-flex; align-items: center; justify-content: center; height: 32px; box-sizing: border-box;">Export SRT</button>
+                        <input type="text" id="searchTranscript" placeholder="Search subtitles..."
+                            style="background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); color: var(--text-main); font-size: 12px; padding: 0 10px; flex: 1; outline: none; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif; height: 32px; box-sizing: border-box;">
+                        <div style="display: flex; align-items: center; gap: 6px; margin-left: 10px; background: rgba(255,255,255,0.03); padding: 0 10px; border-radius: 20px; border: 1px solid var(--border); height: 32px;">
+                            <span style="font-size: 10px; color: var(--text-muted);">Aa</span>
+                            <input type="range" id="transcriptSizeSlider" class="text-size-slider" min="10" max="24" value="13" style="width: 70px;">
+                            <span style="font-size: 14px; color: var(--text-muted);">Aa</span>
                         </div>
-                        <button type="button" class="preview-cut-btn" id="btnPreviewCut" title="Preview Cut: OFF (P)" aria-label="Toggle Preview Cut"></button>
-                        
-                        <div class="control-group" style="margin: 0; display: flex; align-items: center;">
-                            <span class="control-label" style="margin-right: 8px;">Zoom (Z)</span>
-                            <div id="btnZoomDrag" class="speed-control" style="cursor: ew-resize; user-select: none; width: 64px; text-align: center; margin: 0; padding: 4px 12px; height: auto;" title="Drag L/R or Click">
-                                <span id="zoomText">1.00x</span>
-                            </div>
-                        </div>
+                    </div>
+                    <div id="transcriptList"
+                        style="flex: 1; overflow-y: auto; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--r-md); padding: 8px; min-height: 0;">
+                        <!-- Transcript items injected here -->
                     </div>
                 </div>
-
-                                <div class="timeline-full-container" style="margin-top: 10px;">
-                    <div id="tcJumpOverlay" class="tc-jump-overlay">
-                        <input type="text" id="tcJumpInput" class="tc-jump-input" placeholder="00:00:00:00" />
-                        <div class="tc-jump-actions">
-                            <button id="tcJumpGo" class="btn-fs" style="padding: 2px 8px;">GO</button>
-                            <button id="tcJumpClose" class="btn-delete" style="padding: 2px 8px;">X</button>
-                        </div>
-                    </div>
-                    <span class="tc-bound" id="tcStart" title="Jump to Start" style="margin-right: 10px;">00:00:00:00</span>
-                    <div class="custom-timeline-wrapper" style="overflow-x: auto;">
-                        <div class="custom-timeline" id="customTimeline" style="width: 100%; min-width: 100%;">
-                            <div id="draftMarker" class="timeline-marker" style="display: none; z-index: 15;"></div>
-                            <div id="timelineTicks" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;"></div>
-                            <div class="timeline-progress" id="timelineProgress"></div>
-                            <div class="timeline-active-range" id="activeRange"></div>
-                            <div id="activeSwapIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: 14px; z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeSwapSec !== null) { document.getElementById('videoPlayer').currentTime = activeSwapSec; } event.stopPropagation();">
-                                <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #ea580c;"></div>
-                            </div>
-                            <div id="activeInIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: 14px; z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeInSec !== null) { document.getElementById('videoPlayer').currentTime = activeInSec; } event.stopPropagation();">
-                                <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #3b82f6;"></div>
-                            </div>
-                            <div id="activeOutIndicator" style="display: none; position: absolute; top: -14px; transform: translateX(-50%); width: 14px; height: 14px; z-index: 25; pointer-events: auto; cursor: pointer;" onmousedown="if(activeOutSec !== null) { document.getElementById('videoPlayer').currentTime = activeOutSec; } event.stopPropagation();">
-                                <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #ef4444;"></div>
-                            </div>
-                            <div id="playheadIndicator" style="position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text-main); z-index: 20; pointer-events: none; left: 0%;">
-                                <div style="position: absolute; top: -6px; left: -4px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--text-main);"></div>
-                            </div>
-                            <div class="hover-tooltip" id="hoverTooltip"></div>
-                        </div>
-                    </div>
-                    <span class="tc-bound" id="tcEnd" title="Jump to End" style="margin-left: 10px;">00:00:00:00</span>
-                </div>
-
-            </div>
-
-            <div class="resizer-h" id="resizerH2"></div>
-
-                        <div class="form-section" id="formSection">
-                <div class="tc-row">
-                    <div class="tc-box" id="boxIn" title="Seek to IN (Q) / Mark if empty">
-                        <span>TC IN</span>
-                        <div class="time" id="valTcIn">00:00:00:00</div>
-                    </div>
-                    <div class="tc-box" id="boxOut" title="Seek to OUT (W) / Mark if empty">
-                        <span>TC OUT</span>
-                        <div class="time" id="valTcOut">00:00:00:00</div>
-                    </div>
-                    <div class="tc-box" id="boxSwap" title="Seek to SWAP (E) / Mark if empty" style="display: none;">
-                        <span>TC SWAP (E)</span>
-                        <div class="time" id="valTcSwap">00:00:00:00</div>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <label id="labelAction" style="margin-bottom: 0;">ACTION (A):</label>
-                    </div>
-                    <div class="action-button-group" id="actionButtonGroup" role="radiogroup" aria-label="Chọn action">
-                        <button type="button" class="action-button" data-action="DELETE" role="radio">DELETE</button>
-                        <button type="button" class="action-button" data-action="POP-UP" role="radio">POP-UP</button>
-                        <button type="button" class="action-button" data-action="SWAP" role="radio">SWAP</button>
-                        <button type="button" class="action-button" data-action="QUESTION" role="radio">QUESTION</button>
-                        <button type="button" class="action-button" data-action="QUOTE" role="radio">QUOTE</button>
-                        <button type="button" class="action-button" data-action="NOTE" role="radio">NOTE</button>
-                        <button type="button" class="action-button" data-action="OTHERS" role="radio">OTHERS</button>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 10px; align-items: stretch; margin-top: 10px; flex: 1;">
-                    <div style="display: flex; flex-direction: column; flex: 1; gap: 10px;">
-                        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
-                            <label id="labelScript">SCRIPT (S):</label>
-                            <textarea id="inputScript" style="flex: 1; resize: none; overflow-y: hidden;"></textarea>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
-                            <label id="labelNote">NOTE (N):</label>
-                            <textarea id="inputNote" style="flex: 1; resize: none; overflow-y: hidden;"></textarea>
-                        </div>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 4px; height: 100%;">
-                        <label style="visibility: hidden;">IMPORT</label>
-                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; width: 140px;">
-                            <button type="button" id="btnToolbarImport" title="Import action (Shift+Enter)" style="flex: 2; font-size: 24.00px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center;">&#10140;</button>
-                            <div class="import-short-wrapper" style="flex: 1;">
-                                <button type="button" id="btnToolbarImportShort" title="Import to specific Short tab" style="width:100%; height: 100%; font-size: 16px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center;">&#10140;<sub style="font-size: 9px; margin-left: 2px; font-weight: bold; position: relative; bottom: -2px;">S</sub></button>
-                                <div class="floating-tab-menu" id="importShortFloatingMenu"></div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="sheet-tabs-container" id="sheetTabsContainer">
+                    <button class="sheet-tab active" data-tab="Full-show">Full-show</button>
+                    <!-- Dynamic tabs will be added here -->
                 </div>
             </div>
-
-        </div>
-
-        <div class="resizer-v" id="resizerV"></div>
-
-                <div class="right-col" id="tablePanel">
-            <div class="table-header" style="align-items: center;">
-                <h2 class="section-title" style="display: flex; align-items: center; gap: 12px; margin: 0; font-size: 24px;">
-                    <span id="defaultScriptTitle" style="font-weight: 700;">Script</span>
-                    <a id="activeSheetLink" href="#" target="_blank" style="display: none; color: var(--text-main); text-decoration: none; align-items: center; gap: 8px; font-weight: 700; transition: color var(--t-fast);">
-                        <span id="activeSheetName">Sheet</span>
-                    </a>
-                    <span class="log-count-badge" id="logCount" style="margin-left: 8px; font-size: 14px;">0</span>
-                </h2>
-            </div>
-            <div class="action-btns" style="display: flex; align-items: center; width: 100%; margin-bottom: 12px; gap: 10px;">
-                <div style="position: relative;">
-                    <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; align-items: center;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                    </span>
-                    <select id="filterAction" style="background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); color: var(--text-main); font-size: 9.17px; padding: 6px 24px 6px 26px; outline: none; font-family: 'Outfit', sans-serif; cursor: pointer; appearance: none; width: auto;">
-                        <option value="ALL">All actions</option>
-                        <option value="DELETE">DELETE</option>
-                        <option value="SWAP">SWAP</option>
-                        <option value="POP-UP">POP-UP</option>
-                        <option value="QUESTION">QUESTION</option>
-                        <option value="QUOTE">QUOTE</option>
-                        <option value="NOTE">NOTE</option>
-                        <option value="OTHERS">OTHERS</option>
-                    </select>
-                    <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; font-size: 7.5px;">▼</span>
-                </div>
-                <div style="position: relative;">
-                    <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; align-items: center;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    </span>
-                    <input type="text" id="searchInput" placeholder="Search script, timecode..." style="background: var(--bg-input); border: 1px solid var(--border-bright); border-radius: var(--r-sm); color: var(--text-main); font-size: 9.17px; padding: 6px 10px 6px 26px; width: 220px; outline: none; font-family: 'Outfit', sans-serif;">
-                </div>
-                <div style="display: flex; gap: 5px; margin-left: auto; align-items: center;">
-                    <label class="btn-action btn-import" id="lblImport" style="cursor: pointer; margin: 0;">
-                        <input type="file" id="csvImport" accept=".csv, .xlsx, .xls" style="display: none;">
-                        Import
-                    </label>
-                    <button type="button" class="btn-action btn-sync-brand" id="btnSyncSheets" title="Sync current sheet">Sync Sheet</button>
-                </div>
-            </div>
-            <div class="table-wrap">
-                <table id="logTable">
-                    <colgroup>
-                        <col class="col-stt">
-                        <col class="col-play" style="width: 44px;">
-                        <col class="col-action">
-                        <col class="col-tc">
-                        <col class="col-tc">
-                        <col class="col-tc">
-                        <col>
-                        <col>
-                        <col class="col-delete">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>STT</th>
-                            <th></th>
-                            <th>ACTION</th>
-                            <th>TC IN</th>
-                            <th>TC OUT</th>
-                            <th>TC SWAP</th>
-                            <th>SCRIPT</th>
-                            <th>NOTE</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="logBody"></tbody>
-                </table>
-            </div>
-            <div style="margin-top: 12px; margin-bottom: 10px; margin-left: 12px; margin-right: 12px;">
-                    <div class="sheet-tabs-container" id="sheetTabsContainer">
-        <button class="sheet-tab active" data-tab="Full-show">Full-show</button>
-        <!-- Dynamic tabs will be added here -->
-    </div>
-
-            </div>
-        </div>
-
-    </div>
 
             <div id="floatHelpPanel" class="float-panel">
-        <div class="float-header" id="floatHelpHeader">
-            <h2>Shortcuts Guide</h2>
-            <button class="close-float" id="btnCloseHelp">&#10005;</button>
-        </div>
-        <div class="float-content">
-            <div class="shortcut-grid" id="helpGrid"></div>
-        </div>
-    </div>
-
-        <div id="settingsModal" class="modal">
-        <div class="modal-content">
-            <h2>Customize Shortcuts</h2>
-            <p style="font-size: 9.17px; color:var(--text-sub); text-align:center; margin-bottom:16px; margin-top:6px;">Click a key button, then press your new shortcut combination.</p>
-            <div class="shortcut-grid" id="settingsGrid"></div>
-            <button class="close-btn" id="btnCloseSettings">Save Settings</button>
-        </div>
-    </div>
-
-        <div id="messageModal" class="modal">
-        <div class="modal-content message-modal-content">
-            <h2 id="messageModalTitle">Thông báo</h2>
-            <div id="messageModalBody" class="message-modal-body"></div>
-            <div class="message-modal-actions">
-                <button class="btn-modal-base btn-modal-primary" id="btnCloseMessageModal">Đóng</button>
+                <div class="float-header" id="floatHelpHeader">
+                    <h2>Shortcuts Guide</h2>
+                    <button class="close-float" id="btnCloseHelp">&#10005;</button>
+                </div>
+                <div class="float-content">
+                    <div class="shortcut-grid" id="helpGrid"></div>
+                </div>
             </div>
-        </div>
-    </div>
 
-        <div id="confirmModal" class="modal" style="display:none;">
-        <div class="modal-content message-modal-content">
-            <h2 id="confirmModalTitle">Xác nhận</h2>
-            <div id="confirmModalBody" class="message-modal-body"></div>
-            <div class="message-modal-actions" style="display:flex; gap:10px; justify-content:flex-end;">
-                <button class="btn-modal-base btn-modal-cancel" id="btnConfirmCancel">Hủy</button>
-                <button class="btn-modal-base btn-modal-primary" id="btnConfirmOK">OK</button>
+            <!-- Context Menu for Actions -->
+            <div id="actionContextMenu" class="context-menu" style="display: none; position: absolute; z-index: 1000;">
+                <div class="menu-item" id="cmenuRename">✏️ Rename</div>
+                <div class="menu-item" id="cmenuColor" style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>🎨 Color</span>
+                    <input type="color" id="cmenuColorPicker" style="width: 24px; height: 24px; border: none; padding: 0; background: transparent; cursor: pointer;">
+                </div>
+                <div class="menu-item danger" id="cmenuDelete">🗑️ Delete</div>
             </div>
-        </div>
-    </div>
 
-        <div id="rowContextMenu" class="context-menu" style="display: none;">
-        <div class="menu-item" id="menuEdit">Edit Row</div>
-        <div class="menu-item menu-item-danger" id="menuDelete">Delete Row</div>
-    </div>
+            <!-- Action Add Modal -->
+            <div id="actionSettingsModal" class="modal" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:999;justify-content:center;align-items:center;">
+                <div class="modal-content" style="background:var(--bg-panel); padding:20px; border-radius:var(--r-lg); width:400px; border: 1px solid var(--border-bright);">
+                    <h3 style="margin-top:0; color:var(--text-main);">Add New Action</h3>
+                    <p style="color:var(--text-sub); font-size:12px; margin-bottom:15px;">Type a new action name and click Add. You can right-click existing actions to edit or delete them.</p>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newActionInput" placeholder="e.g. B-ROLL" style="flex: 1; padding: 8px; background: var(--bg-input); border: 1px solid var(--border-bright); color: var(--text-main); border-radius: var(--r-md);">
+                        <button type="button" id="btnActionAdd" class="tool-btn primary">Add</button>
+                    </div>
+                    <div style="text-align:right; margin-top:15px;">
+                        <button type="button" class="tool-btn" onclick="document.getElementById('actionSettingsModal').style.display='none'">Close</button>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Subtitle Settings Modal -->
+            <div id="subSettingsModal" class="modal" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:999;justify-content:center;align-items:center;">
+                <div class="modal-content" style="background:var(--bg-panel); padding:20px; border-radius:var(--r-lg); width:400px; border: 1px solid var(--border-bright); display: flex; flex-direction: column; gap: 15px;">
+                    <h3 style="margin-top:0; color:var(--text-main);">Subtitle Settings</h3>
+                    
+                    <div class="setting-row" style="display: flex; align-items: center; justify-content: space-between;">
+                        <label style="color: var(--text-sub); font-size: 13px; font-weight: bold;">Show Subtitles</label>
+                        <input type="checkbox" id="subVisibilityCheck" checked style="cursor: pointer; width: 16px; height: 16px;">
+                    </div>
 
-        <script src="/tcpscript/assets/app/js/constants.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/timecode.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/state.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/shortcuts.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/modals.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/api.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/storage.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/renderer.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/playback.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/timeline.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/tabs.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/toolbar.js?v=1780908153780"></script>
-    <script src="/tcpscript/assets/app/js/init.js?v=1780908153780"></script>
-</body>
-</html>
+                    <div class="setting-row">
+                        <label style="color: var(--text-sub); font-size: 13px;">Font Size (<span id="subSizeVal">24</span>px)</label>
+                        <input type="range" id="subSizeRange" min="12" max="72" value="24" style="width: 100%;">
+                    </div>
+
+                    <div class="setting-row">
+                        <label style="color: var(--text-sub); font-size: 13px;">Background Opacity (<span id="subOpacityVal">50</span>%)</label>
+                        <input type="range" id="subOpacityRange" min="0" max="100" value="50" style="width: 100%;">
+                    </div>
+
+                    <div class="setting-row" style="display: flex; align-items: center; justify-content: space-between;">
+                        <label style="color: var(--text-sub); font-size: 13px;">Background Color</label>
+                        <input type="color" id="subBgColorPicker" value="#000000" style="width: 40px; height: 30px; border: none; padding: 0; background: transparent; cursor: pointer;">
+                    </div>
+                    
+                    <div class="setting-row" style="display: flex; align-items: center; justify-content: space-between;">
+                        <label style="color: var(--text-sub); font-size: 13px;">Drop Shadow</label>
+                        <input type="checkbox" id="subShadowCheck" checked style="cursor: pointer; width: 16px; height: 16px;">
+                    </div>
+
+                    <div style="text-align:right; margin-top:10px;">
+                        <button type="button" class="tool-btn" onclick="document.getElementById('subSettingsModal').style.display='none'">Close</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="settingsModal" class="modal">
+                <div class="modal-content">
+                    <h2>Customize Shortcuts</h2>
+                    <p
+                        style="font-size: 9.17px; color:var(--text-sub); text-align:center; margin-bottom:16px; margin-top:6px;">
+                        Click a key button, then press your new shortcut combination.</p>
+                    <div class="shortcut-grid" id="settingsGrid"></div>
+                    <!-- Google Sheets settings removed -->
+                    <button class="close-btn" id="btnCloseSettings">Save Settings</button>
+                </div>
+            </div>
+
+            <!-- Cutdown Modal -->
+            <div class="modal" id="cutdownModal">
+                <div class="modal-content" style="max-width: 320px;">
+                    <h2 style="font-size: 16px; margin-bottom: 8px;">Send to Cutdown</h2>
+                    <p style="font-size: 11px; color: var(--text-sub); text-align: center; margin-bottom: 16px;">Select
+                        destination sheet for this action.</p>
+                    <select id="cutdownTargetSelect"
+                        style="width: 100%; padding: 8px; border-radius: var(--r-md); background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border); margin-bottom: 16px; outline: none;">
+                        <!-- Options populated dynamically -->
+                    </select>
+                    <div style="display: flex; gap: 8px; justify-content: center;">
+                        <button class="btn-modal-base" id="cutdownModalCancel"
+                            style="background: var(--bg-hover);">Cancel</button>
+                        <button class="btn-modal-base btn-modal-primary" id="cutdownModalSend">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Import Short Modal -->
+            <div class="modal" id="importShortModal">
+                <div class="modal-content" style="max-width: 320px;">
+                    <h2 style="font-size: 16px; margin-bottom: 8px;">Import to Short</h2>
+                    <p style="font-size: 11px; color: var(--text-sub); text-align: center; margin-bottom: 16px;">Select
+                        destination sheet for this new action.</p>
+                    <select id="importShortTargetSelect"
+                        style="width: 100%; padding: 8px; border-radius: var(--r-md); background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border); margin-bottom: 16px; outline: none;">
+                        <!-- Options populated dynamically -->
+                    </select>
+                    <div style="display: flex; gap: 8px; justify-content: center;">
+                        <button class="btn-modal-base" id="importShortModalCancel"
+                            style="background: var(--bg-hover);">Cancel</button>
+                        <button class="btn-modal-base btn-modal-primary" id="importShortModalSend">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="messageModal" class="modal">
+                <div class="modal-content message-modal-content">
+                    <h2 id="messageModalTitle">Thông báo</h2>
+                    <div id="messageModalBody" class="message-modal-body"></div>
+                    <div class="message-modal-actions">
+                        <button class="btn-modal-base btn-modal-primary" id="btnCloseMessageModal">Đóng</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="confirmModal" class="modal" style="display:none;">
+                <div class="modal-content message-modal-content">
+                    <h2 id="confirmModalTitle">Xác nhận</h2>
+                    <div id="confirmModalBody" class="message-modal-body"></div>
+                    <div class="message-modal-actions" style="display:flex; gap:10px; justify-content:flex-end;">
+                        <button class="btn-modal-base btn-modal-cancel" id="btnConfirmCancel">Hủy</button>
+                        <button class="btn-modal-base btn-modal-primary" id="btnConfirmOK">OK</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="rowContextMenu" class="context-menu" style="display: none;">
+                <div class="menu-item" id="menuEdit">Edit Row</div>
+                <div class="menu-item menu-item-danger" id="menuDelete">Delete Row</div>
+            </div>
+
+            <div id="subContextMenu" class="context-menu" style="display: none;">
+                <div class="menu-item" id="menuSubEdit">Edit Subtitle</div>
+                <div class="menu-item menu-item-danger" id="menuSubDelete">Delete Subtitle</div>
+            </div>
+
+            </div>
+                <script src="/tcpscript/assets/app/js/constants.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/timecode.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/state.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/shortcuts.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/modals.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/api.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/storage.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/srt_parser.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/renderer.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/playback.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/timeline.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/tabs.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/toolbar.js?v=1781030875387"></script>
+    <script src="/tcpscript/assets/app/js/init.js?v=1781030875387"></script>
+    </body>
+
+    </html>

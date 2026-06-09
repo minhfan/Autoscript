@@ -271,7 +271,11 @@ function updateActionButtons() {
     const actionButtons = Array.from(document.querySelectorAll('#actionButtonGroup .action-button'));
     actionButtons.forEach(btn => {
         const action   = btn.dataset.action;
-        const colorSet = actionColors[action] || actionColors['OTHERS'];
+        let customObj = null;
+        if (Array.isArray(customActions)) {
+            customObj = customActions.find(a => typeof a === 'object' && a.name === action);
+        }
+        const colorSet = customObj ? { bg: customObj.color, color: '#ffffff' } : (actionColors[action] || actionColors['OTHERS']);
         const active   = action === selectedAction;
         btn.classList.toggle('active', active);
         btn.setAttribute('aria-checked', String(active));
@@ -281,7 +285,6 @@ function updateActionButtons() {
 }
 
 function setSelectedAction(action) {
-    if (!actionColors[action]) return;
     const video   = document.getElementById('videoPlayer');
     const boxSwap = document.getElementById('boxSwap');
     selectedAction = action;
@@ -293,3 +296,26 @@ function setSelectedAction(action) {
         renderTable(); drawMarkers();
     }
 }
+
+// ── Transcript Sync ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const video = document.getElementById('videoPlayer');
+    if (video) {
+        video.addEventListener('timeupdate', () => {
+            const overlay = document.getElementById('subOverlay');
+            if (!overlay || !transcriptData || transcriptData.length === 0) return;
+            
+            const ct = video.currentTime;
+            const currentSub = transcriptData.find(sub => ct >= sub.start && ct <= sub.end);
+            
+            const newText = currentSub ? currentSub.text : '';
+            const isVisible = document.getElementById('subVisibilityCheck')?.checked !== false;
+            
+            if (overlay.textContent !== newText) {
+                overlay.textContent = newText;
+            }
+            // Always update display in case visibility settings changed but text remained the same
+            overlay.style.display = (overlay.textContent && isVisible) ? 'inline-block' : 'none';
+        });
+    }
+});

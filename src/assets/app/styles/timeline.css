@@ -118,7 +118,7 @@
     border: 1px solid var(--border-bright);
     pointer-events: none;
     white-space: pre-wrap;
-    font-family: 'Outfit', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     box-shadow: 0 8px 20px rgba(0,0,0,0.4);
     transition: opacity var(--t-fast);
 }

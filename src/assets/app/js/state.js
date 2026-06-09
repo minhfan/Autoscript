@@ -42,6 +42,8 @@ let redoHistory = [];
 
 // ── Action Selection ─────────────────────────────────────────
 let selectedAction = actionList[0]; // requires constants.js
+let customActions = [];
+let transcriptData = [];
 
 // ── Tab / Sheet State ────────────────────────────────────────
 let currentSheetTab      = 'Full-show';

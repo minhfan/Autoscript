@@ -713,7 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnExportSrt = document.getElementById('btnExportSrt');
     if (btnExportSrt) {
-        btnExportSrt.addEventListener('click', () => {
+        btnExportSrt.addEventListener('click', async () => {
             if (!transcriptData || transcriptData.length === 0) {
                 alert('No subtitles to export. Please generate or import subtitles first.');
                 return;
@@ -732,20 +732,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 srt += formatSrtTime(sub.start) + ' --> ' + formatSrtTime(sub.end) + '\n';
                 srt += sub.text + '\n\n';
             });
-            const blob = new Blob([srt], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'subtitles.srt';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
             
-            // Add a small delay so the browser can start the download before alerting
-            setTimeout(() => {
-                alert('SRT file exported successfully!');
-            }, 500);
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: 'subtitles.srt',
+                        types: [{
+                            description: 'SRT File',
+                            accept: { 'text/plain': ['.srt'] },
+                        }],
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(srt);
+                    await writable.close();
+                    alert('SRT file exported successfully!');
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('Export failed:', err);
+                        alert('Export failed: ' + err.message);
+                    }
+                }
+            } else {
+                const blob = new Blob([srt], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'subtitles.srt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
         });
     }
 

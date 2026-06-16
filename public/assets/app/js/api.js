@@ -106,7 +106,16 @@ async function loadProjectLogsFromKV(tabOverride) {
     if (requestToken !== projectLogsLoadToken) return false;
 
     logs = loadedLogs;
-    tabLogsCache[requestTab] = JSON.parse(JSON.stringify(loadedLogs));
+
+    // Re-derive TC strings from numeric values using corrected NDF formatTC.
+    // This migrates logs saved with the old buggy real-time-based TC calculation.
+    logs.forEach(log => {
+        if (Number.isFinite(log.inSec))  log.tcin  = formatTC(log.inSec);
+        if (Number.isFinite(log.outSec)) log.tcout = formatTC(log.outSec);
+        if (Number.isFinite(log.swapSec)) log.tcswap = formatTC(log.swapSec);
+    });
+
+    tabLogsCache[requestTab] = JSON.parse(JSON.stringify(logs));
     isProjectLogsLoaded = true;
     return true;
 }

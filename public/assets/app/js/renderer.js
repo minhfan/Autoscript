@@ -110,6 +110,10 @@ function drawMarkers() {
     if (!timelineWrapper || !video) return;
 
     Array.from(timelineWrapper.querySelectorAll('.marker-range')).forEach(el => el.remove());
+    // Markers are recreated here; drop their detached tooltips so none are orphaned.
+    Array.from(document.querySelectorAll('.marker-tip')).forEach(el => el.remove());
+    const _oldGt = document.getElementById('globalTooltip');
+    if (_oldGt) _oldGt.remove();
 
     // Always use Full-show logs as source of truth for the universal marker layer
     const masterLogs = tabLogsCache['Full-show'] || logs;
@@ -188,51 +192,54 @@ function drawMarkers() {
             }
         });
 
+        // Each tag gets its OWN tooltip anchored above itself, so moving to another
+        // tag never makes this one slide/teleport — it just fades out in place.
         marker.addEventListener('mouseenter', () => {
             if (!tooltipContent) return;
-            let gt = document.getElementById('globalTooltip');
-            if (!gt) {
-                gt = document.createElement('div');
-                gt.id = 'globalTooltip';
-                gt.style.cssText = `display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:8px 12px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.2); border-radius:8px; z-index:99999; position:fixed; pointer-events:none; max-width:500px; box-shadow:0 4px 12px rgba(0,0,0,0.5); opacity:0; visibility:hidden; transform:translate(-50%,-100%) translateY(6px); transition:opacity .18s ease, transform .18s ease;`;
-                document.body.appendChild(gt);
+            let tip = marker._tip;
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'marker-tip';
+                tip.style.cssText = `display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:8px 12px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.2); border-radius:8px; z-index:99999; position:fixed; pointer-events:none; max-width:500px; box-shadow:0 4px 12px rgba(0,0,0,0.5); opacity:0; transition:opacity .18s ease, transform .18s ease;`;
+                document.body.appendChild(tip);
+                marker._tip = tip;
             }
-            if (gt._hideTimer) { clearTimeout(gt._hideTimer); gt._hideTimer = null; }
-            if (gt._visTimer) { clearTimeout(gt._visTimer); gt._visTimer = null; }
-            gt.style.background = `${colorHex}F2`;
-            gt.innerHTML = `<span style="font-size:12px;text-align:left;white-space:pre-wrap;color:white;line-height:1.4;text-shadow:0 1px 2px rgba(0,0,0,0.8);">${tooltipContent}</span>`;
+            if (tip._hideTimer)   { clearTimeout(tip._hideTimer);   tip._hideTimer = null; }
+            if (tip._removeTimer) { clearTimeout(tip._removeTimer); tip._removeTimer = null; }
+            tip.style.background = `${colorHex}F2`;
+            tip.innerHTML = `<span style="font-size:12px;text-align:left;white-space:pre-wrap;color:white;line-height:1.4;text-shadow:0 1px 2px rgba(0,0,0,0.8);">${tooltipContent}</span>`;
             const pill = marker.querySelector('.action-pill');
             const rect = (pill || marker).getBoundingClientRect();
 
-            // Clamp into the viewport; flip below the tag if it would overflow the top.
+            // Anchor above this tag's pill; clamp into the viewport, flip below if needed.
             const margin = 8;
-            const tw = gt.offsetWidth || 200;
-            const th = gt.offsetHeight || 60;
+            const tw = tip.offsetWidth || 200;
+            const th = tip.offsetHeight || 60;
             let centerX = rect.left + rect.width / 2;
             centerX = Math.max(margin + tw / 2, Math.min(window.innerWidth - margin - tw / 2, centerX));
             const flipBelow = (rect.top - 10 - th) < margin;
             const baseY = flipBelow ? '0%' : '-100%';
-            gt._baseY = baseY;
-            gt.style.left = centerX + 'px';
-            gt.style.top  = (flipBelow ? rect.bottom + 10 : rect.top - 10) + 'px';
-            gt.style.transform = `translate(-50%, ${baseY}) translateY(6px)`;
-            // Show on the next frame so the transition runs from the hidden state.
+            tip._baseY = baseY;
+            tip.style.left = centerX + 'px';
+            tip.style.top  = (flipBelow ? rect.bottom + 10 : rect.top - 10) + 'px';
+            tip.style.transform = `translate(-50%, ${baseY}) translateY(6px)`;
             requestAnimationFrame(() => {
-                gt.style.opacity = '1';
-                gt.style.visibility = 'visible';
-                gt.style.transform = `translate(-50%, ${baseY}) translateY(0)`;
+                tip.style.opacity = '1';
+                tip.style.transform = `translate(-50%, ${baseY}) translateY(0)`;
             });
         });
 
         marker.addEventListener('mouseleave', () => {
-            const gt = document.getElementById('globalTooltip');
-            if (!gt) return;
-            // Small delay so moving between adjacent tags doesn't flicker.
-            gt._hideTimer = setTimeout(() => {
-                gt.style.opacity = '0';
-                gt.style.transform = `translate(-50%, ${gt._baseY || '-100%'}) translateY(6px)`;
-                gt._visTimer = setTimeout(() => { gt.style.visibility = 'hidden'; }, 180);
-            }, 80);
+            const tip = marker._tip;
+            if (!tip) return;
+            tip._hideTimer = setTimeout(() => {
+                tip.style.opacity = '0';
+                tip.style.transform = `translate(-50%, ${tip._baseY || '-100%'}) translateY(6px)`;
+                tip._removeTimer = setTimeout(() => {
+                    tip.remove();
+                    if (marker._tip === tip) marker._tip = null;
+                }, 200);
+            }, 60);
         });
 
         timelineWrapper.appendChild(marker);

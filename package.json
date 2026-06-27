@@ -1,6 +1,6 @@
 {
   "name": "autoscript",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "description": "Video Logging Tool",
   "private": true,
   "type": "module",

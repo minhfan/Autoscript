@@ -71,6 +71,37 @@ function animateZoom() {
     zoomAnimationId = requestAnimationFrame(animateZoom);
 }
 
+// ── Keep the playhead centered when the timeline width changes ─
+function recenterTimeline() {
+    const video   = document.getElementById('videoPlayer');
+    const wrapper  = document.querySelector('.custom-timeline-wrapper');
+    if (!video || !video.duration || !wrapper || wrapper.offsetWidth <= 0) return;
+    const contentWidth = wrapper.clientWidth * timelineZoom;
+    const playheadX    = (video.currentTime / video.duration) * contentWidth;
+    wrapper.scrollLeft = playheadX - (wrapper.offsetWidth / 2);
+}
+
+// Panel/window resizes change the wrapper width; re-center on the playhead so it
+// doesn't drift out of view, and redraw markers/ticks once the resize settles.
+function initTimelineResizeObserver() {
+    const wrapper = document.querySelector('.custom-timeline-wrapper');
+    if (!wrapper || typeof ResizeObserver === 'undefined') return;
+    let raf = null, settleTimer = null, lastW = wrapper.clientWidth;
+    const ro = new ResizeObserver(() => {
+        if (Math.abs(wrapper.clientWidth - lastW) < 1) return;
+        lastW = wrapper.clientWidth;
+        if (raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => { recenterTimeline(); raf = null; });
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+            if (typeof drawMarkers === 'function') drawMarkers();
+            if (typeof renderTimelineTicks === 'function') renderTimelineTicks();
+            recenterTimeline();
+        }, 150);
+    });
+    ro.observe(wrapper);
+}
+
 // ── Init Zoom Drag Button ─────────────────────────────────────
 function initZoomDragButton() {
     const btnZoomDrag = document.getElementById('btnZoomDrag');

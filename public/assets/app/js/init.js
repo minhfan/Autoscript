@@ -397,21 +397,30 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
             if (masterSwap) {
                 // Currently playing swapped-in content; jump back once it's done.
                 if (ct >= masterSwap.endAt || ct < masterSwap.swapStart - 0.5) {
-                    video.currentTime = masterSwap.outSec;
+                    video.currentTime = masterSwap.outSec + 0.05;
                     masterSwap = null;
+                    masterSkipGuard = null;
                     didJump = true;
                 }
             } else {
+                let matched = false;
                 for (let i = 0; i < logs.length; i++) {
                     const lg = logs[i];
                     if (lg.action === 'DELETE' && lg.outSec && ct >= lg.inSec && ct < lg.outSec) {
-                        video.currentTime = isReversing ? lg.inSec - 0.05 : lg.outSec;
-                        didJump = true;
+                        matched = true;
+                        // Skip once per segment; the +0.05 nudge lands clearly past the
+                        // boundary so a frame-accurate seek can't re-trigger this every tick.
+                        if (masterSkipGuard !== lg.outSec) {
+                            masterSkipGuard = lg.outSec;
+                            video.currentTime = isReversing ? Math.max(0, lg.inSec - 0.05) : lg.outSec + 0.05;
+                            didJump = true;
+                        }
                         break;
                     }
                     if (lg.action === 'SWAP' && !isReversing
                         && Number.isFinite(lg.swapSec) && lg.outSec && lg.outSec > lg.inSec
                         && ct >= lg.inSec && ct < lg.outSec) {
+                        matched = true;
                         const dur = lg.outSec - lg.inSec;
                         masterSwap = { outSec: lg.outSec, swapStart: lg.swapSec, endAt: lg.swapSec + dur };
                         video.currentTime = lg.swapSec;
@@ -419,11 +428,14 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
                         break;
                     }
                 }
+                // Left every cut segment → clear the guard so the next one can fire.
+                if (!matched) masterSkipGuard = null;
             }
             // If a skip/seek left the video paused, resume — but never fight a manual pause.
             if (didJump && video.paused && !reverseInterval) video.play();
-        } else if (masterSwap) {
+        } else if (masterSwap || masterSkipGuard !== null) {
             masterSwap = null;
+            masterSkipGuard = null;
         }
 
         // Preview state machine
@@ -712,6 +724,7 @@ initZoomDragButton();
 initTimelinePan();
 initTimelineWheel();
 initTimelineScrub();
+initTimelineResizeObserver();
 initCSVImport();
 
 updateActionButtons();

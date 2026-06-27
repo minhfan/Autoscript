@@ -23,6 +23,7 @@ let isPreviewCut     = false;
 let previewState     = { active: false, logIndex: -1, phase: 0, restorePreviewCut: false };
 let originalPreviewCutState = null;
 let masterSwap       = null; // continuous swap substitution during master Preview-Cut
+let masterSkipGuard  = null; // outSec last skipped to (prevents seek re-trigger loop)
 
 // ── Resizing ─────────────────────────────────────────────────
 let isResizingV      = false;

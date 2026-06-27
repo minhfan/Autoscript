@@ -78,13 +78,40 @@ async function sendLogToTargetTab(targetTab, logData, chipEl) {
     }
 }
 
-// ── Row SEND floating menu ────────────────────────────────────
+// ── Row SEND floating menu (click to open) ────────────────────
 let _activeRowMenu = null;
+let _rowMenuCleanup = null;
+
+// Close on outside click, any scroll, or Escape.
+function _watchRowSendMenu(menu, wrapper) {
+    const onScroll = () => window.forceHideRowSendMenu();
+    const onDown = (e) => {
+        if (menu.contains(e.target) || wrapper.contains(e.target)) return;
+        window.forceHideRowSendMenu();
+    };
+    const onKey = (e) => { if (e.key === 'Escape') window.forceHideRowSendMenu(); };
+    window.addEventListener('scroll', onScroll, true);
+    document.addEventListener('mousedown', onDown, true);
+    document.addEventListener('keydown', onKey, true);
+    _rowMenuCleanup = () => {
+        window.removeEventListener('scroll', onScroll, true);
+        document.removeEventListener('mousedown', onDown, true);
+        document.removeEventListener('keydown', onKey, true);
+    };
+}
+
+// Toggle the menu from the SEND button click.
+window.toggleRowSendMenu = function(e, wrapperEl, logIndex) {
+    if (e) e.stopPropagation();
+    const isOpenForThis = _activeRowMenu && _activeRowMenu.wrapper === wrapperEl;
+    window.forceHideRowSendMenu();
+    if (!isOpenForThis) window.buildRowSendMenu(wrapperEl, logIndex);
+};
 
 window.buildRowSendMenu = function(wrapperEl, logIndex) {
-    hideRowSendMenu();
+    window.forceHideRowSendMenu();
     const tabs = availableSheetTabs.filter(t => t !== currentSheetTab);
-    if (tabs.length === 0) return;
+    if (tabs.length === 0) { openMessageModal('Send to Tab', 'Không có tab nào khác để gửi.'); return; }
 
     const menu = document.createElement('div');
     menu.className = 'floating-tab-menu';
@@ -92,7 +119,8 @@ window.buildRowSendMenu = function(wrapperEl, logIndex) {
     menu.style.position = 'fixed';
 
     const btnRect = wrapperEl.getBoundingClientRect();
-    menu.style.bottom = (window.innerHeight - btnRect.top + 4) + 'px';
+    // Overlap the trigger by 2px (no dead gap) so the pointer can reach the menu.
+    menu.style.bottom = (window.innerHeight - btnRect.top - 2) + 'px';
     menu.style.right  = (window.innerWidth - btnRect.right) + 'px';
     menu.innerHTML = tabs.map(tab => `<button class="tab-chip" data-tab="${tab}">${tab}</button>`).join('');
 
@@ -110,14 +138,14 @@ window.buildRowSendMenu = function(wrapperEl, logIndex) {
         };
     });
 
-    menu.onmouseenter = () => { menu._hovered = true; };
-    menu.onmouseleave = () => { menu._hovered = false; hideRowSendMenu(); };
     wrapperEl._menuRef = menu;
     document.body.appendChild(menu);
     _activeRowMenu = { menu, wrapper: wrapperEl };
+    _watchRowSendMenu(menu, wrapperEl);
 };
 
 window.forceHideRowSendMenu = function() {
+    if (_rowMenuCleanup) { _rowMenuCleanup(); _rowMenuCleanup = null; }
     if (_activeRowMenu) {
         _activeRowMenu.menu.remove();
         if (_activeRowMenu.wrapper) _activeRowMenu.wrapper._menuRef = null;
@@ -125,16 +153,10 @@ window.forceHideRowSendMenu = function() {
     }
 };
 
+// Kept for backwards compatibility (inline onmouseleave handlers); now just defers
+// to the pointer/scroll watcher via forceHide.
 window.hideRowSendMenu = function() {
-    if (!_activeRowMenu) return;
-    const { menu, wrapper } = _activeRowMenu;
-    setTimeout(() => {
-        if (menu._hovered) return;
-        if (wrapper.matches(':hover')) return;
-        menu.remove();
-        wrapper._menuRef = null;
-        _activeRowMenu = null;
-    }, 80);
+    window.forceHideRowSendMenu();
 };
 
 // ── Import Short Floating Menu ────────────────────────────────

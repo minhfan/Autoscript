@@ -109,6 +109,21 @@ async function logAction(actionName) {
 function saveLog() { logAction(selectedAction); }
 
 // ── Jump to TC from table ─────────────────────────────────────
+// Smooth-scroll a log row to the vertical center of the table and flash it.
+function scrollLogRowIntoView(index) {
+    const rowEl = document.getElementById('row-' + index);
+    const tableWrap = document.querySelector('.table-wrap');
+    if (!rowEl || !tableWrap) return;
+    const wrapRect = tableWrap.getBoundingClientRect();
+    const rowRect  = rowEl.getBoundingClientRect();
+    const delta = (rowRect.top - wrapRect.top) - (tableWrap.clientHeight / 2) + (rowRect.height / 2);
+    tableWrap.scrollTo({ top: tableWrap.scrollTop + delta, behavior: 'smooth' });
+    rowEl.classList.remove('row-jump-highlight');
+    void rowEl.offsetWidth; // restart the animation if re-triggered
+    rowEl.classList.add('row-jump-highlight');
+    setTimeout(() => rowEl.classList.remove('row-jump-highlight'), 1400);
+}
+
 window.jumpToTC = function(index, field, useMaster = false) {
     const logArray = useMaster ? (tabLogsCache['Full-show'] || logs) : logs;
     const log = logArray[index];
@@ -125,27 +140,39 @@ window.jumpToTC = function(index, field, useMaster = false) {
     tcAutoSelected = true;
     tcJumpWait = true;
 
-    if (log.inSec !== undefined && log.inSec !== null) {
-        activeInSec = log.inSec;
-        if (valTcIn) valTcIn.innerText = formatTC(activeInSec);
-        if (boxIn) boxIn.classList.add('active');
-    }
-    if (log.outSec !== undefined && log.outSec !== null) {
-        activeOutSec = log.outSec;
-        if (valTcOut) valTcOut.innerText = formatTC(activeOutSec);
-        if (boxOut) boxOut.classList.add('active');
-    }
-    if (log.swapSec !== undefined && log.swapSec !== null && valTcSwap) {
-        activeSwapSec = log.swapSec;
-        valTcSwap.innerText = formatTC(activeSwapSec);
-        if (boxSwap) boxSwap.classList.add('active');
-    }
+    // Reset all three so a previous tag's range/swap never carries over.
+    activeInSec   = (log.inSec   !== undefined && log.inSec   !== null) ? log.inSec   : null;
+    activeOutSec  = (log.outSec  !== undefined && log.outSec  !== null) ? log.outSec  : null;
+    activeSwapSec = (log.swapSec !== undefined && log.swapSec !== null) ? log.swapSec : null;
+
+    if (valTcIn)   valTcIn.innerText   = activeInSec   !== null ? formatTC(activeInSec)   : '00:00:00:00';
+    if (valTcOut)  valTcOut.innerText  = activeOutSec  !== null ? formatTC(activeOutSec)  : '00:00:00:00';
+    if (valTcSwap) valTcSwap.innerText = activeSwapSec !== null ? formatTC(activeSwapSec) : '00:00:00:00';
+    if (boxIn)   boxIn.classList.toggle('active',   activeInSec   !== null);
+    if (boxOut)  boxOut.classList.toggle('active',  activeOutSec  !== null);
+    if (boxSwap) boxSwap.classList.toggle('active', activeSwapSec !== null);
 
     updateActiveRange();
 
+    // When triggered from a timeline smart-tag, scroll the matching list row to center.
+    if (useMaster && currentSheetTab === 'Full-show') {
+        scrollLogRowIntoView(index);
+    }
+
     const sec = parseTC(log[field]);
     if (sec !== null && !isNaN(sec)) {
-        if (video) video.currentTime = sec;
+        if (video) {
+            // Glide the playhead to the new spot (transition removed right after).
+            const ph = document.getElementById('playheadIndicator');
+            const pr = document.getElementById('timelineProgress');
+            if (ph) ph.classList.add('ph-smooth');
+            if (pr) pr.classList.add('ph-smooth');
+            setTimeout(() => {
+                if (ph) ph.classList.remove('ph-smooth');
+                if (pr) pr.classList.remove('ph-smooth');
+            }, 320);
+            video.currentTime = sec;
+        }
         let targetZoom = 50;
         let pts = [];
         if (log.inSec !== null) pts.push(log.inSec);
@@ -219,48 +246,280 @@ window.inlineUpdate = function(index, field, element) {
     if (field === 'tcout')  { logs[index].outSec  = parseTC(logs[index].tcout);  drawMarkers(); }
 };
 
-// ── CSV / Excel Import ────────────────────────────────────────
+// ── Excel Import / Export (canonical layout: STT, ACTION, TC IN, ──
+//    TC OUT, TC SWAP, SCRIPT, NOTE — data from row 5) ───────────
+
+// Read a cell as plain text (action / timecode columns).
+function xlsxCellText(cell) {
+    const v = cell ? cell.value : null;
+    if (v == null) return '';
+    if (typeof v === 'object') {
+        if (Array.isArray(v.richText)) return v.richText.map(r => r.text || '').join('');
+        if (v.text != null) return String(v.text);       // hyperlink
+        if (v.result != null) return String(v.result);   // formula result
+        if (v instanceof Date) return '';
+        return String(v);
+    }
+    return String(v);
+}
+
+// Read a cell as canonical rich HTML (script / note columns).
+function xlsxCellRichHtml(cell) {
+    const v = cell ? cell.value : null;
+    if (v == null) return '';
+    if (typeof v === 'object' && Array.isArray(v.richText)) {
+        return richTextRunsToHtml(v.richText);
+    }
+    const text = xlsxCellText(cell);
+    // Legacy cells may contain literal HTML tags (from the old sync bug) →
+    // normalize them; otherwise just escape plain text (keeps stray "<" intact).
+    return /<\/?[a-zA-Z][^>]*>/.test(text) ? normalizeEditorHtml(text) : rtEscapeText(text);
+}
+
+// Estimate how many populated data rows a worksheet holds (ACTION/TC IN cols).
+function countSheetDataRows(ws) {
+    if (!ws) return 0;
+    let n = 0;
+    const max = ws.rowCount || 0;
+    for (let r = 1; r <= max; r++) {
+        const row = ws.getRow(r);
+        if (xlsxCellText(row.getCell(2)).trim() || xlsxCellText(row.getCell(3)).trim()) n++;
+    }
+    return n;
+}
+
+// Choose the worksheet to import: prefer the one matching the current tab,
+// otherwise the sheet with the most data (handles multi-tab .xlsx files).
+function pickImportWorksheet(workbook) {
+    const sheets = (workbook.worksheets || []).filter(Boolean);
+    if (!sheets.length) return null;
+    const want = (currentSheetTab || '').trim().toLowerCase();
+    if (want) {
+        const byName = sheets.find(s => String(s.name || '').trim().toLowerCase() === want);
+        if (byName && countSheetDataRows(byName) > 0) return byName;
+    }
+    let best = sheets[0];
+    let bestCount = countSheetDataRows(best);
+    for (let i = 1; i < sheets.length; i++) {
+        const c = countSheetDataRows(sheets[i]);
+        if (c > bestCount) { best = sheets[i]; bestCount = c; }
+    }
+    return best;
+}
+
 function initCSVImport() {
     const csvImportEl = document.getElementById('csvImport');
     if (!csvImportEl) return;
-    csvImportEl.addEventListener('change', function(e) {
+    csvImportEl.addEventListener('change', async function(e) {
         const file = e.target.files[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-            try {
-                const data     = new Uint8Array(ev.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheet    = workbook.Sheets[workbook.SheetNames[0]];
-                const rows     = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-                const newLogs  = [];
-                for (let i = 4; i < rows.length; i++) {
-                    const cols = rows[i];
-                    if (!cols || cols.length === 0) continue;
-                    let action = (cols[1] || '').toString().trim();
-                    if (action === 'DELTELE') action = 'DELETE';
-                    let tcswap = (cols[2] || '').toString().trim();
-                    let tcin   = (cols[3] || '').toString().trim();
-                    let tcout  = (cols[4] || '').toString().trim();
-                    let script = (cols[5] || '').toString().trim();
-                    let note   = (cols[6] || '').toString().trim();
-                    if (action || tcin || script) {
-                        newLogs.push({ action, tcswap, tcin, tcout, script, note, inSec: parseTC(tcin), outSec: parseTC(tcout) || null, swapSec: tcswap ? parseTC(tcswap) : null });
-                    }
+        try {
+            if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS chưa được tải.');
+            const buffer = await file.arrayBuffer();
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(buffer);
+            const ws = pickImportWorksheet(workbook);
+            if (!ws) throw new Error('Workbook rỗng.');
+
+            // Locate the header row so data start is robust across sheets.
+            let headerRow = 0;
+            const scanMax = Math.min(ws.rowCount || 0, 12);
+            for (let r = 1; r <= scanMax; r++) {
+                const labels = [];
+                for (let c = 1; c <= 7; c++) labels.push(xlsxCellText(ws.getRow(r).getCell(c)).trim().toUpperCase());
+                if (labels.indexOf('ACTION') !== -1 || labels.indexOf('TC IN') !== -1 || labels.indexOf('STT') !== -1) {
+                    headerRow = r;
+                    break;
                 }
-                if (newLogs.length > 0) {
-                    openConfirmModal('Import Data', `Tìm thấy ${newLogs.length} dòng. Ghi đè danh sách hiện tại?`).then(ok => {
-                        if (ok) { logs = newLogs; renderTable(); drawMarkers(); saveProjectLogsToKV(); }
-                    });
-                } else {
-                    openMessageModal('Lỗi Import', 'File không hợp lệ hoặc rỗng!');
-                }
-            } catch (err) {
-                console.error(err);
-                openMessageModal('Lỗi Import', 'Không thể đọc file. Vui lòng chọn file Excel (.xlsx) hoặc CSV hợp lệ.');
             }
-        };
-        reader.readAsArrayBuffer(file);
-        e.target.value = '';
+            const dataStart = headerRow ? headerRow + 1 : 5;
+
+            const newLogs = [];
+            for (let r = dataStart; r <= ws.rowCount; r++) {
+                const row = ws.getRow(r);
+                let action  = xlsxCellText(row.getCell(2)).trim();
+                if (action === 'DELTELE') action = 'DELETE';
+                const tcin   = xlsxCellText(row.getCell(3)).trim();
+                const tcout  = xlsxCellText(row.getCell(4)).trim();
+                const tcswap = xlsxCellText(row.getCell(5)).trim();
+                const script = xlsxCellRichHtml(row.getCell(6));
+                const note   = xlsxCellRichHtml(row.getCell(7));
+                if (action || tcin || tcout || tcswap || script || note) {
+                    newLogs.push({
+                        action, tcswap, tcin, tcout, script, note,
+                        inSec: parseTC(tcin),
+                        outSec: parseTC(tcout) || null,
+                        swapSec: tcswap ? parseTC(tcswap) : null
+                    });
+                }
+            }
+
+            if (newLogs.length > 0) {
+                const ok = await openConfirmModal('Import Data', `Tìm thấy ${newLogs.length} dòng. Ghi đè danh sách hiện tại?`);
+                if (ok) {
+                    if (typeof saveState === 'function') saveState();
+                    logs = newLogs;
+                    renderTable();
+                    drawMarkers();
+                    saveProjectLogsToKV();
+                    if (typeof saveSession === 'function') saveSession();
+                    showToast('Đã import ' + newLogs.length + ' dòng', 'success');
+                }
+            } else {
+                openMessageModal('Lỗi Import', 'File không hợp lệ hoặc rỗng!');
+            }
+        } catch (err) {
+            console.error(err);
+            openMessageModal('Lỗi Import', 'Không thể đọc file. Vui lòng chọn file Excel (.xlsx) hợp lệ.');
+        } finally {
+            e.target.value = '';
+        }
     });
+}
+
+// Build an ExcelJS cell value, preserving bold/italic/strike/underline.
+function buildExcelCellValue(html) {
+    const runs = htmlToRuns(html);
+    if (!runs.length) return '';
+    const hasFmt = runs.some(r => r.bold || r.italic || r.strike || r.underline);
+    if (!hasFmt) return runs.map(r => r.text).join('');
+    return {
+        richText: runs.map(r => {
+            const font = {};
+            if (r.bold) font.bold = true;
+            if (r.italic) font.italic = true;
+            if (r.strike) font.strike = true;
+            if (r.underline) font.underline = true;
+            return { text: r.text, font };
+        })
+    };
+}
+
+function safeExcelSheetName(name) {
+    const cleaned = String(name || 'Sheet').replace(/[\[\]:*?/\\]/g, ' ').trim().slice(0, 31);
+    return cleaned || 'Sheet';
+}
+
+function triggerBlobDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function exportToExcel() {
+    if (typeof ExcelJS === 'undefined') {
+        openMessageModal('Export Excel', 'Thư viện ExcelJS chưa sẵn sàng. Vui lòng tải lại trang.');
+        return;
+    }
+    if (!logs.length) {
+        openMessageModal('Export Excel', 'Danh sách log rỗng. Không có gì để xuất.');
+        return;
+    }
+    const btn = document.getElementById('btnExportExcel');
+    const originalText = btn ? btn.innerText : 'Export Excel';
+    if (btn) { btn.disabled = true; btn.innerText = 'Đang xuất...'; }
+    try {
+        const tabName = currentSheetTab || 'Full-show';
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet(safeExcelSheetName(tabName));
+        ws.columns = [
+            { width: 6 }, { width: 12 }, { width: 14 }, { width: 14 },
+            { width: 14 }, { width: 50 }, { width: 40 }
+        ];
+
+        // Header area (rows 1–4); data starts at row 5 to match the Sheet template.
+        ws.getCell('A1').value = currentSpreadsheetName || 'Autoscript';
+        const headers = ['STT', 'ACTION', 'TC IN', 'TC OUT', 'TC SWAP', 'SCRIPT', 'NOTE'];
+        headers.forEach((label, idx) => {
+            const cell = ws.getCell(4, idx + 1);
+            cell.value = label;
+            cell.font = { bold: true };
+        });
+
+        logs.forEach((log, i) => {
+            const r = 5 + i;
+            ws.getCell(r, 1).value = i + 1;
+            ws.getCell(r, 2).value = log.action || '';
+            ws.getCell(r, 3).value = log.tcin || '';
+            ws.getCell(r, 4).value = (log.tcout && log.tcout !== '00:00:00:00') ? log.tcout : '';
+            ws.getCell(r, 5).value = log.tcswap || '';
+            ws.getCell(r, 6).value = buildExcelCellValue(log.script);
+            ws.getCell(r, 7).value = buildExcelCellValue(log.note);
+            ws.getCell(r, 6).alignment = { wrapText: true, vertical: 'top' };
+            ws.getCell(r, 7).alignment = { wrapText: true, vertical: 'top' };
+        });
+
+        const out = await wb.xlsx.writeBuffer();
+        const blob = new Blob([out], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const filename = `${currentSpreadsheetName || 'Autoscript'} - ${tabName}.xlsx`
+            .replace(/[\\/:*?"<>|]+/g, '_');
+        triggerBlobDownload(blob, filename);
+        showToast('Đã xuất Excel (' + logs.length + ' dòng)', 'success');
+    } catch (err) {
+        console.error(err);
+        openMessageModal('Lỗi Export', 'Không thể tạo file Excel: ' + (err.message || err));
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = originalText; }
+    }
+}
+
+// Sync / Export dropdown menu wiring.
+function initSyncMenu() {
+    const trigger = document.getElementById('btnSyncMenu');
+    const menu = document.getElementById('syncMenu');
+    if (!trigger || !menu) return;
+
+    const closeMenu = () => {
+        menu.style.display = 'none';
+        trigger.setAttribute('aria-expanded', 'false');
+    };
+    const openMenu = () => {
+        menu.style.display = 'block';
+        trigger.setAttribute('aria-expanded', 'true');
+    };
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (menu.style.display === 'block') closeMenu();
+        else openMenu();
+    });
+    document.addEventListener('click', (e) => {
+        if (!menu.contains(e.target) && e.target !== trigger) closeMenu();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeMenu();
+    });
+
+    const btnSync = document.getElementById('btnSyncSheets');
+    if (btnSync) btnSync.addEventListener('click', () => { closeMenu(); syncToGoogleSheets(); });
+    const btnExport = document.getElementById('btnExportExcel');
+    if (btnExport) btnExport.addEventListener('click', () => { closeMenu(); exportToExcel(); });
+}
+
+// ── Delete All Logs (undoable via Ctrl/Cmd+Z) ─────────────────
+async function deleteAllLogs() {
+    if (!logs.length) {
+        openMessageModal('Xoá toàn bộ', 'Danh sách log đã trống.');
+        return;
+    }
+    const ok = await openConfirmModal(
+        'Xoá toàn bộ',
+        `Xoá tất cả ${logs.length} dòng log trong tab này? Có thể hoàn tác bằng Ctrl/Cmd + Z.`
+    );
+    if (!ok) return;
+    const removed = logs.length;
+    saveState();           // snapshot for undo
+    logs = [];
+    renderTable();
+    drawMarkers();
+    saveProjectLogsToKV();
+    if (typeof saveSession === 'function') saveSession();
+    showToast('Đã xoá ' + removed + ' dòng (Ctrl/Cmd+Z để hoàn tác)', 'info', 3200);
 }

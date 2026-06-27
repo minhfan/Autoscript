@@ -28,18 +28,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const el = document.getElementById(id);
         if (el) {
             Object.defineProperty(el, 'value', {
-                get: function() { 
-                    let html = this.innerHTML;
-                    html = html.replace(/<div><br><\/div>/gi, '\n');
-                    html = html.replace(/<div>/gi, '\n');
-                    html = html.replace(/<\/div>/gi, '');
-                    html = html.replace(/<p>/gi, '\n');
-                    html = html.replace(/<\/p>/gi, '');
-                    html = html.replace(/<br>/gi, '\n');
-                    return html;
+                get: function() {
+                    // Canonical minimal HTML (<b>/<i>/<s>/<u> + "\n"), paste-safe.
+                    return (typeof normalizeEditorHtml === 'function')
+                        ? normalizeEditorHtml(this.innerHTML)
+                        : this.innerHTML;
                 },
-                set: function(val) { 
-                    this.innerHTML = String(val).replace(/\n/g, '<br>'); 
+                set: function(val) {
+                    this.innerHTML = String(val == null ? '' : val).replace(/\n/g, '<br>');
                 }
             });
         }
@@ -393,17 +389,41 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
         }
         if (bigTc) bigTc.style.color = activeColor;
 
-        // Preview Cut skip
-        if (isPreviewCut) {
+        // Master Preview Cut (disabled while a single-action preview drives its own jumps):
+        // skip DELETE segments and substitute SWAP segments, playing continuously.
+        if (isPreviewCut && !(previewState && previewState.active)) {
             const isReversing = reverseInterval !== null;
-            for (let i = 0; i < logs.length; i++) {
-                if (logs[i].action === 'DELETE' && logs[i].outSec) {
-                    if (ct >= logs[i].inSec && ct < logs[i].outSec) {
-                        video.currentTime = isReversing ? logs[i].inSec - 0.05 : logs[i].outSec;
+            let didJump = false;
+            if (masterSwap) {
+                // Currently playing swapped-in content; jump back once it's done.
+                if (ct >= masterSwap.endAt || ct < masterSwap.swapStart - 0.5) {
+                    video.currentTime = masterSwap.outSec;
+                    masterSwap = null;
+                    didJump = true;
+                }
+            } else {
+                for (let i = 0; i < logs.length; i++) {
+                    const lg = logs[i];
+                    if (lg.action === 'DELETE' && lg.outSec && ct >= lg.inSec && ct < lg.outSec) {
+                        video.currentTime = isReversing ? lg.inSec - 0.05 : lg.outSec;
+                        didJump = true;
+                        break;
+                    }
+                    if (lg.action === 'SWAP' && !isReversing
+                        && Number.isFinite(lg.swapSec) && lg.outSec && lg.outSec > lg.inSec
+                        && ct >= lg.inSec && ct < lg.outSec) {
+                        const dur = lg.outSec - lg.inSec;
+                        masterSwap = { outSec: lg.outSec, swapStart: lg.swapSec, endAt: lg.swapSec + dur };
+                        video.currentTime = lg.swapSec;
+                        didJump = true;
                         break;
                     }
                 }
             }
+            // If a skip/seek left the video paused, resume — but never fight a manual pause.
+            if (didJump && video.paused && !reverseInterval) video.play();
+        } else if (masterSwap) {
+            masterSwap = null;
         }
 
         // Preview state machine
@@ -420,6 +440,19 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
                         if (ct >= endTarget) { video.currentTime = sSec; previewState.phase = 3; }
                     } else if (previewState.phase === 3) {
                         if (ct >= sSec + 3) { video.pause(); endPreview(); }
+                    }
+                } else if (log.action === 'DELETE') {
+                    const iSec = Number.isFinite(log.inSec) ? log.inSec : parseTC(log.tcin);
+                    const oSec = Number.isFinite(log.outSec) ? log.outSec : parseTC(log.tcout);
+                    const hasCut = Number.isFinite(oSec) && oSec > iSec;
+                    if (previewState.phase === 0) {
+                        // Lead-in: play up to the cut start, then jump over the deleted segment.
+                        if (hasCut) {
+                            if (ct >= iSec - 0.02) { video.currentTime = oSec; previewState.phase = 2; }
+                        } else if (ct >= iSec + 3) { video.pause(); endPreview(); }
+                    } else if (previewState.phase === 2) {
+                        // Tail: keep playing 3s past the cut so the join is reviewable.
+                        if (ct >= oSec + 3) { video.pause(); endPreview(); }
                     }
                 } else {
                     const iSec = Number.isFinite(log.inSec) ? log.inSec : parseTC(log.tcin);
@@ -446,9 +479,12 @@ if (tcJumpInput) {
 const btnToolbarImport = document.getElementById('btnToolbarImport');
 if (btnToolbarImport) btnToolbarImport.addEventListener('click', saveLog);
 
-// ── Sync Sheets ───────────────────────────────────────────────
-const btnSyncSheets = document.getElementById('btnSyncSheets');
-if (btnSyncSheets) btnSyncSheets.addEventListener('click', syncToGoogleSheets);
+// ── Sync / Export Menu ────────────────────────────────────────
+initSyncMenu();
+
+// ── Delete All Logs ───────────────────────────────────────────
+const btnDeleteAll = document.getElementById('btnDeleteAll');
+if (btnDeleteAll) btnDeleteAll.addEventListener('click', deleteAllLogs);
 
 // ── Message Modal Close ───────────────────────────────────────
 const btnCloseMsg = document.getElementById('btnCloseMessageModal');

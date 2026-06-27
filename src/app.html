@@ -11,11 +11,11 @@
         <link
             href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
             rel="stylesheet">
-            <link rel="stylesheet" href="/tcpscript/assets/app/styles/design-system.css?v=1781032270926">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/layout.css?v=1781032270926">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/timeline.css?v=1781032270926">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/table.css?v=1781032270926">
-    <link rel="stylesheet" href="/tcpscript/assets/app/styles/modals.css?v=1781032270926">
+            <link rel="stylesheet" href="/tcpscript/assets/app/styles/design-system.css?v=1782532919769">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/layout.css?v=1782532919769">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/timeline.css?v=1782532919769">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/table.css?v=1782532919769">
+    <link rel="stylesheet" href="/tcpscript/assets/app/styles/modals.css?v=1782532919769">
         <style>
             .context-menu {
                 position: absolute;
@@ -201,7 +201,7 @@
                 display: block;
             }
         </style>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     </head>
 
     <body>
@@ -212,6 +212,18 @@
             #logTable td, #logTable th {
                 font-size: var(--log-font-size) !important;
             }
+            #syncMenu .sync-menu-item {
+                display: block;
+                width: 100%;
+                text-align: left;
+                margin: 0 0 2px 0;
+                background: transparent;
+                border: 1px solid transparent;
+                border-radius: 6px;
+                white-space: nowrap;
+            }
+            #syncMenu .sync-menu-item:last-child { margin-bottom: 0; }
+            #syncMenu .sync-menu-item:hover { background: var(--bg-input) !important; }
             .sub-text-span, .sub-tc-span {
                 font-size: var(--transcript-font-size, var(--log-font-size)) !important;
             }
@@ -550,12 +562,18 @@
                                 <input type="range" id="actionLogSizeSlider" class="text-size-slider" min="10" max="24" value="13" style="width: 70px;">
                                 <span style="font-size: 14px; color: var(--text-muted);">Aa</span>
                             </div>
-                            <label class="btn-action btn-import" id="lblImport" style="cursor: pointer; margin: 0;">
-                                <input type="file" id="csvImport" accept=".csv, .xlsx, .xls" style="display: none;">
+                            <label class="btn-action btn-import" id="lblImport" title="Import Excel (.xlsx)" style="cursor: pointer; margin: 0;">
+                                <input type="file" id="csvImport" accept=".xlsx, .xls" style="display: none;">
                                 Import
                             </label>
-                            <button type="button" class="btn-action btn-sync-brand" id="btnSyncSheets"
-                                title="Sync current sheet">Sync Sheet</button>
+                            <div id="syncMenuWrapper" style="position: relative; display: inline-flex;">
+                                <button type="button" class="btn-action btn-sync-brand" id="btnSyncMenu"
+                                    title="Sync / Export" aria-haspopup="true" aria-expanded="false">Sync Sheet &#9662;</button>
+                                <div id="syncMenu" role="menu" style="display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--bg-panel); border: 1px solid var(--border-bright); border-radius: var(--r-sm); box-shadow: 0 8px 24px rgba(0,0,0,0.45); padding: 4px; min-width: 160px; z-index: 1000;">
+                                    <button type="button" class="btn-action sync-menu-item" id="btnSyncSheets" role="menuitem" title="Sync current sheet to Google Sheets">Sync Sheet</button>
+                                    <button type="button" class="btn-action sync-menu-item" id="btnExportExcel" role="menuitem" title="Download current sheet as .xlsx">Export Excel</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="table-wrap">
@@ -772,20 +790,21 @@
             </div>
 
             </div>
-                <script src="/tcpscript/assets/app/js/constants.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/timecode.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/state.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/shortcuts.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/modals.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/api.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/storage.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/srt_parser.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/renderer.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/playback.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/timeline.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/tabs.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/toolbar.js?v=1781032270926"></script>
-    <script src="/tcpscript/assets/app/js/init.js?v=1781032270926"></script>
+                <script src="/tcpscript/assets/app/js/constants.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/timecode.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/richtext.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/state.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/shortcuts.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/modals.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/api.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/storage.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/srt_parser.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/renderer.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/playback.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/timeline.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/tabs.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/toolbar.js?v=1782532919769"></script>
+    <script src="/tcpscript/assets/app/js/init.js?v=1782532919769"></script>
     </body>
 
     </html>

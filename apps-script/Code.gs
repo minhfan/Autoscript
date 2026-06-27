@@ -302,66 +302,109 @@ function doPost(e) {
 }
 
 /**
- * Chuyển đổi chuỗi chứa thẻ HTML cơ bản (<b>, <i>, <strike>, <s>, <br>, <div>) 
- * thành đối tượng RichTextValue của Google Sheets.
+ * Chuyển đổi chuỗi HTML (<b>/<strong>, <i>/<em>, <s>/<strike>/<del>, <u>/<ins>,
+ * định dạng theo inline-style, <br>/<div>/<p>) thành RichTextValue của Google
+ * Sheets. Các thẻ không nhận diện được BỎ QUA (không chèn thành text), tránh lỗi
+ * tag literal lọt vào ô khi paste / dữ liệu cũ.
  */
 function buildRichTextFromHtml(htmlStr) {
-  var text = htmlStr || "";
-  // Tạm xử lý <br> và <div> thành xuống dòng để dễ regex
-  text = text.replace(/<br\s*\/?>/gi, "\n");
-  text = text.replace(/<\/div>/gi, "\n").replace(/<div>/gi, "");
-  
+  var text = htmlStr == null ? "" : String(htmlStr);
+
   if (text.indexOf("<") === -1) {
-    return SpreadsheetApp.newRichTextValue().setText(text).build();
+    return SpreadsheetApp.newRichTextValue().setText(rtDecodeEntities_(text)).build();
   }
-  
-  var regex = /(<[^>]+>)/g;
-  var parts = text.split(regex);
+
+  var voidTags = { br:1, img:1, hr:1, input:1, meta:1, link:1, source:1, area:1, base:1, col:1, embed:1, param:1, track:1, wbr:1 };
+  var blockTags = { div:1, p:1, li:1, tr:1 };
+
+  var stack = [];
+  var active = { b:0, i:0, s:0, u:0 };
   var plainText = "";
   var formats = [];
-  
-  var isBold = false;
-  var isItalic = false;
-  var isStrikethrough = false;
-  
-  for (var i = 0; i < parts.length; i++) {
-    var part = parts[i];
-    if (!part) continue;
-    
-    if (part.charAt(0) === "<" && part.charAt(part.length - 1) === ">") {
-      var tag = part.toLowerCase();
-      if (tag === "<b>" || tag === "<strong>") isBold = true;
-      else if (tag === "</b>" || tag === "</strong>") isBold = false;
-      else if (tag === "<i>" || tag === "<em>") isItalic = true;
-      else if (tag === "</i>" || tag === "</em>") isItalic = false;
-      else if (tag === "<strike>" || tag === "<s>") isStrikethrough = true;
-      else if (tag === "</strike>" || tag === "</s>") isStrikethrough = false;
-      else {
-        var decodedPart = part.replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-        var start = plainText.length;
-        plainText += decodedPart;
-        formats.push({start: start, end: plainText.length, b: isBold, i: isItalic, s: isStrikethrough});
-      }
-    } else {
-      var decodedPart = part.replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-      var start = plainText.length;
-      plainText += decodedPart;
-      formats.push({start: start, end: plainText.length, b: isBold, i: isItalic, s: isStrikethrough});
-    }
+
+  function emit(t) {
+    if (t === "") return;
+    var start = plainText.length;
+    plainText += t;
+    formats.push({ start: start, end: plainText.length, b: active.b > 0, i: active.i > 0, s: active.s > 0, u: active.u > 0 });
   }
-  
+  function applyDelta(fmt, dir) {
+    if (fmt.b) active.b += dir;
+    if (fmt.i) active.i += dir;
+    if (fmt.s) active.s += dir;
+    if (fmt.u) active.u += dir;
+  }
+  function tagFormatting(name, raw) {
+    var n = name.toLowerCase();
+    var fmt = { b:false, i:false, s:false, u:false };
+    if (n === "b" || n === "strong") fmt.b = true;
+    else if (n === "i" || n === "em") fmt.i = true;
+    else if (n === "s" || n === "strike" || n === "del") fmt.s = true;
+    else if (n === "u" || n === "ins") fmt.u = true;
+    var sm = /style\s*=\s*("([^"]*)"|'([^']*)')/i.exec(raw || "");
+    if (sm) {
+      var style = (sm[2] || sm[3] || "").toLowerCase();
+      if (/font-weight\s*:\s*(bold|bolder|[6-9]00)/.test(style)) fmt.b = true;
+      if (/font-style\s*:\s*italic/.test(style)) fmt.i = true;
+      if (/text-decoration[^;]*line-through/.test(style)) fmt.s = true;
+      if (/text-decoration[^;]*underline/.test(style)) fmt.u = true;
+    }
+    return fmt;
+  }
+
+  var tokenRe = /<[^>]*>|[^<]+/g;
+  var m;
+  while ((m = tokenRe.exec(text)) !== null) {
+    var token = m[0];
+    if (token.charAt(0) !== "<") {
+      emit(rtDecodeEntities_(token));
+      continue;
+    }
+    var tagMatch = /^<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)/.exec(token);
+    if (!tagMatch) continue;
+    var isClose = tagMatch[1] === "/";
+    var name = tagMatch[2].toLowerCase();
+    if (voidTags[name]) {
+      if (name === "br") emit("\n");
+      continue;
+    }
+    if (isClose) {
+      if (stack.length) applyDelta(stack.pop(), -1);
+      continue;
+    }
+    if (blockTags[name]) emit("\n");
+    var fmt = tagFormatting(name, token);
+    stack.push(fmt);
+    applyDelta(fmt, 1);
+  }
+
   var builder = SpreadsheetApp.newRichTextValue().setText(plainText);
   for (var j = 0; j < formats.length; j++) {
-    var fmt = formats[j];
-    if (fmt.start < fmt.end) {
+    var f = formats[j];
+    if (f.start < f.end) {
       var styleBuilder = SpreadsheetApp.newTextStyle()
-        .setBold(fmt.b)
-        .setItalic(fmt.i)
-        .setStrikethrough(fmt.s);
-      builder.setTextStyle(fmt.start, fmt.end, styleBuilder.build());
+        .setBold(f.b)
+        .setItalic(f.i)
+        .setStrikethrough(f.s)
+        .setUnderline(f.u);
+      builder.setTextStyle(f.start, f.end, styleBuilder.build());
     }
   }
   return builder.build();
+}
+
+/**
+ * Giải mã các HTML entity cơ bản.
+ */
+function rtDecodeEntities_(str) {
+  return String(str == null ? "" : str)
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
 }
 
 /**

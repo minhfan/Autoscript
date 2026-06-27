@@ -5,6 +5,29 @@
 //  Depends on: state.js
 // ============================================================
 
+// ── Toast (non-blocking notifications) ───────────────────────
+function showToast(message, type = 'success', duration = 2600) {
+    let host = document.getElementById('toastHost');
+    if (!host) {
+        host = document.createElement('div');
+        host.id = 'toastHost';
+        document.body.appendChild(host);
+    }
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    const icons = { success: '✓', error: '✕', info: 'ℹ' };
+    toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span class="toast-msg"></span>`;
+    toast.querySelector('.toast-msg').innerText = message || '';
+    host.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('toast-show'));
+    const remove = () => {
+        toast.classList.remove('toast-show');
+        setTimeout(() => toast.remove(), 220);
+    };
+    const timer = setTimeout(remove, duration);
+    toast.addEventListener('click', () => { clearTimeout(timer); remove(); });
+}
+
 // ── Message Modal ─────────────────────────────────────────────
 function closeMessageModal() {
     const mMessage = document.getElementById('messageModal');

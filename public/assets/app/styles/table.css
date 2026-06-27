@@ -219,3 +219,30 @@ tr.selected-row { background: var(--bg-hover); box-shadow: inset 3px 0 0 var(--a
     0% { background-color: rgba(255, 193, 7, 0.5) !important; }
     100% { background-color: transparent; }
 }
+
+/* Empty state */
+.empty-row td { padding: 0 !important; background: transparent !important; }
+.empty-row:hover td { background: transparent !important; }
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 48px 20px;
+    color: var(--text-muted);
+    text-align: center;
+}
+.empty-state-icon { font-size: 34px; opacity: 0.7; }
+.empty-state-text { font-size: 13px; line-height: 1.5; max-width: 360px; }
+.empty-state-text b { color: var(--text-main); }
+
+/* Flash a row when jumped to from a timeline smart tag */
+.row-jump-highlight {
+    animation: rowJumpFlash 1.4s ease-out forwards;
+}
+@keyframes rowJumpFlash {
+    0%   { background-color: rgba(59, 130, 246, 0.55) !important; box-shadow: inset 3px 0 0 #3b82f6; }
+    60%  { background-color: rgba(59, 130, 246, 0.30) !important; box-shadow: inset 3px 0 0 #3b82f6; }
+    100% { background-color: transparent; box-shadow: inset 3px 0 0 transparent; }
+}

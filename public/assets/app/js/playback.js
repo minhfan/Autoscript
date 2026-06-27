@@ -48,10 +48,17 @@ function endPreview() {
 
 function togglePreviewCut() {
     const btnPreviewCut = document.getElementById('btnPreviewCut');
+    const video = document.getElementById('videoPlayer');
     isPreviewCut = !isPreviewCut;
+    masterSwap = null;
     if (btnPreviewCut) {
         btnPreviewCut.classList.toggle('active', isPreviewCut);
         btnPreviewCut.title = isPreviewCut ? 'Preview Cut: ON (P)' : 'Preview Cut: OFF (P)';
+    }
+    // Turning it ON starts auto-preview: play through, skipping DELETE segments
+    // and substituting SWAP segments (handled in the timeupdate loop).
+    if (isPreviewCut && video && video.duration && video.paused && !reverseInterval) {
+        video.play();
     }
 }
 

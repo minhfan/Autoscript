@@ -22,6 +22,7 @@ let menuTargetIndex  = null;
 let isPreviewCut     = false;
 let previewState     = { active: false, logIndex: -1, phase: 0, restorePreviewCut: false };
 let originalPreviewCutState = null;
+let masterSwap       = null; // continuous swap substitution during master Preview-Cut
 
 // ── Resizing ─────────────────────────────────────────────────
 let isResizingV      = false;

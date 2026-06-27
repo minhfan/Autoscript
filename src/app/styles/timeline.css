@@ -69,6 +69,17 @@
     pointer-events: none;
     display: none;
     z-index: 3;
+    /* Glide between smart tags instead of snapping */
+    transition: left .25s cubic-bezier(.4, 0, .2, 1),
+                width .25s cubic-bezier(.4, 0, .2, 1),
+                background-color .2s ease;
+}
+
+/* Smooth the playhead/progress only during a user-initiated seek (added briefly,
+   removed so continuous playback stays frame-accurate). */
+#playheadIndicator.ph-smooth,
+#timelineProgress.ph-smooth {
+    transition: left .22s cubic-bezier(.4, 0, .2, 1), width .22s cubic-bezier(.4, 0, .2, 1);
 }
 
 /* ── Draft Marker ───────────────────────────────────────────── */

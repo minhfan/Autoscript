@@ -1,10 +1,11 @@
 {
   "name": "autoscript",
-  "version": "3.1.1",
+  "version": "3.2.0",
   "description": "Video Logging Tool",
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node scripts/test-richtext.cjs",
     "sync:app-source": "node scripts/build-app-source.js",
     "verify:refactor": "node scripts/verify-refactor.js",
     "sync:public": "node scripts/build-public.js",

@@ -25,6 +25,7 @@ export const APP_CSS_MODULES = [
 export const APP_JS_MODULES = [
   "src/app/js/constants.js",
   "src/app/js/timecode.js",
+  "src/app/js/richtext.js",
   "src/app/js/state.js",
   "src/app/js/shortcuts.js",
   "src/app/js/modals.js",

@@ -37,6 +37,8 @@ function renderTable() {
     const oldScrollTop = tw ? tw.scrollTop : 0;
     const tbody = document.getElementById('logBody');
     if (!tbody) return;
+    // Re-render destroys row wrappers; drop any floating SEND menu so it can't orphan.
+    if (typeof window.forceHideRowSendMenu === 'function') window.forceHideRowSendMenu();
     tbody.innerHTML = '';
     let count = 0;
 
@@ -80,9 +82,21 @@ function renderTable() {
                 <td class="td-tc" ${editable} onclick="window.jumpToTC(${index},'tcswap')" onblur="inlineUpdate(${index},'tcswap',this)">${swapVal ? escapeHtml(swapVal) : ''}</td>
                 <td class="td-text" ${editable} onclick="if(this.getAttribute('contenteditable')!=='true') window.jumpToTC(${index},'tcin')" onblur="inlineUpdate(${index},'script',this)">${escapeHtml(log.script)}</td>
                 <td class="td-text" ${editable} onclick="if(this.getAttribute('contenteditable')!=='true') window.jumpToTC(${index},'tcin')" onblur="inlineUpdate(${index},'note',this)">${escapeHtml(log.note)}</td>
-                <td class="td-delete"><span class="row-tools"><span class="send-tab-wrapper" onmouseenter="buildRowSendMenu(this, ${index})" onmouseleave="hideRowSendMenu(this)"><button class="btn-send" title="Send to Tab">SEND</button></span><button class="btn-delete" onclick="deleteLog(${index})" title="Delete">&#10006;</button></span></td>
+                <td class="td-delete"><span class="row-tools"><span class="send-tab-wrapper"><button class="btn-send" title="Send to Tab" onclick="toggleRowSendMenu(event, this.parentElement, ${index})">SEND</button></span><button class="btn-delete" onclick="deleteLog(${index})" title="Delete">&#10006;</button></span></td>
             </tr>`;
     });
+
+    if (count === 0) {
+        const isFiltered = logs.length > 0;
+        const msg = isFiltered
+            ? 'Không có dòng nào khớp bộ lọc / tìm kiếm.'
+            : 'Chưa có log nào. Đánh dấu <b>TC IN</b> trên video để bắt đầu ghi.';
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="9">
+            <div class="empty-state">
+                <div class="empty-state-icon">${isFiltered ? '🔍' : '🎬'}</div>
+                <div class="empty-state-text">${msg}</div>
+            </div></td></tr>`;
+    }
 
     const logCount = document.getElementById('logCount');
     if (logCount) logCount.innerText = count;
@@ -180,22 +194,45 @@ function drawMarkers() {
             if (!gt) {
                 gt = document.createElement('div');
                 gt.id = 'globalTooltip';
-                gt.style.cssText = `display:none; flex-direction:column; align-items:flex-start; gap:4px; padding:8px 12px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.2); border-radius:8px; z-index:99999; position:fixed; pointer-events:none; max-width:500px; box-shadow:0 4px 12px rgba(0,0,0,0.5);`;
+                gt.style.cssText = `display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:8px 12px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.2); border-radius:8px; z-index:99999; position:fixed; pointer-events:none; max-width:500px; box-shadow:0 4px 12px rgba(0,0,0,0.5); opacity:0; visibility:hidden; transform:translate(-50%,-100%) translateY(6px); transition:opacity .18s ease, transform .18s ease;`;
                 document.body.appendChild(gt);
             }
+            if (gt._hideTimer) { clearTimeout(gt._hideTimer); gt._hideTimer = null; }
+            if (gt._visTimer) { clearTimeout(gt._visTimer); gt._visTimer = null; }
             gt.style.background = `${colorHex}F2`;
             gt.innerHTML = `<span style="font-size:12px;text-align:left;white-space:pre-wrap;color:white;line-height:1.4;text-shadow:0 1px 2px rgba(0,0,0,0.8);">${tooltipContent}</span>`;
-            gt.style.display = 'flex';
             const pill = marker.querySelector('.action-pill');
             const rect = (pill || marker).getBoundingClientRect();
-            gt.style.left      = (rect.left + rect.width / 2) + 'px';
-            gt.style.top       = (rect.top - 10) + 'px';
-            gt.style.transform = 'translate(-50%, -100%)';
+
+            // Clamp into the viewport; flip below the tag if it would overflow the top.
+            const margin = 8;
+            const tw = gt.offsetWidth || 200;
+            const th = gt.offsetHeight || 60;
+            let centerX = rect.left + rect.width / 2;
+            centerX = Math.max(margin + tw / 2, Math.min(window.innerWidth - margin - tw / 2, centerX));
+            const flipBelow = (rect.top - 10 - th) < margin;
+            const baseY = flipBelow ? '0%' : '-100%';
+            gt._baseY = baseY;
+            gt.style.left = centerX + 'px';
+            gt.style.top  = (flipBelow ? rect.bottom + 10 : rect.top - 10) + 'px';
+            gt.style.transform = `translate(-50%, ${baseY}) translateY(6px)`;
+            // Show on the next frame so the transition runs from the hidden state.
+            requestAnimationFrame(() => {
+                gt.style.opacity = '1';
+                gt.style.visibility = 'visible';
+                gt.style.transform = `translate(-50%, ${baseY}) translateY(0)`;
+            });
         });
 
         marker.addEventListener('mouseleave', () => {
             const gt = document.getElementById('globalTooltip');
-            if (gt) gt.style.display = 'none';
+            if (!gt) return;
+            // Small delay so moving between adjacent tags doesn't flicker.
+            gt._hideTimer = setTimeout(() => {
+                gt.style.opacity = '0';
+                gt.style.transform = `translate(-50%, ${gt._baseY || '-100%'}) translateY(6px)`;
+                gt._visTimer = setTimeout(() => { gt.style.visibility = 'hidden'; }, 180);
+            }, 80);
         });
 
         timelineWrapper.appendChild(marker);

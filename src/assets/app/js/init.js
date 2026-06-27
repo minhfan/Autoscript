@@ -28,18 +28,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const el = document.getElementById(id);
         if (el) {
             Object.defineProperty(el, 'value', {
-                get: function() { 
-                    let html = this.innerHTML;
-                    html = html.replace(/<div><br><\/div>/gi, '\n');
-                    html = html.replace(/<div>/gi, '\n');
-                    html = html.replace(/<\/div>/gi, '');
-                    html = html.replace(/<p>/gi, '\n');
-                    html = html.replace(/<\/p>/gi, '');
-                    html = html.replace(/<br>/gi, '\n');
-                    return html;
+                get: function() {
+                    // Canonical minimal HTML (<b>/<i>/<s>/<u> + "\n"), paste-safe.
+                    return (typeof normalizeEditorHtml === 'function')
+                        ? normalizeEditorHtml(this.innerHTML)
+                        : this.innerHTML;
                 },
-                set: function(val) { 
-                    this.innerHTML = String(val).replace(/\n/g, '<br>'); 
+                set: function(val) {
+                    this.innerHTML = String(val == null ? '' : val).replace(/\n/g, '<br>');
                 }
             });
         }
@@ -266,11 +262,12 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
             togglePlayback();
         });
     }
-    video.addEventListener('play',  () => { updateToolbarPlayState(); if (tcAutoSelected) clearAutoSelectedTC(); });
-    video.addEventListener('pause', updateToolbarPlayState);
+    video.addEventListener('play',  () => { updateToolbarPlayState(); if (tcAutoSelected) clearAutoSelectedTC(); startPlaybackLoop(); });
+    video.addEventListener('pause', () => { updateToolbarPlayState(); stopPlaybackLoop(); });
     video.addEventListener('seeked', () => {
         if (tcJumpWait) { tcJumpWait = false; }
         else if (tcAutoSelected) { clearAutoSelectedTC(); }
+        renderPlaybackFrame(); // one-shot render on seek for frame-accurate display
     });
 
     // Play Reverse
@@ -279,16 +276,16 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
             if (!video.paused) video.pause();
             if (reverseInterval) {
                 clearInterval(reverseInterval); reverseInterval = null;
-                btnPlayReverse.classList.remove('active'); updateToolbarPlayState();
+                btnPlayReverse.classList.remove('active'); updateToolbarPlayState(); stopPlaybackLoop();
             } else {
                 reverseInterval = setInterval(() => {
                     if (video.currentTime <= 0.05) {
                         clearInterval(reverseInterval); reverseInterval = null;
                         btnPlayReverse.classList.remove('active');
-                        video.currentTime = 0; updateToolbarPlayState();
+                        video.currentTime = 0; updateToolbarPlayState(); stopPlaybackLoop();
                     } else { video.currentTime -= 0.05; }
                 }, 50);
-                btnPlayReverse.classList.add('active'); updateToolbarPlayState();
+                btnPlayReverse.classList.add('active'); updateToolbarPlayState(); startPlaybackLoop();
             }
         });
     }
@@ -296,7 +293,8 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
     // Big timecode
     const bigTc = document.getElementById('bigTimecode');
     if (bigTc) {
-        bigTc.addEventListener('click', function() {
+        bigTc.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
             navigator.clipboard.writeText(this.innerText);
             this.style.color = 'var(--success)';
             setTimeout(() => { this.style.color = 'var(--accent)'; }, 500);
@@ -328,11 +326,15 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
     const btnPreviewCut = document.getElementById('btnPreviewCut');
     if (btnPreviewCut) btnPreviewCut.addEventListener('click', togglePreviewCut);
 
-    // Time update loop
-    video.addEventListener('timeupdate', () => {
+    // ── Frame-accurate TC display loop (requestAnimationFrame) ──
+    // timeupdate fires ~4x/sec causing frame jumps. rAF fires at
+    // display refresh rate (~60Hz) for smooth per-frame TC display.
+    let _playbackRAF = null;
+
+    function renderPlaybackFrame() {
+        if (!video || !video.duration) return;
         const ct = video.currentTime;
-        if (!video.duration) return;
-        const pct     = (ct / video.duration) * 100;
+        const pct = (ct / video.duration) * 100;
         const progress = document.getElementById('timelineProgress');
         const playhead = document.getElementById('playheadIndicator');
         if (progress) progress.style.width = pct + '%';
@@ -345,6 +347,32 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
         if (activeInSec   === null && valTcIn)  valTcIn.innerText  = formatTC(ct);
         if (activeOutSec  === null && valTcOut)  valTcOut.innerText = formatTC(ct);
         if (activeSwapSec === null && valTcSwap) valTcSwap.innerText = formatTC(ct);
+
+        if (activeInSec !== null && activeOutSec === null) updateActiveRange();
+    }
+
+    function playbackLoop() {
+        renderPlaybackFrame();
+        if (!video.paused || reverseInterval) {
+            _playbackRAF = requestAnimationFrame(playbackLoop);
+        } else {
+            _playbackRAF = null;
+        }
+    }
+
+    function startPlaybackLoop() {
+        if (!_playbackRAF) _playbackRAF = requestAnimationFrame(playbackLoop);
+    }
+
+    function stopPlaybackLoop() {
+        if (_playbackRAF) { cancelAnimationFrame(_playbackRAF); _playbackRAF = null; }
+        renderPlaybackFrame(); // final render for paused frame
+    }
+
+    // Time update loop (lower-frequency logic: row highlight, preview cut, preview state)
+    video.addEventListener('timeupdate', () => {
+        const ct = video.currentTime;
+        if (!video.duration) return;
 
         let activeColor = 'var(--text-main)';
         for (let i = 0; i < logs.length; i++) {
@@ -360,8 +388,6 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
             }
         }
         if (bigTc) bigTc.style.color = activeColor;
-
-        if (activeInSec !== null && activeOutSec === null) updateActiveRange();
 
         // Preview Cut skip
         if (isPreviewCut) {
@@ -405,14 +431,19 @@ if (uploadCenter) uploadCenter.addEventListener('change', handleVideoUpload);
 // ── TC Jump Overlay ───────────────────────────────────────────
 document.getElementById('tcJumpGo').addEventListener('click',    executeTimecodeJump);
 document.getElementById('tcJumpClose').addEventListener('click', hideTimecodeJump);
+const tcJumpInput = document.getElementById('tcJumpInput');
+if (tcJumpInput) {
+    tcJumpInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); executeTimecodeJump(); }
+    });
+}
 
 // ── Import Button ─────────────────────────────────────────────
 const btnToolbarImport = document.getElementById('btnToolbarImport');
 if (btnToolbarImport) btnToolbarImport.addEventListener('click', saveLog);
 
-// ── Sync Sheets ───────────────────────────────────────────────
-const btnSyncSheets = document.getElementById('btnSyncSheets');
-if (btnSyncSheets) btnSyncSheets.addEventListener('click', syncToGoogleSheets);
+// ── Sync / Export Menu ────────────────────────────────────────
+initSyncMenu();
 
 // ── Message Modal Close ───────────────────────────────────────
 const btnCloseMsg = document.getElementById('btnCloseMessageModal');

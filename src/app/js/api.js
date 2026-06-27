@@ -221,7 +221,7 @@ async function syncToGoogleSheets() {
         const writeData = await writeRes.json();
         if (writeData.status === 'error') throw new Error(writeData.message || 'Lỗi từ Google Apps Script');
 
-        openMessageModal('Đồng bộ Google Sheets', 'Đồng bộ qua hệ thống thành công.\nVui lòng kiểm tra file Google Sheets của bạn.');
+        showToast('Đồng bộ Google Sheets thành công', 'success');
     } catch (error) {
         console.error('[API SYNC ERROR]', error);
         openMessageModal('Lỗi đồng bộ', error.message || 'Không thể gửi yêu cầu đồng bộ.');

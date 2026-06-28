@@ -200,7 +200,7 @@ function drawMarkers() {
             if (!tip) {
                 tip = document.createElement('div');
                 tip.className = 'marker-tip';
-                tip.style.cssText = `display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:8px 12px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.2); border-radius:8px; z-index:99999; position:fixed; pointer-events:none; max-width:500px; box-shadow:0 4px 12px rgba(0,0,0,0.5); opacity:0; transition:opacity .18s ease, transform .18s ease;`;
+                tip.style.cssText = `display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:8px 12px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.2); border-radius:8px; z-index:99999; position:fixed; pointer-events:none; max-width:500px; box-shadow:0 4px 12px rgba(0,0,0,0.5); opacity:0; transition:opacity .18s ease;`;
                 document.body.appendChild(tip);
                 marker._tip = tip;
             }
@@ -222,11 +222,9 @@ function drawMarkers() {
             tip._baseY = baseY;
             tip.style.left = centerX + 'px';
             tip.style.top  = (flipBelow ? rect.bottom + 10 : rect.top - 10) + 'px';
-            tip.style.transform = `translate(-50%, ${baseY}) translateY(6px)`;
-            requestAnimationFrame(() => {
-                tip.style.opacity = '1';
-                tip.style.transform = `translate(-50%, ${baseY}) translateY(0)`;
-            });
+            tip.style.transform = `translate(-50%, ${baseY})`;
+            // Fade only (no slide) so it's less distracting.
+            requestAnimationFrame(() => { tip.style.opacity = '1'; });
         });
 
         marker.addEventListener('mouseleave', () => {
@@ -234,7 +232,6 @@ function drawMarkers() {
             if (!tip) return;
             tip._hideTimer = setTimeout(() => {
                 tip.style.opacity = '0';
-                tip.style.transform = `translate(-50%, ${tip._baseY || '-100%'}) translateY(6px)`;
                 tip._removeTimer = setTimeout(() => {
                     tip.remove();
                     if (marker._tip === tip) marker._tip = null;
